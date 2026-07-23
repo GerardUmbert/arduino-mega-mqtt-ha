@@ -1,4 +1,27 @@
+# Config con credenciales reales (IP/usuario/password MQTT) — nunca subir
+config.h
+
+# Arduino / compilación
 *.hex
 *.elf
+*.bin
+*.o
 build/
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# Editores / IDEs
 .vscode/
+.vs/
+*.code-workspace
+
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backups / temporales
+*.bak
+*.tmp
+*~

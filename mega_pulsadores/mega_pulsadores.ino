@@ -1,7 +1,8 @@
 // ===========================================================
 // MEGA_PULSADORES
 // Lee pulsadores físicos y envía eventos MQTT (device triggers)
-// a Home Assistant: pulsación corta, doble, triple y larga.
+// a Home Assistant: pulsación corta, doble, triple, cuádruple,
+// quíntuple y larga.
 // No controla ningún relé. Solo ENVÍA información.
 //
 // Mismo firmware para las 2 unidades físicas (A y B):
@@ -18,17 +19,12 @@
 #include <OneButton.h>
 
 // ===========================================================
-// CONFIGURACIÓN DE RED — EDITAR SEGÚN TU INSTALACIÓN
+// CONFIGURACIÓN DE RED
+// Copia "config.h.example" como "config.h" en esta misma carpeta
+// y rellena tu IP/usuario/password reales. "config.h" está en
+// .gitignore, así que tus credenciales no se suben al repositorio.
 // ===========================================================
-
-// IP de tu Home Assistant / servidor Mosquitto.
-// No se autodetecta: reserva esta IP en tu router (DHCP estático)
-// para que nunca cambie, y ponla aquí.
-#define BROKER_ADDR IPAddress(192, 168, 1, 50)
-
-// Usuario/contraseña del broker MQTT (los que configuraste en Mosquitto)
-#define MQTT_USER "usuario_mqtt"
-#define MQTT_PASS "password_mqtt"
+#include "config.h"
 
 // ===========================================================
 // IDENTIFICACIÓN DE LA PLACA (para subir el MISMO firmware
@@ -60,25 +56,41 @@ HADevice device(mac, sizeof(mac));
 // Evita los pines reservados por el shield Ethernet:
 //   SPI: 50 (MISO), 51 (MOSI), 52 (SCK), 53 (SS)
 //   CS del chip Ethernet: normalmente el pin 10
+//
+// ⚠️⚠️ IMPORTANTE — EL ORDEN DE ESTE ARRAY IMPORTA ⚠️⚠️
+// El unique_id de cada pulsador (boton_01, boton_02...) se genera SOLO
+// por la POSICIÓN de cada pin en esta lista, no por el número de pin
+// en sí. Ejemplo: boton_05 = el 5º pin de la lista, sea cual sea.
+//
+// Una vez subido el firmware Y renombrados los device triggers en Home
+// Assistant (p. ej. boton_05 → "Interruptor Dormitorio 1"), NO
+// reordenes ni insertes/borres pines EN MEDIO de esta lista: todo lo
+// que va detrás se desplaza de posición y boton_05 pasaría a ser otro
+// pulsador físico distinto. Si necesitas añadir un pulsador nuevo más
+// adelante, añade su pin SIEMPRE AL FINAL de la lista, nunca en medio.
 // ===========================================================
 const uint8_t PINES_BOTONES[] = {
     2, 3, 4, 5, 6, 7, 8, 9,
     14, 15, 16, 17, 18, 19,
     24, 25, 26, 27, 28, 29
-    // añade más pines aquí si tienes más pulsadores en esta unidad
+    // añade más pines aquí, SIEMPRE AL FINAL, si tienes más pulsadores
 };
 const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 
-// 4 triggers por pulsador (corta, doble, triple, larga) + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * 4 + 2);
+// 6 triggers por pulsador (corta, doble, triple, cuádruple, quíntuple,
+// larga) + margen
+HAMqtt mqtt(client, device, NUM_PULSADORES * 6 + 2);
 
 OneButton* botones[NUM_PULSADORES];
 
-// Orden deliberado: corta -> doble -> triple (progresión 1-2-3
-// pulsaciones), y larga aparte, al final, como caso especial.
+// Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
+// (progresión 1-2-3-4-5 pulsaciones), y larga aparte, al final, como
+// caso especial.
 HADeviceTrigger* corta[NUM_PULSADORES];
 HADeviceTrigger* doble[NUM_PULSADORES];
 HADeviceTrigger* triple[NUM_PULSADORES];
+HADeviceTrigger* cuadruple[NUM_PULSADORES];
+HADeviceTrigger* quintuple[NUM_PULSADORES];
 HADeviceTrigger* larga[NUM_PULSADORES];
 
 // Buffers de texto para los IDs. Deben ser globales (viven todo el
@@ -99,7 +111,7 @@ void setup() {
     char nombre[26];
     snprintf(nombre, sizeof(nombre), "Mega Pulsadores %c", deviceId == 0 ? 'A' : 'B');
     device.setName(nombre);
-    device.setSoftwareVersion("1.0.0");
+    device.setSoftwareVersion("1.1.0");
 
     // --- creamos cada pulsador y sus 4 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -107,10 +119,12 @@ void setup() {
 
         botones[i] = new OneButton(PINES_BOTONES[i], true); // true = INPUT_PULLUP, activo en LOW
 
-        corta[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,  idBoton[i]);
-        doble[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType, idBoton[i]);
-        triple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonTriplePressType, idBoton[i]);
-        larga[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,   idBoton[i]);
+        corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
+        doble[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType,    idBoton[i]);
+        triple[i]    = new HADeviceTrigger(HADeviceTrigger::ButtonTriplePressType,    idBoton[i]);
+        cuadruple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuadruplePressType, idBoton[i]);
+        quintuple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuintuplePressType, idBoton[i]);
+        larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
 
         int idx = i; // captura por VALOR: evita que todas las lambdas
                      // acaben apuntando al último valor de "i" del bucle
@@ -123,11 +137,14 @@ void setup() {
             doble[idx]->trigger();
         });
 
-        // OneButton no tiene "attachTripleClick" propio: se usa
-        // attachMultiClick y se filtra el número exacto de clics.
+        // OneButton no tiene "attachTripleClick"/"attachQuadrupleClick"/
+        // "attachQuintupleClick" propios: se usa attachMultiClick (una
+        // sola vez) y se filtra el número exacto de clics detectados.
         botones[i]->attachMultiClick([idx](){
-            if (botones[idx]->getNumberClicks() == 3) {
-                triple[idx]->trigger();
+            switch (botones[idx]->getNumberClicks()) {
+                case 3: triple[idx]->trigger();    break;
+                case 4: cuadruple[idx]->trigger(); break;
+                case 5: quintuple[idx]->trigger(); break;
             }
         });
 

@@ -16,16 +16,12 @@
 #include <ArduinoHA.h>
 
 // ===========================================================
-// CONFIGURACIÓN DE RED — EDITAR SEGÚN TU INSTALACIÓN
+// CONFIGURACIÓN DE RED
+// Copia "config.h.example" como "config.h" en esta misma carpeta
+// y rellena tu IP/usuario/password reales. "config.h" está en
+// .gitignore, así que tus credenciales no se suben al repositorio.
 // ===========================================================
-
-// IP de tu Home Assistant / servidor Mosquitto.
-// No se autodetecta: reserva esta IP en tu router (DHCP estático)
-// para que nunca cambie, y ponla aquí.
-#define BROKER_ADDR IPAddress(192, 168, 1, 50)
-
-#define MQTT_USER "usuario_mqtt"
-#define MQTT_PASS "password_mqtt"
+#include "config.h"
 
 // ===========================================================
 // IDENTIFICACIÓN DE LA PLACA (para subir el MISMO firmware
@@ -58,11 +54,24 @@ HADevice device(mac, sizeof(mac));
 // ===========================================================
 // LUCES — ⚠️ EDITAR SEGÚN LO QUE TENGAS CABLEADO EN ESTA UNIDAD ⚠️
 // Un pin por luz (activa el relé correspondiente).
+//
+// ⚠️⚠️ IMPORTANTE — EL ORDEN DE ESTE ARRAY IMPORTA ⚠️⚠️
+// El unique_id de cada luz (luz_01, luz_02...) se genera SOLO por la
+// POSICIÓN de cada pin en esta lista, no por el número de pin en sí.
+// Ejemplo: luz_05 = el 5º pin de la lista, sea cual sea.
+//
+// Una vez subido el firmware Y renombradas las entidades en Home
+// Assistant (p. ej. luz_05 → "Luz Dormitorio 1"), NO reordenes ni
+// insertes/borres pines EN MEDIO de esta lista: todo lo que va detrás
+// se desplaza de posición y luz_05 pasaría a ser otro pin físico
+// distinto (la "Luz Dormitorio 1" en HA encendería sin querer otra
+// luz). Si necesitas añadir una luz nueva más adelante, añade su pin
+// SIEMPRE AL FINAL de la lista, nunca en medio.
 // ===========================================================
 const uint8_t PINES_LUCES[] = {
     22, 23, 24, 25, 26, 27, 28, 29,
     30, 31, 32, 33, 34, 35, 36, 37
-    // añade/quita pines según las luces que controle ESTA unidad
+    // añade más pines aquí, SIEMPRE AL FINAL, si tienes más luces
 };
 const int NUM_LUCES = sizeof(PINES_LUCES) / sizeof(PINES_LUCES[0]);
 
@@ -71,13 +80,18 @@ const int NUM_LUCES = sizeof(PINES_LUCES) / sizeof(PINES_LUCES[0]);
 // Cada persiana usa 2 pines: relé de "subir" y relé de "bajar".
 // Nunca deben ir a HIGH los dos a la vez (protección por software
 // más abajo, en RETARDO_INVERSION_MS).
+//
+// ⚠️⚠️ MISMA REGLA QUE LAS LUCES: EL ORDEN IMPORTA ⚠️⚠️
+// persiana_03 = el 3er par de la lista, por posición. Una vez
+// renombrado en HA, no reordenes ni insertes/borres pares EN MEDIO de
+// esta lista. Añade pares nuevos SIEMPRE AL FINAL.
 // ===========================================================
 struct ParPines { uint8_t subir; uint8_t bajar; };
 
 const ParPines PINES_PERSIANAS[] = {
     {38, 39}, {41, 42}, {43, 44}, {45, 46},
     {47, 48}, {49, A0},  {A1, A2}, {A3, A4}
-    // añade/quita pares según las persianas que controle ESTA unidad
+    // añade más pares aquí, SIEMPRE AL FINAL, si tienes más persianas
     // (A0-A15 también funcionan como pines digitales normales en el Mega)
 };
 const int NUM_PERSIANAS = sizeof(PINES_PERSIANAS) / sizeof(PINES_PERSIANAS[0]);
@@ -157,7 +171,7 @@ void setup() {
     char nombre[26];
     snprintf(nombre, sizeof(nombre), "Mega Dispositivos %c", deviceId == 0 ? 'A' : 'B');
     device.setName(nombre);
-    device.setSoftwareVersion("1.0.0");
+    device.setSoftwareVersion("1.1.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {

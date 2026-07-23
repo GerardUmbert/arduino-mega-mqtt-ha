@@ -61,53 +61,54 @@ byte `[3]` para distinguir familia (`0x01` = mega_pulsadores,
     https://github.com/dawidchyrzynski/arduino-home-assistant/blob/main/examples/cover/cover.ino
   - Ejemplo switch múltiple (luces):
     https://github.com/dawidchyrzynski/arduino-home-assistant/blob/main/examples/multi-switch/multi-switch.ino
-- **OneButton** — detección de pulsación corta/doble/triple/larga (JC_Button
-  del ejemplo oficial NO sirve para esto, solo corta/larga).
-  Repo: https://github.com/mathertel/OneButton
+- **OneButton** — detección real de pulsación corta/doble/triple/cuádruple/
+  quíntuple/larga. Repo: https://github.com/mathertel/OneButton
+  - Importante no confundir: `ArduinoHA` (clase `HADeviceTrigger`) YA
+    define en su enum `TriggerType` los 8 tipos built-in
+    (`ButtonShortPressType`, `ButtonShortReleaseType`, `ButtonLongPressType`,
+    `ButtonLongReleaseType`, `ButtonDoublePressType`, `ButtonTriplePressType`,
+    `ButtonQuadruplePressType`, `ButtonQuintuplePressType`) — esto siempre
+    ha estado en la librería. Pero esos valores son solo el NOMBRE del
+    evento que se publica por MQTT discovery; ArduinoHA no lee pines ni
+    cuenta clics por sí misma.
+  - El ejemplo oficial de device trigger (`multi-state-button.ino`) usa
+    `JC_Button` para la detección física, que SOLO distingue corta y larga
+    (no cuenta multi-click), así que ese ejemplo deja sin usar
+    double/triple/quadruple/quintuple aunque el enum ya los tuviera.
+  - Por eso se sustituyó `JC_Button` por `OneButton`: sí detecta
+    multi-click (vía `attachMultiClick` + conteo exacto de clics) además
+    de pulsación larga, con debounce incluido.
 
 ## Arquitectura de entidades en Home Assistant
 
 - **mega_pulsadores (A y B)**: no crean entidades de estado, solo
   `HADeviceTrigger` (device triggers) — aparecen en HA como "Device" en
   el trigger de una automatización, no como entidad con estado.
-  - Por cada pulsador (`boton_01`, `boton_02`, ...) hay 4 triggers:
+  - Por cada pulsador (`boton_01`, `boton_02`, ...) hay 6 triggers:
     `ButtonShortPressType`, `ButtonDoublePressType`, `ButtonTriplePressType`,
-    `ButtonLongPressType` (en ese orden en el código: 1-2-3 pulsaciones
-    primero, larga aparte al final).
+    `ButtonQuadruplePressType`, `ButtonQuintuplePressType`,
+    `ButtonLongPressType` (en ese orden en el código: 1-2-3-4-5 pulsaciones
+    primero, larga aparte al final). El enum de ArduinoHA también define
+    `ButtonShortReleaseType` y `ButtonLongReleaseType`, que este proyecto
+    no usa.
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_01`, `luz_02`, ...) — on/off.
   - `HACover` por persiana (`persiana_01`, `persiana_02`, ...) — soporta
     `CommandOpen` / `CommandClose` / `CommandStop`. Parar = poner los dos
     relés (subir/bajar) a LOW simultáneamente.
 
-## Configuración de red pendiente de rellenar en los 4 sketches
-
-- `BROKER_ADDR`: IP de Home Assistant / Mosquitto. Debe reservarse por
-  DHCP estático en el router para que no cambie. No hay autodetección.
-- `MQTT_USER` / `MQTT_PASS`: credenciales del broker Mosquitto.
-- `PINES_BOTONES` (mega_pulsadores) y `PINES_LUCES` / `PINES_PERSIANAS`
-  (mega_dispositivos): listas de pines reales, distintas en cada una de
-  las 2 unidades de cada rol según lo que tengan cableado físicamente.
-
-## Estado actual / pendiente de decidir
+## Estado actual
 
 - [x] Arquitectura general definida (2 roles x 2 unidades, sin MCP23017).
-- [x] Sketch base de `mega_pulsadores` con 4 tipos de pulsación.
+- [x] Sketch base de `mega_pulsadores` con 6 tipos de pulsación (corta,
+      doble, triple, cuádruple, quíntuple, larga).
 - [x] Sketch base de `mega_dispositivos` con luces + persianas + stop.
 - [x] Mosquitto ya instalado y funcionando en Home Assistant.
-- [ ] Rellenar `BROKER_ADDR`, credenciales MQTT y listas de pines reales
-      en las 4 copias del firmware (2 pulsadores + 2 dispositivos).
-- [ ] Verificar en HA (Ajustes → Dispositivos y servicios → MQTT) que
-      las 4 unidades aparecen correctamente diferenciadas (A/B) sin IDs
-      duplicados.
-- [ ] Definir el mapeo de pulsaciones por botón → acción sobre
-      luz/persiana (p. ej. corta = abrir/encender, doble = cerrar/apagar,
-      larga = parar persiana). Aún no cerrado.
-- [ ] Crear las automatizaciones en HA que conectan cada pulsador con su
-      luz/persiana correspondiente (pendiente decidir: UI manual una a
-      una, o YAML con plantilla para no repetir docenas de automatizaciones).
-- [ ] Ajustar timings de `OneButton` si los tiempos por defecto (400ms
-      para doble/triple, 1000ms para larga) no encajan con el uso real.
+
+Para la lista de tareas pendientes (configuración de red, pines reales,
+jumper A/B, automatizaciones en HA, ajustes de timing, etc.) ver
+[todo.md](todo.md) — es la única fuente de verdad para pendientes, para
+evitar tener dos listas que se puedan desincronizar.
 
 ## Notas de seguridad/hardware a mantener
 
