@@ -48,20 +48,22 @@ Dos formas de combinarlo, de más a menos redundante:
 - **Relé siempre encendido, Zigbee hace el on/off/brillo real**: el
   relé se deja permanentemente cerrado (o se quita del wiring de esa
   luz) y toda la lógica on/off/brillo vive en la bombilla Zigbee vía
-  HA. Más simple, pero pierdes el corte físico por MQTT si Zigbee
+  HA. Más simple, pero pierdes el corte físico por pulsador si Zigbee
   falla. No necesita automatización, solo wiring/configuración.
-- **Relé como respaldo ante apagón/fallo** — esto es lo que hace
-  `luz_zigbee_respaldo.yaml`: al arrancar HA o al recuperar conexión
-  MQTT tras un corte, fuerza el relé de esa luz a ON. Opcionalmente
-  (input `aplicar_estado_por_defecto`), espera a que la bombilla
-  Zigbee vuelva a reportar estado y le aplica un brillo por defecto —
-  en vez de asumir que "relé ON" y "bombilla ya controlable desde HA"
-  pasan a la vez. Los dispositivos Zigbee tardan en reunirse a la
-  malla tras un corte de corriente, no es instantáneo como MQTT; si no
-  reaparece dentro de `espera_maxima_zigbee_minutos`, el relé se queda
-  en ON de todas formas pero no se le manda brillo. El día a día
-  normal (toggle, dimming) sigue siendo 100% Zigbee — el relé no se
-  vuelve a tocar salvo en este escenario de recuperación.
+- **Relé como respaldo, controlado por el pulsador físico** — esto es
+  lo que hace `luz_zigbee_respaldo.yaml`: al pulsar el botón físico
+  (pulsación corta), el relé se fuerza a ON siempre, esté como esté —
+  no es un toggle. Sirve como garantía de "esta luz tiene corriente
+  pase lo que pase" sin depender de que el relé ya estuviera bien.
+  **Importante**: nada de esto se dispara solo porque HA o MQTT
+  arranquen o se reconecten — el único disparador del relé es el
+  pulsador físico. La bombilla Zigbee tiene su propio comportamiento
+  de recuperación tras un corte de corriente (normalmente vuelve a su
+  último estado por su cuenta); si quieres que HA además le aplique un
+  brillo/temperatura por defecto cuando eso pase, eso es la segunda
+  parte del blueprint (`adaptar_al_volver`, ver abajo) — dos cosas
+  independientes, no una cadena automática "arranca HA → enciende
+  luz".
 
 ### Temperatura de color por hora del día (opcional, mismo blueprint)
 
@@ -86,11 +88,14 @@ Una instancia por cada luz Zigbee que tenga relé de respaldo:
    `luz_zigbee_respaldo.yaml` → Crear automatización.
 2. **Relé**: el `switch.*` de `mega_dispositivos` para esa luz.
 3. **Bombilla Zigbee**: la entidad `light.*` real.
-4. **Aplicar brillo por defecto al recuperar corriente**: actívalo solo
-   si quieres forzar un brillo concreto tras un corte; si lo dejas
-   desactivado, el relé se enciende y la bombilla arranca con su
+4. **Pulsador (device)** y **Subtype del botón**: el pulsador físico de
+   esta luz, cuya pulsación corta fuerza el relé a ON.
+5. **Adaptar brillo/temperatura cuando la bombilla vuelve a encenderse
+   sola**: actívalo solo si quieres forzar un brillo/temperatura
+   concreto cuando la bombilla Zigbee se reincorpore por su cuenta tras
+   un corte; si lo dejas desactivado, la bombilla se queda con su
    comportamiento propio (normalmente su último estado guardado).
-5. **Ajustar temperatura de color según la hora del día**: actívalo si
+6. **Ajustar temperatura de color según la hora del día**: actívalo si
    quieres el ciclo cálida/fría automático descrito arriba.
 
 Pendiente de concretar cuándo/si se compra la bombilla — el blueprint ya

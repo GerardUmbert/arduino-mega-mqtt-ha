@@ -32,13 +32,16 @@ número de versión sino el nombre del tag de este commit).
 - `home_assistant/blueprints/luz_zigbee_respaldo.yaml`: blueprint para
   luces cuyo brillo/temperatura de color se controla por una bombilla
   Zigbee (pensado para IKEA TRÅDFRI WW/CW) en vez de por el relé de
-  `mega_dispositivos`. Hace dos cosas independientes: (1) usa el relé
-  como corte de seguridad que se fuerza a ON al recuperar MQTT/arrancar
-  HA tras un corte, esperando a que la bombilla Zigbee reaparezca antes
-  de aplicarle un estado por defecto; (2) ajusta sola la temperatura de
-  color según la posición del sol (cálida de noche, neutra a mediodía),
-  sin encender/apagar la bombilla por su cuenta. Ninguna de las dos
-  cosas requiere cambios en `mega_dispositivos.ino`.
+  `mega_dispositivos`. Hace tres cosas independientes: (1) el pulsador
+  físico fuerza el relé a ON siempre, sin condición ni toggle — nada
+  enciende el relé ni la bombilla solo porque HA o MQTT arranquen o se
+  reconecten; (2) opcionalmente, cuando la bombilla Zigbee vuelve a
+  encenderse por su cuenta (su propia recuperación tras un corte), HA
+  le aplica un brillo/temperatura por defecto en vez de dejar lo que
+  decida ella sola; (3) ajusta sola la temperatura de color según la
+  posición del sol (cálida de noche, neutra a mediodía), sin
+  encender/apagar la bombilla por su cuenta. Ninguna de las tres cosas
+  requiere cambios en `mega_dispositivos.ino`.
 - `home_assistant/blueprints/luces_notas.md`: ideas de automatización
   para luces con los triggers libres (doble, cuádruple, quíntuple,
   larga) y detalle del enfoque de brillo/temperatura vía Zigbee en vez

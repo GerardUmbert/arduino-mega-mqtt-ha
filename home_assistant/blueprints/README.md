@@ -198,16 +198,22 @@ quíntuple, larga).
 
 Para una luz cuyo brillo/temperatura de color se controla por una
 bombilla Zigbee (no por `mega_dispositivos`, pensado para una IKEA
-TRÅDFRI WW/CW regulable). Hace dos cosas independientes, cada una
-activable por separado:
+TRÅDFRI WW/CW regulable). Hace tres cosas independientes:
 
-- **Respaldo ante corte**: el relé deja de ser el control normal y pasa
-  a ser un corte de seguridad ante fallo de red/apagón. Al arrancar HA
-  o recuperar MQTT, fuerza el relé a ON y, opcionalmente, espera a que
-  la bombilla Zigbee reaparezca antes de aplicarle un brillo por
-  defecto — sin asumir que el relé y la bombilla están listos a la
-  vez, porque Zigbee tarda en reunirse a la malla tras un corte.
-- **Temperatura de color por hora del día**: si se activa, cada 15
+- **Pulsador físico fuerza el relé a ON siempre, sin condición**: al
+  pulsar el botón (pulsación corta), el relé se enciende SIEMPRE, esté
+  como esté — no es un toggle. Así, si el relé se hubiera quedado en
+  OFF por lo que sea, pulsar el botón garantiza que la bombilla tiene
+  corriente en vez de depender de que el relé ya estuviera bien. Esta
+  acción no toca la bombilla Zigbee para nada — nada enciende la luz
+  solo porque HA o MQTT arrancan o se reconectan.
+- **Adaptar la bombilla cuando ella misma vuelve a encenderse**
+  (opcional): la bombilla Zigbee ya tiene su propio comportamiento de
+  recuperación tras un corte (normalmente vuelve a su último estado).
+  Cuando HA detecta que esa bombilla pasa a `on` por su cuenta,
+  opcionalmente le aplica un brillo/temperatura de color por defecto en
+  vez de dejar lo que la bombilla decidiera por sí sola.
+- **Temperatura de color por hora del día** (opcional): cada 15
   minutos ajusta la temperatura de color según la posición del sol
   (`sun.sun`) — cálida de noche, más neutra a mediodía. Solo actúa si
   la bombilla ya está encendida, nunca la enciende/apaga. El rango por
@@ -225,9 +231,13 @@ Una instancia por cada luz Zigbee con relé de respaldo:
    `luz_zigbee_respaldo.yaml` → Crear automatización.
 2. **Relé**: el `switch.*` de `mega_dispositivos` de esa luz.
 3. **Bombilla Zigbee**: la entidad `light.*` real.
-4. **Aplicar brillo por defecto al recuperar corriente**: opcional, ver
-   `luces_notas.md`.
-5. **Ajustar temperatura de color según la hora del día**: opcional,
+4. **Pulsador (device) que fuerza el relé a ON** y **Subtype del
+   botón**: el pulsador físico de esta luz — igual que en
+   `luz_pulsador.yaml`, elige el device MQTT y copia el subtype
+   (p. ej. `boton_22`) desde la UI al añadir el disparador.
+5. **Adaptar brillo/temperatura cuando la bombilla vuelve a encenderse
+   sola**: opcional, ver `luces_notas.md`.
+6. **Ajustar temperatura de color según la hora del día**: opcional,
    activa el ciclo automático cálida/fría. Ajusta
    `temp_calida_mireds`/`temp_fria_mireds` si tu bombilla tiene un
    rango distinto al de la IKEA TRÅDFRI WW/CW.

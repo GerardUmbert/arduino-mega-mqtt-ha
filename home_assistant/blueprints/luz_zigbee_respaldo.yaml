@@ -1,23 +1,31 @@
 blueprint:
-  name: Bombilla Zigbee — respaldo de corriente y temperatura de color por hora del día
+  name: Bombilla Zigbee — relé de respaldo, adaptación al volver y temperatura por hora del día
   description: >
     Para una luz cuyo brillo/temperatura de color se controla 100% por
     una bombilla Zigbee (no por `mega_dispositivos`): el relé de
     `mega_dispositivos` deja de ser "lo que enciende la luz" y pasa a
     ser solo un corte de seguridad — garantiza que la bombilla tiene
-    corriente. Este blueprint hace dos cosas independientes:
+    corriente. Este blueprint hace tres cosas independientes:
 
-    1. **Respaldo ante corte**: fuerza el relé a ON cada vez que se
-    recupera la conexión MQTT (broker/HA vuelven tras un corte), y
-    opcionalmente espera a que la bombilla Zigbee vuelva a estar
-    disponible antes de aplicarle un estado conocido (brillo +
-    temperatura de color), en vez de asumir que "relé ON" y "bombilla
-    ya controlable desde HA" pasan a la vez — los dispositivos Zigbee
-    tardan en reunirse a la malla tras un corte de corriente, no es
-    instantáneo como MQTT.
+    1. **Pulsador físico fuerza el relé a ON siempre, sin condición**:
+    al pulsar el botón (pulsación corta), el relé se enciende SIEMPRE,
+    esté como esté (on u off) — no es un toggle. Si el relé se hubiera
+    quedado en OFF por lo que sea, pulsar el botón garantiza que la
+    bombilla tiene corriente, en vez de depender de que el relé ya
+    estuviera en el estado correcto. Esta acción NO toca la bombilla
+    Zigbee — nada enciende la luz solo porque HA o MQTT arrancan o se
+    reconectan.
 
-    2. **Temperatura de color según la hora del día** (opcional,
-    independiente del respaldo): si se activa, cada pocos minutos
+    2. **Adaptar la bombilla cuando ella misma vuelve a encenderse**
+    (opcional): la propia bombilla Zigbee ya tiene su propio
+    comportamiento de recuperación tras un corte (normalmente vuelve a
+    su último estado). Cuando HA detecta que esa bombilla pasa a `on`
+    por su cuenta, opcionalmente le aplica un brillo/temperatura de
+    color por defecto en vez de dejar lo que la bombilla decidiera por
+    sí sola.
+
+    3. **Temperatura de color según la hora del día** (opcional,
+    independiente de lo anterior): si se activa, cada pocos minutos
     ajusta la temperatura de color de la bombilla según la posición del
     sol — cálida (relax, tipo bombilla incandescente) de noche, neutra/
     fría (más parecida a luz de día) a mediodía. Solo aplica si la
@@ -36,16 +44,30 @@ blueprint:
       selector:
         entity:
           domain: light
-    aplicar_estado_por_defecto:
-      name: Aplicar brillo por defecto al recuperar corriente
+    boton_device_id:
+      name: Pulsador (device) que fuerza el relé a ON
       description: >
-        Si se activa, en cuanto la bombilla Zigbee vuelva a reportarse
-        disponible tras el corte, se le aplica el brillo de abajo (y la
-        temperatura de color correspondiente a la hora actual, si el
-        ajuste automático de temperatura también está activado). Si se
-        desactiva, el relé se enciende igualmente pero la bombilla se
-        queda en el estado que decida por sí sola al recibir corriente
-        (normalmente su último estado guardado).
+        El dispositivo MQTT del pulsador físico de esta luz (Ajustes →
+        Dispositivos y servicios → MQTT → "Mega Pulsadores A/B").
+      selector:
+        device:
+          integration: mqtt
+    boton_subtype:
+      name: Subtype del botón
+      description: >
+        P. ej. "boton_22". Cópialo desde la UI al añadir el disparador
+        Device para evitar errores de tecleo.
+      selector:
+        text: {}
+    adaptar_al_volver:
+      name: Adaptar brillo/temperatura cuando la bombilla vuelve a encenderse sola
+      description: >
+        Si se activa, cada vez que la bombilla Zigbee pase a `on` por
+        su cuenta (su propio comportamiento tras recuperar corriente),
+        se le aplica el brillo de abajo (y la temperatura de color
+        correspondiente a la hora actual, si el ciclo automático
+        también está activado). Si se desactiva, la bombilla se queda
+        en el estado que decida por sí sola.
       default: false
       selector:
         boolean: {}
@@ -57,19 +79,6 @@ blueprint:
           min: 1
           max: 100
           unit_of_measurement: "%"
-    espera_maxima_zigbee_minutos:
-      name: Minutos máximos de espera a que la bombilla Zigbee reaparezca
-      description: >
-        Si pasa este tiempo sin que la bombilla vuelva a estar
-        disponible, se deja de esperar (el relé ya quedó en ON de
-        todas formas — esto solo afecta a si se llega a aplicar el
-        estado por defecto).
-      default: 10
-      selector:
-        number:
-          min: 1
-          max: 60
-          unit_of_measurement: min
     ajustar_temperatura_color:
       name: Ajustar temperatura de color según la hora del día
       description: >
@@ -107,19 +116,22 @@ blueprint:
           max: 454
 
 trigger:
-  - platform: homeassistant
-    event: start
-    id: recuperacion
-  - platform: mqtt
-    topic: homeassistant/status
-    payload: online
-    id: recuperacion
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_short_press
+    subtype: !input boton_subtype
+    id: pulsador
+  - platform: state
+    entity_id: !input zigbee_light_entity
+    to: "on"
+    id: bombilla_encendida
   - platform: time_pattern
     minutes: "/15"
     id: ciclo_temperatura
 
 variables:
-  aplicar_estado_por_defecto: !input aplicar_estado_por_defecto
+  adaptar_al_volver: !input adaptar_al_volver
   brillo_por_defecto_pct: !input brillo_por_defecto_pct
   ajustar_temperatura_color: !input ajustar_temperatura_color
   temp_calida_mireds: !input temp_calida_mireds
@@ -139,30 +151,34 @@ variables:
 
 action:
   - choose:
+      # --- Pulsador físico: fuerza el relé a ON siempre, sin condición
+      # ni toggle. No toca la bombilla Zigbee, solo garantiza corriente.
       - conditions:
           - condition: trigger
-            id: recuperacion
+            id: pulsador
         sequence:
           - service: switch.turn_on
             target:
               entity_id: !input relay_entity
-          - if:
-              - condition: template
-                value_template: "{{ aplicar_estado_por_defecto }}"
-            then:
-              - wait_for_trigger:
-                  - platform: state
-                    entity_id: !input zigbee_light_entity
-                timeout:
-                  minutes: !input espera_maxima_zigbee_minutos
-                continue_on_timeout: false
-              - service: light.turn_on
-                target:
-                  entity_id: !input zigbee_light_entity
-                data:
-                  brightness_pct: "{{ brillo_por_defecto_pct }}"
-                  color_temp: >-
-                    {{ mireds_objetivo if ajustar_temperatura_color else omit }}
+
+      # --- La bombilla Zigbee ha vuelto a encenderse por su cuenta
+      # (recuperación propia tras un corte, o cualquier otro motivo):
+      # opcionalmente se le aplica un brillo/temperatura por defecto.
+      - conditions:
+          - condition: trigger
+            id: bombilla_encendida
+          - condition: template
+            value_template: "{{ adaptar_al_volver }}"
+        sequence:
+          - service: light.turn_on
+            target:
+              entity_id: !input zigbee_light_entity
+            data:
+              brightness_pct: "{{ brillo_por_defecto_pct }}"
+              color_temp: >-
+                {{ mireds_objetivo if ajustar_temperatura_color else omit }}
+
+      # --- Ciclo de temperatura de color según la hora del día.
       - conditions:
           - condition: trigger
             id: ciclo_temperatura
