@@ -4,8 +4,9 @@
 // de luces y persianas correspondientes.
 // No lee ningún pulsador. Solo RECIBE órdenes y las ejecuta.
 //
-// Mismo firmware para las 2 unidades físicas (A y B):
-// la identidad se resuelve sola con un jumper (ver más abajo).
+// Mismo firmware para las 2 unidades físicas (A y B): la identidad
+// (pines, MAC, nombre) se decide en TIEMPO DE COMPILACIÓN con
+// PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
@@ -23,24 +24,43 @@
 // ===========================================================
 #include "config.h"
 
-// ===========================================================
-// IDENTIFICACIÓN DE LA PLACA (para subir el MISMO firmware
-// a las 2 unidades de mega_dispositivos sin tocar código)
-// ===========================================================
-// Pin usado como jumper de identidad.
-// Unidad A: pin AL AIRE (sin conectar nada).
-// Unidad B: pin puenteado con un cable a cualquier GND del Mega.
-#define PIN_ID_PLACA 40
+struct ParPines { uint8_t subir; uint8_t bajar; };
 
-byte deviceId = 0; // se calcula en setup(): 0 = unidad A, 1 = unidad B
+// ===========================================================
+// IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
+// Deja SOLO una de las dos líneas descomentada según a qué unidad
+// física vayas a subir este firmware. Selecciona a la vez: los pines
+// cableados (pines_a.h / pines_b.h), la MAC y el nombre en Home
+// Assistant. Vuelve a compilar y subir tras cambiarla.
+// ===========================================================
+#define PLACA_A
+// #define PLACA_B
+
+#if defined(PLACA_A) && defined(PLACA_B)
+    #error "Deja solo una de PLACA_A o PLACA_B descomentada, no las dos."
+#elif !defined(PLACA_A) && !defined(PLACA_B)
+    #error "Descomenta PLACA_A o PLACA_B para indicar qué unidad es esta."
+#endif
+
+#if defined(PLACA_A)
+    #include "pines_a.h"
+#elif defined(PLACA_B)
+    #include "pines_b.h"
+#endif
 
 // El Mega + shield Ethernet NO trae MAC de fábrica: hay que inventarla.
 // Solo debe ser única en tu red local.
 // 0x02 en el primer byte = MAC "administrada localmente".
 // byte[3] = 0x02 identifica la "familia" mega_dispositivos (distinta
 // de mega_pulsadores, que usa 0x01) para que nunca choquen entre sí.
-// El último byte se sobreescribe solo en setup() según el jumper.
-byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x00};
+// El último byte distingue unidad A (0x00) de B (0x01).
+#if defined(PLACA_A)
+    byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x00};
+    const char* NOMBRE_PLACA = "Mega Dispositivos A";
+#elif defined(PLACA_B)
+    byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x01};
+    const char* NOMBRE_PLACA = "Mega Dispositivos B";
+#endif
 
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
@@ -51,49 +71,13 @@ HADevice device(mac, sizeof(mac));
 //   CS del chip Ethernet: normalmente el pin 10
 // ===========================================================
 
-// ===========================================================
-// LUCES — ⚠️ EDITAR SEGÚN LO QUE TENGAS CABLEADO EN ESTA UNIDAD ⚠️
-// Un pin por luz (activa el relé correspondiente).
-//
-// ⚠️⚠️ IMPORTANTE — EL ORDEN DE ESTE ARRAY IMPORTA ⚠️⚠️
-// El unique_id de cada luz (luz_01, luz_02...) se genera SOLO por la
-// POSICIÓN de cada pin en esta lista, no por el número de pin en sí.
-// Ejemplo: luz_05 = el 5º pin de la lista, sea cual sea.
-//
-// Una vez subido el firmware Y renombradas las entidades en Home
-// Assistant (p. ej. luz_05 → "Luz Dormitorio 1"), NO reordenes ni
-// insertes/borres pines EN MEDIO de esta lista: todo lo que va detrás
-// se desplaza de posición y luz_05 pasaría a ser otro pin físico
-// distinto (la "Luz Dormitorio 1" en HA encendería sin querer otra
-// luz). Si necesitas añadir una luz nueva más adelante, añade su pin
-// SIEMPRE AL FINAL de la lista, nunca en medio.
-// ===========================================================
-const uint8_t PINES_LUCES[] = {
-    22, 23, 24, 25, 26, 27, 28, 29,
-    30, 31, 32, 33, 34, 35, 36, 37
-    // añade más pines aquí, SIEMPRE AL FINAL, si tienes más luces
-};
+// PINES_LUCES y PINES_PERSIANAS están definidos en pines_a.h o
+// pines_b.h según PLACA_A/PLACA_B (ver más arriba) — edita esos
+// ficheros para reflejar lo que tengas cableado en cada unidad.
+// El unique_id de cada persiana incluye ambos pines del par, SIEMPRE
+// en el orden subir_bajar (p. ej. {subir: 38, bajar: 39} →
+// "persiana_38_39"), nunca al revés.
 const int NUM_LUCES = sizeof(PINES_LUCES) / sizeof(PINES_LUCES[0]);
-
-// ===========================================================
-// PERSIANAS — ⚠️ TAMBIÉN EDITABLE ⚠️
-// Cada persiana usa 2 pines: relé de "subir" y relé de "bajar".
-// Nunca deben ir a HIGH los dos a la vez (protección por software
-// más abajo, en RETARDO_INVERSION_MS).
-//
-// ⚠️⚠️ MISMA REGLA QUE LAS LUCES: EL ORDEN IMPORTA ⚠️⚠️
-// persiana_03 = el 3er par de la lista, por posición. Una vez
-// renombrado en HA, no reordenes ni insertes/borres pares EN MEDIO de
-// esta lista. Añade pares nuevos SIEMPRE AL FINAL.
-// ===========================================================
-struct ParPines { uint8_t subir; uint8_t bajar; };
-
-const ParPines PINES_PERSIANAS[] = {
-    {38, 39}, {41, 42}, {43, 44}, {45, 46},
-    {47, 48}, {49, A0},  {A1, A2}, {A3, A4}
-    // añade más pares aquí, SIEMPRE AL FINAL, si tienes más persianas
-    // (A0-A15 también funcionan como pines digitales normales en el Mega)
-};
 const int NUM_PERSIANAS = sizeof(PINES_PERSIANAS) / sizeof(PINES_PERSIANAS[0]);
 
 // Tiempo de seguridad entre apagar un sentido y encender el otro,
@@ -107,10 +91,10 @@ const int NUM_PERSIANAS = sizeof(PINES_PERSIANAS) / sizeof(PINES_PERSIANAS[0]);
 HAMqtt mqtt(client, device, NUM_LUCES + NUM_PERSIANAS + 2);
 
 HASwitch* luces[NUM_LUCES];
-char      idLuz[NUM_LUCES][10]; // buffers de texto: deben vivir todo el programa
+char      idLuz[NUM_LUCES][8]; // buffers de texto: deben vivir todo el programa
 
 HACover*  persianas[NUM_PERSIANAS];
-char      idPersiana[NUM_PERSIANAS][14];
+char      idPersiana[NUM_PERSIANAS][17];
 
 // ===========================================================
 // CALLBACK LUCES
@@ -160,25 +144,18 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
 }
 
 void setup() {
-    // --- resolvemos qué unidad somos (A o B) ---
-    pinMode(PIN_ID_PLACA, INPUT_PULLUP);
-    deviceId = (digitalRead(PIN_ID_PLACA) == LOW) ? 1 : 0;
-    mac[5] = deviceId; // MAC distinta para cada unidad
-
     // Evita que HA confunda entidades con el mismo ID entre unidad A y B
     device.enableExtendedUniqueIds();
 
-    char nombre[26];
-    snprintf(nombre, sizeof(nombre), "Mega Dispositivos %c", deviceId == 0 ? 'A' : 'B');
-    device.setName(nombre);
-    device.setSoftwareVersion("1.1.0");
+    device.setName(NOMBRE_PLACA);
+    device.setSoftwareVersion("1.2.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
         pinMode(PINES_LUCES[i], OUTPUT);
         digitalWrite(PINES_LUCES[i], LOW); // arrancan apagadas
 
-        snprintf(idLuz[i], sizeof(idLuz[i]), "luz_%02d", i + 1);
+        snprintf(idLuz[i], sizeof(idLuz[i]), "luz_%d", PINES_LUCES[i]);
         luces[i] = new HASwitch(idLuz[i]);
         luces[i]->onCommand(onSwitchCommand);
         luces[i]->setIcon("mdi:lightbulb");
@@ -191,7 +168,8 @@ void setup() {
         digitalWrite(PINES_PERSIANAS[i].subir, LOW);
         digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
 
-        snprintf(idPersiana[i], sizeof(idPersiana[i]), "persiana_%02d", i + 1);
+        // Orden fijo subir_bajar en el ID, no alfabético ni el que sea menor.
+        snprintf(idPersiana[i], sizeof(idPersiana[i]), "persiana_%d_%d", PINES_PERSIANAS[i].subir, PINES_PERSIANAS[i].bajar);
         persianas[i] = new HACover(idPersiana[i]);
         persianas[i]->onCommand(onCoverCommand);
     }

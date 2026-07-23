@@ -42,35 +42,69 @@
 - [ ] Como las 2 unidades de cada rol comparten broker, normalmente basta un
       único `config.h` por rol (mismo contenido en unidad A y B).
 
-## Jumper de identidad A/B (pin 40)
+## Identidad A/B al compilar (PLACA_A / PLACA_B)
 
 - [ ] Decidir físicamente qué unidad de cada rol es A y cuál es B.
-- [ ] **Unidades A** (una `mega_pulsadores` y una `mega_dispositivos`): dejar el
-      pin 40 al aire, sin conectar nada.
-- [ ] **Unidades B** (la otra `mega_pulsadores` y la otra `mega_dispositivos`):
-      puentear el pin 40 a cualquier GND del Mega con un cable.
+- [ ] Antes de subir firmware a cada unidad: en el `.ino` correspondiente,
+      dejar descomentada SOLO `#define PLACA_A` o SOLO `#define PLACA_B`
+      según la unidad física a la que se va a flashear en ese momento, y
+      compilar/subir. Repetir cambiando la línea para la otra unidad.
 - [ ] Etiquetar físicamente cada placa (A/B + rol) para no confundirlas al
-      reprogramar o hacer mantenimiento.
+      reprogramar o hacer mantenimiento — ya no hay jumper que lo delate en
+      runtime si te equivocas de unidad al flashear.
 
 ## Pines reales cableados
 
-- [ ] `mega_pulsadores/mega_pulsadores.ino:64-69` (`PINES_BOTONES`): ajustar la lista de pines
-      a los pulsadores realmente cableados en CADA unidad (A y B tendrán listas
-      distintas si no cablean lo mismo).
-- [ ] `mega_dispositivos/mega_dispositivos.ino:62-66` (`PINES_LUCES`): idem para luces.
-- [ ] `mega_dispositivos/mega_dispositivos.ino:77-82` (`PINES_PERSIANAS`): idem para pares
-      subir/bajar de persianas.
+- [ ] `mega_pulsadores/pines_a.h` y `pines_b.h` (`PINES_BOTONES`): ajustar la
+      lista de pines a los pulsadores realmente cableados en CADA unidad (A
+      y B tendrán listas distintas si no cablean lo mismo).
+- [ ] `mega_dispositivos/pines_a.h` y `pines_b.h` (`PINES_LUCES` y
+      `PINES_PERSIANAS`): idem para luces y pares subir/bajar de persianas
+      — cada unidad puede tener una mezcla distinta (p. ej. una unidad solo
+      con luces, la otra con luces y persianas).
 - [ ] Revisar que ningún pin usado choque con los reservados por el shield
       Ethernet (SPI: 50/51/52/53, CS: normalmente 10).
+
+## RAM / límite de pulsadores por unidad
+
+- [ ] **Sin medir todavía.** Cada pulsador en `mega_pulsadores` cuesta
+      aprox. 250 bytes de SRAM (objeto `OneButton` ≈ 96 bytes + 7
+      `HADeviceTrigger` ≈ 19 bytes cada uno + punteros + buffer de ID).
+      El Mega 2560 tiene 8 KB de SRAM totales, pero el shield Ethernet y
+      ArduinoHA ya reservan una parte antes de llegar al `setup()`, así
+      que el margen real disponible NO está medido — es una estimación.
+- [ ] Estimación sin verificar (⚠️ ±30% de margen de error, dos de los
+      números de entrada son supuestos, no medidos): unos 20-25
+      pulsadores por unidad con los 7 triggers actuales, o unos 25-30 si
+      se recorta a 5 triggers (quitando cuádruple/quíntuple).
+- [ ] Para tener un número real: añadir temporalmente al `setup()` de
+      `mega_pulsadores.ino` una comprobación de memoria libre (técnica
+      estándar en AVR — función tipo `freeMemory()` que resta el final
+      del heap del inicio del stack) que imprima el resultado por
+      Serial, compilar con un `PINES_BOTONES` grande de prueba, y
+      flashear a una placa real para medir el límite exacto antes de
+      cablear muchos más pulsadores de los que ya hay en
+      `pines_a.h`/`pines_b.h`.
+- [ ] Si el número real de pulsadores deseados se acerca al límite
+      medido: revisar si compensa (a) recortar a 5 triggers por botón
+      (quitar `ButtonQuadruplePressType`/`ButtonQuintuplePressType`, sin
+      caso de uso confirmado todavía — ver "Lógica de automatizaciones"
+      más abajo), o (b) añadir una tercera unidad `mega_pulsadores`
+      (arquitectura ya lo permite: añadir `PLACA_C`, `pines_c.h` y un
+      tercer byte de MAC, mismo patrón que A/B).
+- [ ] `mega_dispositivos` no se ha medido — su coste por dispositivo es
+      menor (`HASwitch`/`HACover` sin `OneButton` de por medio), pero no
+      hay número real todavía tampoco.
 
 ## Verificación en Home Assistant
 
 - [ ] Confirmar en Ajustes → Dispositivos y servicios → MQTT que las 4 unidades
       aparecen diferenciadas correctamente (Mega Pulsadores A/B, Mega
       Dispositivos A/B) sin IDs duplicados.
-- [ ] Confirmar que cada pulsador (`boton_01`, `boton_02`...) aparece con sus
-      6 triggers (corta/doble/triple/cuádruple/quíntuple/larga) y que cada
-      luz/persiana aparece como entidad controlable.
+- [ ] Confirmar que cada pulsador (`boton_14`, `boton_27`... nombrado por
+      pin) aparece con sus 7 triggers (corta/doble/triple/cuádruple/
+      quíntuple/larga/fin de larga) y que cada luz/persiana aparece como
+      entidad controlable.
 
 ## Lógica de automatizaciones
 
@@ -82,6 +116,14 @@
 - [ ] Crear las automatizaciones en HA que conectan cada pulsador con su
       luz/persiana. Decidir si se hace a mano desde la UI o generando YAML
       con plantilla para no repetir docenas de automatizaciones iguales.
+- [ ] Persianas controladas desde un pulsador físico normal (agrupación de
+      4 en una habitación, no cableado directo a mega_dispositivos): crear
+      automatización en HA que, al recibir `larga` (long-press-start) de un
+      `boton_XX` concreto, llame a `cover.open_cover` (o `close_cover`,
+      según el botón) sobre la persiana correspondiente, y al recibir
+      `larga_fin` (long-press-release) de ese mismo botón, llame a
+      `cover.stop_cover`. Decidir qué pulsador de cada agrupación de 4 se
+      asigna a subir y cuál a bajar la persiana de esa habitación.
 
 ## Ajustes finos / hardware
 

@@ -5,6 +5,42 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.2.0] - Sin publicar
+
+### Changed
+- El `unique_id` de cada pulsador/luz/persiana (`boton_XX`, `luz_XX`,
+  `persiana_XX_YY`) ahora se genera a partir del número de PIN físico,
+  no de la posición del pin dentro del array (`PINES_BOTONES`,
+  `PINES_LUCES`, `PINES_PERSIANAS`). Permite reordenar, insertar o
+  borrar pines libremente sin romper entidades ya renombradas en Home
+  Assistant, y hace trivial mapear un pin físico a su entidad en HA.
+  Las persianas incluyen ambos pines del par en el ID, siempre en
+  orden subir_bajar (p. ej. `persiana_38_39`).
+- La identidad de unidad A/B ya NO se resuelve con un jumper físico en
+  runtime (pin 40): ahora se decide en tiempo de compilación con un
+  bloque `#define PLACA_A` / `#define PLACA_B` al principio de cada
+  `.ino`. Ese `#define` selecciona a la vez el fichero de pines
+  (`pines_a.h`/`pines_b.h`), el último byte de la MAC y el nombre del
+  dispositivo en HA. Si no se descomenta ninguna línea, o las dos a la
+  vez, la compilación falla con `#error` en vez de subir un firmware
+  con identidad ambigua.
+- Los arrays de pines (`PINES_BOTONES`, `PINES_LUCES`,
+  `PINES_PERSIANAS`) se han movido fuera de los `.ino`, a ficheros
+  nuevos `pines_a.h`/`pines_b.h` (uno por unidad física, en cada
+  carpeta de sketch). Separa la configuración de wiring —que cambia por
+  unidad y con el tiempo— de la lógica del firmware, y dos unidades del
+  mismo rol ya no necesitan tener la misma cantidad ni el mismo tipo de
+  dispositivos cableados.
+
+### Added
+- Nuevo trigger `ButtonLongReleaseType` por pulsador en
+  `mega_pulsadores` (se dispara al soltar una pulsación larga), pensado
+  para automatizaciones "mantener pulsado para mover / soltar para
+  parar" — p. ej. controlar una persiana desde un pulsador físico
+  normal vía automatización en Home Assistant.
+- `mega_pulsadores/pines_a.h`, `mega_pulsadores/pines_b.h`,
+  `mega_dispositivos/pines_a.h`, `mega_dispositivos/pines_b.h`.
+
 ## [1.1.0] - Sin publicar
 
 ### Added

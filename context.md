@@ -26,27 +26,53 @@ y persianas. Los Arduinos nunca se comunican directamente entre sí.
   - SPI: 50 (MISO), 51 (MOSI), 52 (SCK), 53 (SS)
   - CS del chip Ethernet: normalmente el pin 10
 
-## Identificación de unidades A/B (mismo firmware en las 2 placas del mismo rol)
+## Identificación de unidades A/B (mismo .ino, distinta compilación por unidad)
 
-Cada rol (`mega_pulsadores`, `mega_dispositivos`) usa **un único sketch**
-que se sube sin modificar a sus 2 unidades físicas. La identidad se
-resuelve con un jumper:
+Cada rol (`mega_pulsadores`, `mega_dispositivos`) usa **un único fichero
+`.ino`**, pero la identidad de cada unidad física (pines, MAC, nombre en
+HA) se decide en **tiempo de compilación**, no con jumper:
 
-- Pin `PIN_ID_PLACA` (definido como `40` en ambos sketches) configurado
-  como `INPUT_PULLUP`.
-- **Unidad A**: pin al aire → lee HIGH → `deviceId = 0`.
-- **Unidad B**: pin puenteado a GND con un cable → lee LOW → `deviceId = 1`.
-- El último byte de la MAC y el nombre del dispositivo en HA
-  (`Mega Pulsadores A/B`, `Mega Dispositivos A/B`) se generan solos a
-  partir de `deviceId`.
+- Al principio del `.ino`, un bloque `#define PLACA_A` / `#define PLACA_B`
+  (uno comentado, el otro no) selecciona la unidad. Antes de compilar y
+  subir, se deja descomentada SOLO la línea de la unidad física a la que
+  se va a flashear.
+- Ese `#define` selecciona a la vez: qué fichero de pines se incluye
+  (`pines_a.h` o `pines_b.h`, con `#include` condicional), el último byte
+  de la MAC (distinto en A/B), y el nombre del dispositivo en HA
+  (`Mega Pulsadores A/B`, `Mega Dispositivos A/B`).
+- Si no se descomenta ninguna línea, o se descomentan las dos a la vez, el
+  `.ino` falla la compilación con `#error` en vez de subir un firmware con
+  identidad ambigua.
 - Se usa `device.enableExtendedUniqueIds()` para que HA no confunda
-  entidades con el mismo ID (p. ej. `boton_01`) entre la unidad A y la B
+  entidades con el mismo ID (p. ej. `boton_14`) entre la unidad A y la B
   del mismo rol.
+
+Motivo del cambio (antes había un jumper físico en pin 40 leído en
+runtime): al pasar los pines cableados a ficheros separados por unidad
+(`pines_a.h`/`pines_b.h`, ver más abajo), ya había que editar/recompilar
+por unidad de todos modos — el jumper se volvió redundante. Ahora es
+imposible flashear el mismo binario a A y B sin querer (habría que
+recompilar cambiando el `#define` a propósito), a cambio de perder la
+"red de seguridad" runtime que un jumper daba si alguien confundía las
+placas.
 
 MACs: como el Mega + shield Ethernet no trae MAC de fábrica, se inventan
 localmente (primer byte `0x02` = "administrada localmente"). Se usa el
 byte `[3]` para distinguir familia (`0x01` = mega_pulsadores,
 `0x02` = mega_dispositivos) y no colisionar en la red.
+
+## Pines por unidad (`pines_a.h` / `pines_b.h`)
+
+`PINES_BOTONES` (mega_pulsadores) y `PINES_LUCES`/`PINES_PERSIANAS`
+(mega_dispositivos) ya no viven dentro del `.ino`: cada sketch tiene
+`pines_a.h` y `pines_b.h`, uno por unidad física, incluido
+condicionalmente según `PLACA_A`/`PLACA_B`. Motivo: separar la
+configuración de wiring (que cambia por unidad y con el tiempo, según lo
+que se cablee) de la lógica del firmware (que es igual en A y B), y dejar
+claro que A y B pueden tener listas de pines completamente distintas —
+tanto en cantidad como en tipo de dispositivo (p. ej. una unidad
+`mega_dispositivos` solo con luces y la otra con luces + persianas
+mezcladas) — sin que eso rompa nada del resto del código.
 
 ## Librerías usadas
 
@@ -84,31 +110,39 @@ byte `[3]` para distinguir familia (`0x01` = mega_pulsadores,
 - **mega_pulsadores (A y B)**: no crean entidades de estado, solo
   `HADeviceTrigger` (device triggers) — aparecen en HA como "Device" en
   el trigger de una automatización, no como entidad con estado.
-  - Por cada pulsador (`boton_01`, `boton_02`, ...) hay 6 triggers:
+  - Por cada pulsador (`boton_14`, `boton_27`, ... el nombre lleva el
+    número de pin, no la posición en el array) hay 7 triggers:
     `ButtonShortPressType`, `ButtonDoublePressType`, `ButtonTriplePressType`,
     `ButtonQuadruplePressType`, `ButtonQuintuplePressType`,
-    `ButtonLongPressType` (en ese orden en el código: 1-2-3-4-5 pulsaciones
-    primero, larga aparte al final). El enum de ArduinoHA también define
-    `ButtonShortReleaseType` y `ButtonLongReleaseType`, que este proyecto
-    no usa.
+    `ButtonLongPressType`, `ButtonLongReleaseType` (en ese orden en el
+    código: 1-2-3-4-5 pulsaciones primero, larga/fin de larga aparte al
+    final). `ButtonLongReleaseType` se dispara al soltar una pulsación
+    larga — pensado para automatizaciones "mantener pulsado para mover
+    / soltar para parar" (p. ej. persianas controladas desde un
+    pulsador físico normal vía automatización en HA, no cableado
+    directo). El enum de ArduinoHA también define
+    `ButtonShortReleaseType`, que este proyecto no usa.
 - **mega_dispositivos (A y B)**: crean entidades reales:
-  - `HASwitch` por luz (`luz_01`, `luz_02`, ...) — on/off.
-  - `HACover` por persiana (`persiana_01`, `persiana_02`, ...) — soporta
+  - `HASwitch` por luz (`luz_22`, `luz_30`, ... nombre = número de pin) —
+    on/off.
+  - `HACover` por persiana (`persiana_38_39`, `persiana_41_42`, ...
+    nombre = pin de "subir" seguido del pin de "bajar" del par, en ese
+    orden siempre) — soporta
     `CommandOpen` / `CommandClose` / `CommandStop`. Parar = poner los dos
     relés (subir/bajar) a LOW simultáneamente.
 
 ## Estado actual
 
 - [x] Arquitectura general definida (2 roles x 2 unidades, sin MCP23017).
-- [x] Sketch base de `mega_pulsadores` con 6 tipos de pulsación (corta,
-      doble, triple, cuádruple, quíntuple, larga).
+- [x] Sketch base de `mega_pulsadores` con 7 tipos de pulsación (corta,
+      doble, triple, cuádruple, quíntuple, larga, fin de larga).
 - [x] Sketch base de `mega_dispositivos` con luces + persianas + stop.
 - [x] Mosquitto ya instalado y funcionando en Home Assistant.
 
 Para la lista de tareas pendientes (configuración de red, pines reales,
-jumper A/B, automatizaciones en HA, ajustes de timing, etc.) ver
-[todo.md](todo.md) — es la única fuente de verdad para pendientes, para
-evitar tener dos listas que se puedan desincronizar.
+identidad A/B al compilar, automatizaciones en HA, ajustes de timing,
+etc.) ver [todo.md](todo.md) — es la única fuente de verdad para
+pendientes, para evitar tener dos listas que se puedan desincronizar.
 
 ## HVAC / termostato (futuro, no diseñado aún)
 

@@ -2,11 +2,12 @@
 // MEGA_PULSADORES
 // Lee pulsadores físicos y envía eventos MQTT (device triggers)
 // a Home Assistant: pulsación corta, doble, triple, cuádruple,
-// quíntuple y larga.
+// quíntuple, larga y fin de larga (al soltar).
 // No controla ningún relé. Solo ENVÍA información.
 //
-// Mismo firmware para las 2 unidades físicas (A y B):
-// la identidad se resuelve sola con un jumper (ver más abajo).
+// Mismo firmware para las 2 unidades físicas (A y B): la identidad
+// (pines, MAC, nombre) se decide en TIEMPO DE COMPILACIÓN con
+// PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
@@ -27,15 +28,26 @@
 #include "config.h"
 
 // ===========================================================
-// IDENTIFICACIÓN DE LA PLACA (para subir el MISMO firmware
-// a las 2 unidades de mega_pulsadores sin tocar código)
+// IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
+// Deja SOLO una de las dos líneas descomentada según a qué unidad
+// física vayas a subir este firmware. Selecciona a la vez: los pines
+// cableados (pines_a.h / pines_b.h), la MAC y el nombre en Home
+// Assistant. Vuelve a compilar y subir tras cambiarla.
 // ===========================================================
-// Pin usado como jumper de identidad.
-// Unidad A: pin AL AIRE (sin conectar nada).
-// Unidad B: pin puenteado con un cable a cualquier GND del Mega.
-#define PIN_ID_PLACA 40
+#define PLACA_A
+// #define PLACA_B
 
-byte deviceId = 0; // se calcula en setup(): 0 = unidad A, 1 = unidad B
+#if defined(PLACA_A) && defined(PLACA_B)
+    #error "Deja solo una de PLACA_A o PLACA_B descomentada, no las dos."
+#elif !defined(PLACA_A) && !defined(PLACA_B)
+    #error "Descomenta PLACA_A o PLACA_B para indicar qué unidad es esta."
+#endif
+
+#if defined(PLACA_A)
+    #include "pines_a.h"
+#elif defined(PLACA_B)
+    #include "pines_b.h"
+#endif
 
 // El Mega + shield Ethernet NO trae MAC de fábrica: hay que inventarla.
 // Solo debe ser única en tu red local.
@@ -43,79 +55,67 @@ byte deviceId = 0; // se calcula en setup(): 0 = unidad A, 1 = unidad B
 // coincidir por casualidad con una MAC real de fábrica).
 // byte[3] = 0x01 identifica la "familia" mega_pulsadores (distinta
 // de mega_dispositivos, que usa 0x02) para que nunca choquen entre sí.
-// El último byte se sobreescribe solo en setup() según el jumper.
-byte mac[] = {0x02, 0x00, 0x00, 0x01, 0x00, 0x00};
+// El último byte distingue unidad A (0x00) de B (0x01).
+#if defined(PLACA_A)
+    byte mac[] = {0x02, 0x00, 0x00, 0x01, 0x00, 0x00};
+    const char* NOMBRE_PLACA = "Mega Pulsadores A";
+#elif defined(PLACA_B)
+    byte mac[] = {0x02, 0x00, 0x00, 0x01, 0x00, 0x01};
+    const char* NOMBRE_PLACA = "Mega Pulsadores B";
+#endif
 
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
 
-// ===========================================================
-// PULSADORES — ⚠️ ES LO ÚNICO QUE NORMALMENTE DEBES EDITAR ⚠️
-// Un pin por pulsador. Añade o quita líneas según los botones
-// que tengas cableados físicamente en ESTA unidad (A o B).
-// Evita los pines reservados por el shield Ethernet:
-//   SPI: 50 (MISO), 51 (MOSI), 52 (SCK), 53 (SS)
-//   CS del chip Ethernet: normalmente el pin 10
+// NUM_PULSADORES se calcula a partir de PINES_BOTONES, definido en
+// pines_a.h o pines_b.h según PLACA_A/PLACA_B (ver más arriba).
 //
-// ⚠️⚠️ IMPORTANTE — EL ORDEN DE ESTE ARRAY IMPORTA ⚠️⚠️
-// El unique_id de cada pulsador (boton_01, boton_02...) se genera SOLO
-// por la POSICIÓN de cada pin en esta lista, no por el número de pin
-// en sí. Ejemplo: boton_05 = el 5º pin de la lista, sea cual sea.
-//
-// Una vez subido el firmware Y renombrados los device triggers en Home
-// Assistant (p. ej. boton_05 → "Interruptor Dormitorio 1"), NO
-// reordenes ni insertes/borres pines EN MEDIO de esta lista: todo lo
-// que va detrás se desplaza de posición y boton_05 pasaría a ser otro
-// pulsador físico distinto. Si necesitas añadir un pulsador nuevo más
-// adelante, añade su pin SIEMPRE AL FINAL de la lista, nunca en medio.
-// ===========================================================
-const uint8_t PINES_BOTONES[] = {
-    2, 3, 4, 5, 6, 7, 8, 9,
-    14, 15, 16, 17, 18, 19,
-    24, 25, 26, 27, 28, 29
-    // añade más pines aquí, SIEMPRE AL FINAL, si tienes más pulsadores
-};
+// ⚠️ RAM: cada pulsador cuesta aprox. 250 bytes de SRAM (objeto
+// OneButton + 7 HADeviceTrigger + punteros + buffer de ID). El Mega
+// tiene 8 KB de SRAM total, de los cuales el shield Ethernet y
+// ArduinoHA ya reservan una parte antes de llegar aquí. No hay medición
+// real todavía de cuántos pulsadores caben con margen — estimación sin
+// verificar: unos 20-25 por unidad. Ver "RAM / límite de pulsadores"
+// en todo.md antes de cablear muchos más de los que ya hay en
+// pines_a.h/pines_b.h.
 const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 
-// 6 triggers por pulsador (corta, doble, triple, cuádruple, quíntuple,
-// larga) + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * 6 + 2);
+// 7 triggers por pulsador (corta, doble, triple, cuádruple, quíntuple,
+// larga, fin de larga) + margen
+HAMqtt mqtt(client, device, NUM_PULSADORES * 7 + 2);
 
 OneButton* botones[NUM_PULSADORES];
 
 // Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
-// (progresión 1-2-3-4-5 pulsaciones), y larga aparte, al final, como
-// caso especial.
+// (progresión 1-2-3-4-5 pulsaciones), y larga/fin de larga aparte, al
+// final, como caso especial.
 HADeviceTrigger* corta[NUM_PULSADORES];
 HADeviceTrigger* doble[NUM_PULSADORES];
 HADeviceTrigger* triple[NUM_PULSADORES];
 HADeviceTrigger* cuadruple[NUM_PULSADORES];
 HADeviceTrigger* quintuple[NUM_PULSADORES];
 HADeviceTrigger* larga[NUM_PULSADORES];
+// Se dispara al SOLTAR una pulsación larga. Imprescindible para
+// automatizaciones "mantener pulsado para mover / soltar para parar"
+// (p. ej. persianas): "larga" = empezar a subir, "larga_fin" = parar.
+HADeviceTrigger* largaFin[NUM_PULSADORES];
 
 // Buffers de texto para los IDs. Deben ser globales (viven todo el
 // programa) porque HADeviceTrigger se queda con el puntero al texto,
 // no con una copia.
-char idBoton[NUM_PULSADORES][12];
+char idBoton[NUM_PULSADORES][10];
 
 void setup() {
-    // --- resolvemos qué unidad somos (A o B) ---
-    pinMode(PIN_ID_PLACA, INPUT_PULLUP);
-    deviceId = (digitalRead(PIN_ID_PLACA) == LOW) ? 1 : 0;
-    mac[5] = deviceId; // MAC distinta para cada unidad
-
     // Evita que HA confunda entidades/triggers con el mismo ID
     // entre la unidad A y la B (les añade un prefijo único por placa).
     device.enableExtendedUniqueIds();
 
-    char nombre[26];
-    snprintf(nombre, sizeof(nombre), "Mega Pulsadores %c", deviceId == 0 ? 'A' : 'B');
-    device.setName(nombre);
-    device.setSoftwareVersion("1.1.0");
+    device.setName(NOMBRE_PLACA);
+    device.setSoftwareVersion("1.2.0");
 
-    // --- creamos cada pulsador y sus 4 triggers ---
+    // --- creamos cada pulsador y sus 7 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
-        snprintf(idBoton[i], sizeof(idBoton[i]), "boton_%02d", i + 1);
+        snprintf(idBoton[i], sizeof(idBoton[i]), "boton_%d", PINES_BOTONES[i]);
 
         botones[i] = new OneButton(PINES_BOTONES[i], true); // true = INPUT_PULLUP, activo en LOW
 
@@ -125,6 +125,7 @@ void setup() {
         cuadruple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuadruplePressType, idBoton[i]);
         quintuple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuintuplePressType, idBoton[i]);
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
+        largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
 
         int idx = i; // captura por VALOR: evita que todas las lambdas
                      // acaben apuntando al último valor de "i" del bucle
@@ -150,6 +151,10 @@ void setup() {
 
         botones[i]->attachLongPressStart([idx](){
             larga[idx]->trigger();
+        });
+
+        botones[i]->attachLongPressStop([idx](){
+            largaFin[idx]->trigger();
         });
 
         // Ajustes opcionales de temporización (descomenta y ajusta si

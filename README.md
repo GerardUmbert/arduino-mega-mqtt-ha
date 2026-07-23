@@ -16,9 +16,13 @@ entre sí.
 
 - `mega_pulsadores/mega_pulsadores.ino` — firmware para las 2 unidades que
   leen pulsadores físicos. No controla nada, solo envía eventos.
+- `mega_pulsadores/pines_a.h`, `mega_pulsadores/pines_b.h` — pines
+  cableados en cada una de las 2 unidades físicas.
 - `mega_dispositivos/mega_dispositivos.ino` — firmware para las 2 unidades
   que controlan relés de luces y persianas. No lee pulsadores, solo recibe
   órdenes.
+- `mega_dispositivos/pines_a.h`, `mega_dispositivos/pines_b.h` — pines
+  cableados en cada una de las 2 unidades físicas.
 - `todo.md` — lista de tareas pendientes antes de dar el proyecto por
   terminado (IPs, credenciales, pines reales, automatizaciones...).
 - `CHANGELOG.md` — historial de cambios del proyecto, versionado igual
@@ -38,18 +42,28 @@ entre sí.
 
 ## Identificación de unidades A/B
 
-Cada rol usa un único sketch que se sube sin modificar a sus 2 unidades
-físicas. La identidad se resuelve con un jumper en el pin `PIN_ID_PLACA`
-(pin 40), configurado como `INPUT_PULLUP`:
+Cada rol usa un único fichero `.ino`, pero la identidad de cada unidad
+física (A o B) se decide en **tiempo de compilación**, no con un jumper:
+al principio del `.ino` hay un bloque `PLACA_A`/`PLACA_B` — se deja
+descomentada SOLO una de las dos líneas según a qué unidad física vayas a
+subir ese firmware, se compila y se sube. Para la otra unidad, se cambia
+la línea descomentada y se vuelve a subir.
 
-- **Unidad A**: pin al aire (sin conectar) → lee HIGH → `deviceId = 0`.
-- **Unidad B**: pin puenteado a cualquier GND del Mega → lee LOW →
-  `deviceId = 1`.
+Ese único `#define` selecciona a la vez tres cosas:
 
-El nombre del dispositivo en HA (`Mega Pulsadores A/B`, `Mega Dispositivos
-A/B`) y el último byte de la MAC se generan solos a partir de `deviceId`.
+- Qué fichero de pines se incluye (`pines_a.h` o `pines_b.h`), con los
+  pines realmente cableados en esa unidad.
+- El último byte de la MAC (distinto en A y B, para no colisionar en la
+  red).
+- El nombre del dispositivo en HA (`Mega Pulsadores A/B`, `Mega
+  Dispositivos A/B`).
+
+Si por error se compila sin descomentar ninguna línea, o con las dos a la
+vez, el propio `.ino` falla la compilación con un `#error` explícito en
+vez de subir un firmware con identidad ambigua.
+
 Se usa `device.enableExtendedUniqueIds()` para que HA no confunda entidades
-con el mismo ID (p. ej. `boton_01`) entre la unidad A y la B del mismo rol.
+con el mismo ID (p. ej. `boton_14`) entre la unidad A y la B del mismo rol.
 
 Las MACs se inventan localmente porque el Mega + shield Ethernet no trae
 MAC de fábrica (primer byte `0x02` = "administrada localmente"). El byte
@@ -93,17 +107,21 @@ mega_dispositivos) para que nunca choquen en la red.
 - **mega_pulsadores (A y B)**: no crean entidades de estado, solo
   `HADeviceTrigger` — aparecen en HA como "Device" en el trigger de una
   automatización, no como entidad con estado. Por cada pulsador
-  (`boton_01`, `boton_02`...) hay 6 triggers: `ButtonShortPressType`,
-  `ButtonDoublePressType`, `ButtonTriplePressType`,
-  `ButtonQuadruplePressType`, `ButtonQuintuplePressType` y
-  `ButtonLongPressType`. También existen en el enum de ArduinoHA
-  (aunque este proyecto no los usa): `ButtonShortReleaseType` y
-  `ButtonLongReleaseType`.
+  (`boton_14`, `boton_27`... el nombre lleva el número de pin) hay 7
+  triggers: `ButtonShortPressType`, `ButtonDoublePressType`,
+  `ButtonTriplePressType`, `ButtonQuadruplePressType`,
+  `ButtonQuintuplePressType`, `ButtonLongPressType` y
+  `ButtonLongReleaseType` (se dispara al soltar una pulsación larga —
+  útil para automatizaciones "mantener pulsado para mover / soltar para
+  parar", p. ej. persianas). También existe en el enum de ArduinoHA
+  (aunque este proyecto no lo usa): `ButtonShortReleaseType`.
 - **mega_dispositivos (A y B)**: crean entidades reales:
-  - `HASwitch` por luz (`luz_01`, `luz_02`...) — on/off.
-  - `HACover` por persiana (`persiana_01`, `persiana_02`...) — soporta
-    abrir/cerrar/parar. Parar = poner los dos relés (subir/bajar) a LOW
-    simultáneamente.
+  - `HASwitch` por luz (`luz_22`, `luz_30`... nombre = número de pin) —
+    on/off.
+  - `HACover` por persiana (`persiana_38_39`, `persiana_41_42`... nombre
+    = pin de "subir" seguido del pin de "bajar" del par, en ese orden
+    siempre) — soporta abrir/cerrar/parar. Parar = poner los dos relés
+    (subir/bajar) a LOW simultáneamente.
 
 ## Configuración antes de subir el firmware
 
@@ -130,35 +148,28 @@ Para configurarlo, en `mega_pulsadores/` y en `mega_dispositivos/`:
 no hace falta copiarla, `config.h` ya está listo para editar.)
 
 Como las 2 unidades de cada rol (A y B) comparten el mismo broker MQTT,
-normalmente usarás el mismo `config.h` en ambas — solo cambia el jumper
-del pin 40 para diferenciarlas.
+normalmente usarás el mismo `config.h` en ambas — solo cambia el
+`#define PLACA_A`/`PLACA_B` para diferenciarlas.
 
 ### Pines reales cableados
 
-- `PINES_BOTONES` (mega_pulsadores) / `PINES_LUCES` y `PINES_PERSIANAS`
-  (mega_dispositivos): a diferencia de la IP/credenciales, estos SÍ se
-  editan directamente en el `.ino`, porque son distintos en cada una de
-  las 2 unidades físicas de cada rol según lo que tengan cableado.
+- `PINES_BOTONES` (`mega_pulsadores/pines_a.h` / `pines_b.h`) y
+  `PINES_LUCES`/`PINES_PERSIANAS` (`mega_dispositivos/pines_a.h` /
+  `pines_b.h`): a diferencia de la IP/credenciales, estos SÍ se editan
+  directamente en su fichero, porque son distintos en cada una de las 2
+  unidades físicas de cada rol según lo que tengan cableado. No es
+  necesario que las 2 unidades de un mismo rol tengan la misma cantidad
+  ni el mismo tipo de dispositivos — por ejemplo, nada impide que la
+  unidad A de `mega_dispositivos` sea solo luces y la B tenga luces y
+  persianas mezcladas.
 
-⚠️ **El orden de estos arrays importa.** El `unique_id` de cada entidad
-(`boton_05`, `luz_05`, `persiana_03`...) se genera solo por la **posición**
-del pin en el array, no por el número de pin en sí — `boton_05` es
-simplemente "el 5º pin de la lista", sea cual sea ese pin.
-
-Esto significa que el nombre "bonito" que le pongas en Home Assistant
-(p. ej. renombrar `boton_05` a "Interruptor Dormitorio 1" o `luz_05` a
-"Luz Dormitorio 1") sigue funcionando sin problema aunque renombres cien
-veces, **siempre que no reordenes ni insertes/borres pines en medio del
-array** una vez que ya hayas subido el firmware y renombrado en HA. Si
-insertas un pin nuevo en medio de la lista, todo lo que va detrás se
-desplaza una posición y `boton_05`/`luz_05` pasarían a apuntar a un pin
-físico distinto del que creías (la entidad que renombraste como
-"Dormitorio 1" empezaría a controlar otra cosa).
-
-**Regla práctica: si añades un pulsador, luz o persiana nueva más
-adelante, añade su pin siempre al final de la lista correspondiente,
-nunca en medio.** Esta misma advertencia está también como comentario
-directamente encima de cada array en el código.
+El `unique_id` de cada entidad (`boton_14`, `luz_22`,
+`persiana_38_39`...) se genera a partir del **número de pin**, no de la
+posición en el array. Puedes reordenar, insertar o borrar pines libremente en
+cualquier momento sin que ninguna entidad ya renombrada en Home
+Assistant cambie de identidad — y mirando el pin en el propio Arduino
+sabes directamente qué entidad es en HA, sin tener que contar
+posiciones en una lista.
 
 Ver [todo.md](todo.md) para la lista completa de tareas pendientes.
 
