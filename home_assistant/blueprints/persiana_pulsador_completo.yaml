@@ -16,8 +16,10 @@ blueprint:
     | 3 | esta persiana → 50% | esta persiana → 50% |
     | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
     | 5 | TODAS las persianas de la casa → 100% | TODAS las persianas de la casa → 0% |
-    | larga / fin | mover mientras se mantiene, parar al soltar (estima
-      posición por tiempo si no llega a un extremo) |
+    | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
+
+    En ambos casos, si se suelta sin llegar a un extremo, se estima la
+    posición alcanzada a partir de cuánto tiempo estuvo mantenida.
 
     Todas las acciones que fijan una posición (1/2/3/4/5) NO llaman a
     `cover.*` directamente: escriben en el helper `input_number

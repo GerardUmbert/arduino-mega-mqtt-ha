@@ -127,7 +127,7 @@ todas las persianas de esa agrupación:
 | 3 | esta persiana → 50% | esta persiana → 50% |
 | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
-| larga / fin | mover mientras se mantiene, parar al soltar |
+| larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
 **Dependencia dura**: 1/2/3/4/5 no mueven la persiana directamente —
 escriben en el helper `..._objetivo` de cada persiana afectada, y es
