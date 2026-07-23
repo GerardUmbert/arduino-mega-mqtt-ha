@@ -5,6 +5,27 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [ha-blueprints] - 2026-07-23
+
+No es una versión de firmware (no toca ningún `.ino`, por eso no lleva
+número de versión sino el nombre del tag de este commit).
+
+### Added
+- `home_assistant/blueprints/persiana_posicion.yaml`: blueprint que
+  añade una posición estimada (0-100%) a una persiana sin encoder,
+  calculando el tiempo de relé necesario a partir de un tiempo de
+  apertura/cierre calibrado por persiana. Resincroniza a 0/100 cada vez
+  que la persiana llega de verdad a un extremo, venga el movimiento de
+  donde venga.
+- `home_assistant/blueprints/persiana_pulsador.yaml`: blueprint que
+  conecta un pulsador físico (`button_long_press`/`button_long_release`
+  de `mega_pulsadores`) con abrir/cerrar/parar de una persiana —
+  implementa el patrón "mantener pulsado para mover" descrito en
+  `todo.md`.
+- `home_assistant/blueprints/README.md`: cómo crear los helpers
+  `input_number` necesarios, cómo calibrar los tiempos de recorrido, y
+  cómo combinar ambos blueprints sobre la misma persiana.
+
 ## [1.2.0] - 2026-07-23
 
 ### Changed
