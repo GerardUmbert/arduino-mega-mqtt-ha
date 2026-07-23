@@ -1,6 +1,3 @@
-# Config con credenciales reales (IP/usuario/password MQTT) — nunca subir
-config.h
-
 # Arduino / compilación
 *.hex
 *.elf
