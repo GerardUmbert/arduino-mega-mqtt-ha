@@ -200,13 +200,16 @@ Para una luz cuyo brillo/temperatura de color se controla por una
 bombilla Zigbee (no por `mega_dispositivos`, pensado para una IKEA
 TRÅDFRI WW/CW regulable). Hace tres cosas independientes:
 
-- **Pulsador físico fuerza el relé a ON siempre, sin condición**: al
-  pulsar el botón (pulsación corta), el relé se enciende SIEMPRE, esté
-  como esté — no es un toggle. Así, si el relé se hubiera quedado en
-  OFF por lo que sea, pulsar el botón garantiza que la bombilla tiene
-  corriente en vez de depender de que el relé ya estuviera bien. Esta
-  acción no toca la bombilla Zigbee para nada — nada enciende la luz
-  solo porque HA o MQTT arrancan o se reconectan.
+- **Pulsador físico: toggle de la bombilla + relé a ON siempre**: al
+  pulsar el botón (pulsación corta) pasan dos cosas — se hace toggle
+  de la bombilla Zigbee (control normal del día a día, enciende/apaga)
+  y, a la vez, el relé se fuerza a ON siempre, esté como esté — el
+  relé nunca hace toggle ni se apaga desde el pulsador, solo se
+  garantiza que esté ON. Así, si el relé se hubiera quedado en OFF por
+  lo que sea, pulsar el botón garantiza que la bombilla tiene corriente
+  en vez de depender de que el relé ya estuviera bien. Nada de esto
+  pasa solo porque HA o MQTT arrancan o se reconectan — el único
+  disparador es el pulsador físico.
 - **Adaptar la bombilla cuando ella misma vuelve a encenderse**
   (opcional): la bombilla Zigbee ya tiene su propio comportamiento de
   recuperación tras un corte (normalmente vuelve a su último estado).
@@ -231,9 +234,9 @@ Una instancia por cada luz Zigbee con relé de respaldo:
    `luz_zigbee_respaldo.yaml` → Crear automatización.
 2. **Relé**: el `switch.*` de `mega_dispositivos` de esa luz.
 3. **Bombilla Zigbee**: la entidad `light.*` real.
-4. **Pulsador (device) que fuerza el relé a ON** y **Subtype del
-   botón**: el pulsador físico de esta luz — igual que en
-   `luz_pulsador.yaml`, elige el device MQTT y copia el subtype
+4. **Pulsador (device) — toggle bombilla + fuerza relé a ON** y
+   **Subtype del botón**: el pulsador físico de esta luz — igual que
+   en `luz_pulsador.yaml`, elige el device MQTT y copia el subtype
    (p. ej. `boton_22`) desde la UI al añadir el disparador.
 5. **Adaptar brillo/temperatura cuando la bombilla vuelve a encenderse
    sola**: opcional, ver `luces_notas.md`.

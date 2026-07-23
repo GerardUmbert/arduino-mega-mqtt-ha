@@ -7,14 +7,17 @@ blueprint:
     ser solo un corte de seguridad — garantiza que la bombilla tiene
     corriente. Este blueprint hace tres cosas independientes:
 
-    1. **Pulsador físico fuerza el relé a ON siempre, sin condición**:
-    al pulsar el botón (pulsación corta), el relé se enciende SIEMPRE,
-    esté como esté (on u off) — no es un toggle. Si el relé se hubiera
-    quedado en OFF por lo que sea, pulsar el botón garantiza que la
-    bombilla tiene corriente, en vez de depender de que el relé ya
-    estuviera en el estado correcto. Esta acción NO toca la bombilla
-    Zigbee — nada enciende la luz solo porque HA o MQTT arrancan o se
-    reconectan.
+    1. **Pulsador físico: toggle de la bombilla + relé a ON siempre,
+    sin condición**: al pulsar el botón (pulsación corta) pasan dos
+    cosas a la vez — (a) se hace toggle de la bombilla Zigbee
+    (enciende si estaba apagada, apaga si estaba encendida: el control
+    normal del día a día), y (b) el relé se fuerza a ON SIEMPRE, esté
+    como esté (on u off) — el relé nunca hace toggle ni se apaga desde
+    aquí. Si el relé se hubiera quedado en OFF por lo que sea, pulsar
+    el botón garantiza que la bombilla tiene corriente, en vez de
+    depender de que el relé ya estuviera en el estado correcto. Nada
+    de esto pasa solo porque HA o MQTT arrancan o se reconectan — el
+    único disparador es el pulsador físico.
 
     2. **Adaptar la bombilla cuando ella misma vuelve a encenderse**
     (opcional): la propia bombilla Zigbee ya tiene su propio
@@ -45,7 +48,7 @@ blueprint:
         entity:
           domain: light
     boton_device_id:
-      name: Pulsador (device) que fuerza el relé a ON
+      name: Pulsador (device) — toggle bombilla + fuerza relé a ON
       description: >
         El dispositivo MQTT del pulsador físico de esta luz (Ajustes →
         Dispositivos y servicios → MQTT → "Mega Pulsadores A/B").
@@ -151,8 +154,9 @@ variables:
 
 action:
   - choose:
-      # --- Pulsador físico: fuerza el relé a ON siempre, sin condición
-      # ni toggle. No toca la bombilla Zigbee, solo garantiza corriente.
+      # --- Pulsador físico: toggle de la bombilla (control normal del
+      # día a día) + relé a ON siempre, sin condición ni toggle (el
+      # relé nunca se apaga desde aquí, solo se garantiza que esté ON).
       - conditions:
           - condition: trigger
             id: pulsador
@@ -160,6 +164,9 @@ action:
           - service: switch.turn_on
             target:
               entity_id: !input relay_entity
+          - service: light.toggle
+            target:
+              entity_id: !input zigbee_light_entity
 
       # --- La bombilla Zigbee ha vuelto a encenderse por su cuenta
       # (recuperación propia tras un corte, o cualquier otro motivo):

@@ -33,14 +33,17 @@ número de versión sino el nombre del tag de este commit).
   luces cuyo brillo/temperatura de color se controla por una bombilla
   Zigbee (pensado para IKEA TRÅDFRI WW/CW) en vez de por el relé de
   `mega_dispositivos`. Hace tres cosas independientes: (1) el pulsador
-  físico fuerza el relé a ON siempre, sin condición ni toggle — nada
-  enciende el relé ni la bombilla solo porque HA o MQTT arranquen o se
-  reconecten; (2) opcionalmente, cuando la bombilla Zigbee vuelve a
-  encenderse por su cuenta (su propia recuperación tras un corte), HA
-  le aplica un brillo/temperatura por defecto en vez de dejar lo que
-  decida ella sola; (3) ajusta sola la temperatura de color según la
-  posición del sol (cálida de noche, neutra a mediodía), sin
-  encender/apagar la bombilla por su cuenta. Ninguna de las tres cosas
+  físico hace toggle de la bombilla (control normal del día a día) y a
+  la vez fuerza el relé a ON siempre, sin condición ni toggle — el relé
+  nunca se apaga desde el pulsador, solo se garantiza que esté
+  encendido; nada de esto pasa solo porque HA o MQTT arranquen o se
+  reconecten, el único disparador es el pulsador físico; (2)
+  opcionalmente, cuando la bombilla Zigbee vuelve a encenderse por su
+  cuenta (su propia recuperación tras un corte), HA le aplica un
+  brillo/temperatura por defecto en vez de dejar lo que decida ella
+  sola; (3) ajusta sola la temperatura de color según la posición del
+  sol (cálida de noche, neutra a mediodía), sin encender/apagar la
+  bombilla por su cuenta. Ninguna de las tres cosas
   requiere cambios en `mega_dispositivos.ino`.
 - `home_assistant/blueprints/luces_notas.md`: ideas de automatización
   para luces con los triggers libres (doble, cuádruple, quíntuple,

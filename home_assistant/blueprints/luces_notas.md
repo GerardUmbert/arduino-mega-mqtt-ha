@@ -52,10 +52,14 @@ Dos formas de combinarlo, de más a menos redundante:
   falla. No necesita automatización, solo wiring/configuración.
 - **Relé como respaldo, controlado por el pulsador físico** — esto es
   lo que hace `luz_zigbee_respaldo.yaml`: al pulsar el botón físico
-  (pulsación corta), el relé se fuerza a ON siempre, esté como esté —
-  no es un toggle. Sirve como garantía de "esta luz tiene corriente
-  pase lo que pase" sin depender de que el relé ya estuviera bien.
-  **Importante**: nada de esto se dispara solo porque HA o MQTT
+  (pulsación corta) pasan dos cosas a la vez — se hace toggle de la
+  bombilla Zigbee (el control normal de encender/apagar) y, además, el
+  relé se fuerza a ON siempre, esté como esté — el relé NUNCA hace
+  toggle ni se apaga desde el pulsador, solo se garantiza que quede
+  ON. Sirve como garantía de "esta luz tiene corriente pase lo que
+  pase" sin depender de que el relé ya estuviera bien; el toggle real
+  de encendido/apagado lo sigue decidiendo la bombilla Zigbee, no el
+  relé. **Importante**: nada de esto se dispara solo porque HA o MQTT
   arranquen o se reconecten — el único disparador del relé es el
   pulsador físico. La bombilla Zigbee tiene su propio comportamiento
   de recuperación tras un corte de corriente (normalmente vuelve a su
