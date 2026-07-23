@@ -1,5 +1,9 @@
 # Reglas de seguridad para este proyecto
 
+- NUNCA menciones ni des crédito a Anthropic, Claude o Claude Code en
+  commits, comentarios de código, documentación (README, CHANGELOG,
+  context.md, todo.md) ni en ningún otro fichero de este repositorio.
+  Ningún trailer tipo "Co-Authored-By" ni referencias de ningún tipo.
 - `config.h` (en `mega_pulsadores/` y `mega_dispositivos/`) SÍ está
   trackeado por git — se sube con los `#define` vacíos/placeholder a
   propósito, para que cualquiera que clone el repo lo tenga presente y
