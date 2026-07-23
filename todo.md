@@ -1,5 +1,34 @@
 # TODO
 
+## HVAC / termostato (pendiente de definir arquitectura)
+
+- [ ] **Necesita más información antes de poder diseñarse** — hay un único
+      termostato en la casa (setup de un amigo, detalles exactos aún sin
+      confirmar) con:
+      - Un interruptor FÍSICO que elige modo calor/frío.
+      - Un ajuste de temperatura que dispara parar/continuar al alcanzarla.
+      - Modo calor → activa suelo radiante; modo frío → activa el AC de
+        techo/conductos.
+      - Probablemente también controlado por relés, como luces/persianas.
+- [ ] Preguntas a resolver con el dueño de la instalación antes de tocar
+      firmware:
+      - ¿El termostato tiene su propia electrónica que decide on/off según
+        temperatura, o es un contacto seco simple que el Arduino tendría
+        que leer y decidir?
+      - ¿El interruptor físico de modo calor/frío está cableado ANTES o
+        DESPUÉS de la lógica de decisión del termostato? ¿Selecciona qué
+        relé recibe la señal de "encender", o cambia el comportamiento del
+        propio termostato?
+      - ¿Se quiere que Home Assistant controle esto (leer modo/temperatura
+        como sensores, decidir cuándo activar relé de suelo radiante o de
+        AC mediante automatización, igual que ya se hace con luces/
+        persianas), o debe quedarse como sistema físico/analógico
+        independiente y el Arduino solo evita interferir?
+      - ¿Va a compartir Mega con luces/persianas (mismo `mega_dispositivos`,
+        pines nuevos) o merece su propia unidad/rol dedicado?
+- [ ] Hasta no responder esas preguntas, NO se ha tomado ninguna decisión
+      de diseño ni se ha tocado ningún `.ino` para esto.
+
 ## Configuración de red (`config.h`)
 
 - [ ] Copiar `mega_pulsadores/config.h.example` → `mega_pulsadores/config.h`

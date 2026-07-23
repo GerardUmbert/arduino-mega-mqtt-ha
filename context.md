@@ -110,6 +110,23 @@ jumper A/B, automatizaciones en HA, ajustes de timing, etc.) ver
 [todo.md](todo.md) — es la única fuente de verdad para pendientes, para
 evitar tener dos listas que se puedan desincronizar.
 
+## HVAC / termostato (futuro, no diseñado aún)
+
+Instalación de un amigo, aún sin detalles exactos de cableado. Hay un
+único termostato en la casa con:
+- Interruptor físico que elige modo calor/frío.
+- Ajuste de temperatura que dispara parar/continuar al alcanzarla.
+- Modo calor → suelo radiante; modo frío → AC de techo/conductos.
+- Probablemente controlado por relés también, "AFAIK" (usuario no está
+  seguro de los detalles exactos, es la instalación de un tercero).
+
+No se ha decidido ninguna arquitectura todavía — deliberadamente, porque
+faltan datos clave (si el termostato decide on/off por sí mismo o es un
+contacto seco simple, si el interruptor de modo actúa antes o después de
+esa decisión, si esto se integrará con HA o se queda físico/analógico, y
+si comparte Mega con `mega_dispositivos` o merece rol propio). Ver
+preguntas abiertas en [todo.md](todo.md).
+
 ## Notas de seguridad/hardware a mantener
 
 - Relés de persiana: nunca activar subir y bajar a la vez. Protección
