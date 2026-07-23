@@ -1,0 +1,83 @@
+blueprint:
+  name: Luz controlada por pulsador físico (corta = toggle, triple = auto-apagado)
+  description: >
+    Conecta un pulsador físico de `mega_pulsadores` con una luz de
+    `mega_dispositivos` (`HASwitch`, on/off simple, sin brillo/temperatura
+    de color — ver README principal del repo).
+
+    - Pulsación corta: apaga/enciende (toggle).
+    - Pulsación triple: enciende y programa apagado automático a los N
+      minutos (por defecto 5). Si la luz se apaga manualmente antes de
+      que pase ese tiempo, el apagado programado no hace nada raro
+      (vuelve a apagar una luz ya apagada, sin efecto visible). Si se
+      vuelve a pulsar triple antes de que expire, el temporizador se
+      reinicia desde cero (gracias a `mode: restart`).
+  domain: automation
+  input:
+    boton_device_id:
+      name: Pulsador (device)
+      description: >
+        El dispositivo MQTT del pulsador en HA (Ajustes → Dispositivos y
+        servicios → MQTT → "Mega Pulsadores A/B").
+      selector:
+        device:
+          integration: mqtt
+    boton_subtype:
+      name: Subtype del botón
+      description: >
+        Identificador del botón, p. ej. "boton_14" (número de pin — ver
+        README principal). Más fiable copiarlo desde la UI al añadir el
+        disparador Device en vez de escribirlo a mano.
+      selector:
+        text: {}
+    light_entity:
+      name: Luz
+      selector:
+        entity:
+          domain: switch
+    auto_apagado_minutos:
+      name: Minutos hasta el apagado automático (pulsación triple)
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 120
+          unit_of_measurement: min
+
+mode: restart
+
+trigger:
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_short_press
+    subtype: !input boton_subtype
+    id: corta
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_triple_press
+    subtype: !input boton_subtype
+    id: triple
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: corta
+        sequence:
+          - service: switch.toggle
+            target:
+              entity_id: !input light_entity
+      - conditions:
+          - condition: trigger
+            id: triple
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: !input light_entity
+          - delay:
+              minutes: !input auto_apagado_minutos
+          - service: switch.turn_off
+            target:
+              entity_id: !input light_entity

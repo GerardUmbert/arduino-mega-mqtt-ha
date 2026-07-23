@@ -112,3 +112,67 @@ queda como estaba hasta el siguiente recorrido completo. Es una
 limitación conocida y aceptada del enfoque por tiempo (ver discusión en
 el historial del proyecto): el error no se acumula sin límite, pero
 tampoco es exacto entre resyncs.
+
+## `luz_pulsador.yaml`
+
+Conecta un pulsador físico con una luz (`switch.*`, on/off simple — las
+luces actuales no tienen control de brillo, ver `luces_notas.md`):
+
+- Pulsación corta: toggle on/off.
+- Pulsación triple: enciende y apaga sola pasados N minutos
+  (configurable, 5 por defecto). Volver a pulsar triple antes de que
+  expire reinicia el temporizador.
+
+### Instanciar el blueprint
+
+Una instancia por cada luz que quieras controlar así:
+
+1. Ajustes → Automatizaciones y escenas → Blueprints → importar
+   `luz_pulsador.yaml` → Crear automatización.
+2. **Pulsador (device)** y **Subtype del botón**: igual que en
+   `persiana_pulsador.yaml` — elige el device MQTT del pulsador y copia
+   el subtype (p. ej. `boton_22`) desde la UI al añadir el disparador.
+3. **Luz**: la entidad `switch` a controlar (p. ej. `switch.luz_22`).
+4. **Minutos hasta el apagado automático**: ajusta si 5 minutos no es lo
+   que quieres para esa luz en concreto.
+
+Ver `luces_notas.md` para más ideas de automatización (doble, cuádruple,
+quíntuple, larga).
+
+## `luz_zigbee_respaldo.yaml`
+
+Para una luz cuyo brillo/temperatura de color se controla por una
+bombilla Zigbee (no por `mega_dispositivos`, pensado para una IKEA
+TRÅDFRI WW/CW regulable). Hace dos cosas independientes, cada una
+activable por separado:
+
+- **Respaldo ante corte**: el relé deja de ser el control normal y pasa
+  a ser un corte de seguridad ante fallo de red/apagón. Al arrancar HA
+  o recuperar MQTT, fuerza el relé a ON y, opcionalmente, espera a que
+  la bombilla Zigbee reaparezca antes de aplicarle un brillo por
+  defecto — sin asumir que el relé y la bombilla están listos a la
+  vez, porque Zigbee tarda en reunirse a la malla tras un corte.
+- **Temperatura de color por hora del día**: si se activa, cada 15
+  minutos ajusta la temperatura de color según la posición del sol
+  (`sun.sun`) — cálida de noche, más neutra a mediodía. Solo actúa si
+  la bombilla ya está encendida, nunca la enciende/apaga. El rango por
+  defecto (250-454 mireds) coincide con el rango real de fábrica de la
+  IKEA TRÅDFRI WW/CW.
+
+No requiere cambios en `mega_dispositivos.ino`. Ver `luces_notas.md`
+para el detalle completo.
+
+### Instanciar el blueprint
+
+Una instancia por cada luz Zigbee con relé de respaldo:
+
+1. Ajustes → Automatizaciones y escenas → Blueprints → importar
+   `luz_zigbee_respaldo.yaml` → Crear automatización.
+2. **Relé**: el `switch.*` de `mega_dispositivos` de esa luz.
+3. **Bombilla Zigbee**: la entidad `light.*` real.
+4. **Aplicar brillo por defecto al recuperar corriente**: opcional, ver
+   `luces_notas.md`.
+5. **Ajustar temperatura de color según la hora del día**: opcional,
+   activa el ciclo automático cálida/fría. Ajusta
+   `temp_calida_mireds`/`temp_fria_mireds` si tu bombilla tiene un
+   rango distinto al de la IKEA TRÅDFRI WW/CW.
