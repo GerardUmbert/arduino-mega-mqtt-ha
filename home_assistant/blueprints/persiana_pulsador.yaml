@@ -1,0 +1,98 @@
+blueprint:
+  name: Persiana controlada por pulsador físico (mantener para mover)
+  description: >
+    Conecta un pulsador físico de `mega_pulsadores` con una persiana de
+    `mega_dispositivos`: mantener pulsado sube/baja, soltar para. Pensado
+    para el patrón "agrupación de 4 pulsadores en una habitación" descrito
+    en `todo.md` — un botón de la agrupación para subir, otro para bajar.
+
+    Como el pulsador siempre manda la persiana a un extremo (se suelta
+    cuando ya está donde se quiere, normalmente el tope, o se para a
+    medias), este blueprint deja la posición a medias sin resincronizar
+    automáticamente salvo que la persiana llegue de verdad a abierta o
+    cerrada del todo — eso ya lo cubre `persiana_posicion.yaml`, que
+    escucha el estado `open`/`closed` de la propia entidad `cover`
+    independientemente de quién la haya movido. Si usas ambos blueprints
+    sobre la misma persiana, la posición se mantiene correcta también
+    para los movimientos iniciados desde el pulsador.
+  domain: automation
+  input:
+    boton_device_id:
+      name: Pulsador (device)
+      description: >
+        El dispositivo MQTT del pulsador en HA (Ajustes → Dispositivos y
+        servicios → MQTT → busca "Mega Pulsadores A/B").
+      selector:
+        device:
+          integration: mqtt
+    boton_subtype:
+      name: Subtype del botón
+      description: >
+        Identificador del botón concreto dentro del device trigger, tal
+        cual aparece en HA al elegir el trigger (p. ej. "boton_14" — el
+        nombre lleva el número de pin, ver README principal del repo).
+      selector:
+        text: {}
+    cover_entity:
+      name: Persiana
+      selector:
+        entity:
+          domain: cover
+    accion:
+      name: Acción al mantener pulsado
+      description: Qué hace este botón concreto al mantenerlo pulsado.
+      default: abrir
+      selector:
+        select:
+          options:
+            - label: Abrir / subir
+              value: abrir
+            - label: Cerrar / bajar
+              value: cerrar
+
+mode: restart
+
+trigger:
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_press
+    subtype: !input boton_subtype
+    id: inicio
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_release
+    subtype: !input boton_subtype
+    id: fin
+
+variables:
+  accion: !input accion
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: inicio
+          - condition: template
+            value_template: "{{ accion == 'abrir' }}"
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input cover_entity
+      - conditions:
+          - condition: trigger
+            id: inicio
+          - condition: template
+            value_template: "{{ accion == 'cerrar' }}"
+        sequence:
+          - service: cover.close_cover
+            target:
+              entity_id: !input cover_entity
+      - conditions:
+          - condition: trigger
+            id: fin
+        sequence:
+          - service: cover.stop_cover
+            target:
+              entity_id: !input cover_entity

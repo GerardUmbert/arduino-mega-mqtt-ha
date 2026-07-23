@@ -1,0 +1,172 @@
+blueprint:
+  name: Persiana con posición estimada (time-based)
+  description: >
+    Mueve una persiana sin encoder a una posición aproximada (0-100%),
+    estimando el tiempo de recorrido a partir de un tiempo de apertura y
+    cierre calibrados por persiana. Cada vez que la persiana completa un
+    recorrido completo (abrir del todo / cerrar del todo), la posición
+    estimada se resincroniza a 0 o 100 para evitar que el error se acumule
+    indefinidamente entre recorridos parciales.
+
+    Requiere 3 helpers `input_number` creados de antemano para esta
+    persiana: posición actual, objetivo, tiempo de apertura y tiempo de
+    cierre (ver README del proyecto).
+  domain: automation
+  input:
+    cover_entity:
+      name: Persiana
+      selector:
+        entity:
+          domain: cover
+    posicion_helper:
+      name: Helper de posición actual
+      description: input_number que guarda la posición estimada (0-100).
+      selector:
+        entity:
+          domain: input_number
+    objetivo_helper:
+      name: Helper de posición objetivo
+      description: input_number con el slider que usas para pedir "ir a X%".
+      selector:
+        entity:
+          domain: input_number
+    tiempo_abrir_helper:
+      name: Helper de tiempo de apertura total
+      description: input_number con los segundos que tarda en abrir del todo.
+      selector:
+        entity:
+          domain: input_number
+    tiempo_cerrar_helper:
+      name: Helper de tiempo de cierre total
+      description: input_number con los segundos que tarda en cerrar del todo.
+      selector:
+        entity:
+          domain: input_number
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input objetivo_helper
+    id: mover_a_objetivo
+  - platform: state
+    entity_id: !input cover_entity
+    to: "open"
+    id: resync_abierta
+  - platform: state
+    entity_id: !input cover_entity
+    to: "closed"
+    id: resync_cerrada
+
+variables:
+  cover_entity: !input cover_entity
+  posicion_helper: !input posicion_helper
+  objetivo_helper: !input objetivo_helper
+  tiempo_abrir_helper: !input tiempo_abrir_helper
+  tiempo_cerrar_helper: !input tiempo_cerrar_helper
+  posicion_actual: "{{ states(posicion_helper) | float(0) }}"
+  objetivo: "{{ states(objetivo_helper) | float(0) }}"
+  tiempo_abrir: "{{ states(tiempo_abrir_helper) | float(0) }}"
+  tiempo_cerrar: "{{ states(tiempo_cerrar_helper) | float(0) }}"
+  delta: "{{ objetivo - posicion_actual }}"
+
+action:
+  - choose:
+      # --- Resync: la persiana ha llegado sola (o por otro camino, p. ej.
+      # un pulsador físico) a un extremo conocido. No movemos nada, solo
+      # corregimos la posición guardada.
+      - conditions:
+          - condition: trigger
+            id: resync_abierta
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: !input posicion_helper
+            data:
+              value: 100
+      - conditions:
+          - condition: trigger
+            id: resync_cerrada
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: !input posicion_helper
+            data:
+              value: 0
+
+      # --- Movimiento a un objetivo intermedio pedido desde el slider.
+      - conditions:
+          - condition: trigger
+            id: mover_a_objetivo
+          - condition: template
+            value_template: "{{ delta | abs >= 1 }}"
+        sequence:
+          - choose:
+              # Objetivo = extremos: recorrido completo, resync exacto al
+              # terminar en vez de fiarnos de la estimación de tiempo.
+              - conditions:
+                  - condition: template
+                    value_template: "{{ objetivo >= 100 }}"
+                sequence:
+                  - service: cover.open_cover
+                    target:
+                      entity_id: !input cover_entity
+                  - wait_for_trigger:
+                      - platform: state
+                        entity_id: !input cover_entity
+                        to: "open"
+                    timeout:
+                      seconds: "{{ (tiempo_abrir + 5) | int }}"
+                  - service: input_number.set_value
+                    target:
+                      entity_id: !input posicion_helper
+                    data:
+                      value: 100
+              - conditions:
+                  - condition: template
+                    value_template: "{{ objetivo <= 0 }}"
+                sequence:
+                  - service: cover.close_cover
+                    target:
+                      entity_id: !input cover_entity
+                  - wait_for_trigger:
+                      - platform: state
+                        entity_id: !input cover_entity
+                        to: "closed"
+                    timeout:
+                      seconds: "{{ (tiempo_cerrar + 5) | int }}"
+                  - service: input_number.set_value
+                    target:
+                      entity_id: !input posicion_helper
+                    data:
+                      value: 0
+            default:
+              # Objetivo intermedio: movimiento por tiempo estimado.
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ delta > 0 }}"
+                    sequence:
+                      - service: cover.open_cover
+                        target:
+                          entity_id: !input cover_entity
+                      - delay:
+                          seconds: "{{ (delta / 100 * tiempo_abrir) | round(1) }}"
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ delta < 0 }}"
+                    sequence:
+                      - service: cover.close_cover
+                        target:
+                          entity_id: !input cover_entity
+                      - delay:
+                          seconds: "{{ (delta | abs / 100 * tiempo_cerrar) | round(1) }}"
+              - service: cover.stop_cover
+                target:
+                  entity_id: !input cover_entity
+              - service: input_number.set_value
+                target:
+                  entity_id: !input posicion_helper
+                data:
+                  value: "{{ objetivo }}"
