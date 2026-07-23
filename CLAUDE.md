@@ -1,19 +1,30 @@
 # Reglas de seguridad para este proyecto
 
-- NUNCA hagas `git add`, `git commit` ni ningún otro comando que incluya
-  `config.h` (de `mega_pulsadores/` o `mega_dispositivos/`) en el
-  repositorio. Ese fichero contiene la IP real de Home Assistant y las
-  credenciales reales del broker MQTT (Mosquitto). Solo `config.h.example`
-  (con placeholders) debe subirse.
+- `config.h` (en `mega_pulsadores/` y `mega_dispositivos/`) SÍ está
+  trackeado por git — se sube con los `#define` vacíos/placeholder a
+  propósito, para que cualquiera que clone el repo lo tenga presente y
+  el sketch compile sin pasos extra. Lo que NUNCA debe pasar es que se
+  suba una versión de `config.h` con datos reales (IP, usuario o
+  password MQTT) rellenados.
+- Para evitarlo, ambos `config.h` están marcados localmente con
+  `git update-index --skip-worktree`: git ignora cualquier cambio futuro
+  en el contenido de esos ficheros aunque los edites y rellenes con tus
+  credenciales reales. NUNCA quites ese flag
+  (`git update-index --no-skip-worktree config.h`) ni fuerces su
+  `git add`/`git commit` con datos reales dentro.
 - Antes de cualquier `git add -A`, `git add .` o commit, revisa
-  `git status` y confirma que `config.h` no aparece como fichero a subir.
-  Si aparece, algo ha roto el `.gitignore` — párate y avisa, no continúes
-  con el commit.
-- NUNCA imprimas, muestres ni repitas el contenido de `config.h` (IP,
-  usuario o password MQTT) en la conversación, comandos, logs o commits.
+  `git status` y confirma que `config.h` no aparece como modificado. Si
+  aparece, el flag `skip-worktree` se ha perdido (p. ej. tras un
+  `git rm --cached` o clonado nuevo) — párate y avisa, no continúes con
+  el commit hasta re-aplicar `skip-worktree` o revertir el contenido a
+  placeholders vacíos.
+- NUNCA imprimas, muestres ni repitas el contenido real de `config.h`
+  (IP, usuario o password MQTT) en la conversación, comandos, logs o
+  commits.
 - NUNCA hardcodees IP, usuario o password MQTT directamente en los
   ficheros `.ino` — deben vivir siempre en `config.h`, incluido vía
   `#include "config.h"`.
-- Si necesitas modificar la plantilla de configuración, edita
-  `config.h.example` (con placeholders), nunca copies valores reales de
-  `config.h` a un fichero que sí se suba a git.
+- `config.h.example` es la plantilla documentada (con placeholders
+  descriptivos); `config.h` es el fichero real que se rellena y del que
+  git ignora los cambios. No confundir ambos ni copiar datos reales de
+  uno a otro.

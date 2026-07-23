@@ -111,14 +111,23 @@ mega_dispositivos) para que nunca choquen en la red.
 
 `BROKER_ADDR`, `MQTT_USER` y `MQTT_PASS` NO están escritos directamente en
 los `.ino` — viven en un fichero `config.h` que cada `.ino` incluye con
-`#include "config.h"`. Ese fichero está en `.gitignore` y nunca se sube al
-repositorio, así que tu IP y tu password reales se quedan solo en tu
-ordenador/placa.
+`#include "config.h"`.
+
+`config.h` SÍ viene incluido en el repo (con los valores vacíos/de
+ejemplo) para que el proyecto compile nada más clonarlo, sin pasos
+adicionales. Para que tus credenciales reales no se suban por error, el
+repo tiene marcados ambos `config.h` con
+`git update-index --skip-worktree`: una vez rellenes tus datos reales,
+git deja de detectar cambios en ese fichero y nunca aparecerá en
+`git status` ni se subirá en un commit.
 
 Para configurarlo, en `mega_pulsadores/` y en `mega_dispositivos/`:
 
-1. Copia `config.h.example` como `config.h` (mismo directorio).
+1. Abre directamente `config.h` (ya existe, con placeholders vacíos).
 2. Rellena `BROKER_ADDR`, `MQTT_USER` y `MQTT_PASS` con tus valores reales.
+
+(`config.h.example` es solo la plantilla documentada de referencia —
+no hace falta copiarla, `config.h` ya está listo para editar.)
 
 Como las 2 unidades de cada rol (A y B) comparten el mismo broker MQTT,
 normalmente usarás el mismo `config.h` en ambas — solo cambia el jumper
