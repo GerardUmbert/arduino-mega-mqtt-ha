@@ -113,6 +113,61 @@ limitación conocida y aceptada del enfoque por tiempo (ver discusión en
 el historial del proyecto): el error no se acumula sin límite, pero
 tampoco es exacto entre resyncs.
 
+## `persiana_pulsador_completo.yaml`
+
+Alternativa a `persiana_pulsador.yaml` que aprovecha los 5 niveles de
+pulsación del botón en vez de solo mantener pulsado. Un botón de la
+agrupación de 4 hace SIEMPRE de "subir", otro SIEMPRE de "bajar", para
+todas las persianas de esa agrupación:
+
+| Pulsaciones | Botón subir | Botón bajar |
+|---|---|---|
+| 1 | esta persiana → 100% | esta persiana → 0% |
+| 2 | persianas de la misma Area → 100% cada una | ídem → 0% cada una |
+| 3 | esta persiana → 50% | esta persiana → 50% |
+| 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
+| 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
+| larga / fin | mover mientras se mantiene, parar al soltar |
+
+**Dependencia dura**: 1/2/3/4/5 no mueven la persiana directamente —
+escriben en el helper `..._objetivo` de cada persiana afectada, y es
+`persiana_posicion.yaml` quien la mueve de verdad. Por eso **toda**
+persiana que pueda verse afectada (incluidas las de la Area en doble
+pulsación, o todas las de la casa en quíntuple) necesita ya su propia
+instancia de `persiana_posicion.yaml`, con helpers nombrados
+`input_number.<object_id_de_la_cover>_objetivo` /
+`..._posicion` — el blueprint deriva esos nombres del `entity_id` de
+cada `cover.*`, no los pides a mano uno a uno. Si el nombrado no
+coincide para alguna persiana del grupo, esa persiana en concreto
+simplemente no se mueve (sin error visible) — revisa el nombrado si ves
+alguna que se queda descolgada.
+
+La pulsación larga sí sigue llamando a `cover.*` directamente (igual
+que `persiana_pulsador.yaml`), pero al soltar, si la persiana no llegó
+a un extremo, estima cuánto se movió a partir de cuánto tiempo estuvo
+mantenida y actualiza `posicion` directamente — cierra el hueco que
+`persiana_pulsador.yaml` deja en pulsaciones largas parciales.
+
+### Instanciar el blueprint
+
+Dos instancias por persiana (una por botón subir, otra por bajar) — o
+más si varias persianas comparten el mismo par de botones subir/bajar:
+
+1. Ajustes → Automatizaciones y escenas → Blueprints → importar
+   `persiana_pulsador_completo.yaml` → Crear automatización.
+2. **Pulsador (device)** y **Subtype del botón**: igual que en los
+   otros blueprints de pulsador.
+3. **Persiana controlada por este botón**: la entidad `cover` concreta
+   (para 1/3/4/larga; 2/5 se calculan solas a partir de esta).
+4. **Dirección**: Subir o Bajar, según qué botón sea este.
+5. **Helper de tiempo de apertura/cierre total**: los mismos helpers
+   `tiempo_abrir`/`tiempo_cerrar` que ya usa la instancia de
+   `persiana_posicion.yaml` de esta persiana.
+6. **Helper de inicio de pulsación larga**: crea un `input_datetime`
+   nuevo y dedicado a esta instancia concreta (uno por botón, no
+   compartido) — Ajustes → Ayudantes → Crear ayudante → Fecha y hora,
+   con la opción de hora activada.
+
 ## `luz_pulsador.yaml`
 
 Conecta un pulsador físico con una luz (`switch.*`, on/off simple — las

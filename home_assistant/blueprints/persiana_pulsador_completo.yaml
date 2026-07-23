@@ -1,0 +1,263 @@
+blueprint:
+  name: Persiana — botón subir/bajar completo (1/2/3/4/5 pulsaciones + larga)
+  description: >
+    Sustituye a `persiana_pulsador.yaml` cuando quieres aprovechar los 5
+    niveles de pulsación de un botón, no solo mantener pulsado. Pensado
+    para el patrón de `todo.md`: agrupación de 4 pulsadores por
+    habitación, uno hace SIEMPRE de "subir" y otro SIEMPRE de "bajar"
+    para todas las persianas de esa agrupación. Se instancia dos veces
+    por habitación — una para el botón de subir, otra para el de bajar —
+    con `direccion` puesta a `subir`/`bajar` respectivamente.
+
+    | Pulsaciones | Botón subir | Botón bajar |
+    |---|---|---|
+    | 1 | esta persiana → 100% | esta persiana → 0% |
+    | 2 | persianas del Area → 100% cada una | persianas del Area → 0% cada una |
+    | 3 | esta persiana → 50% | esta persiana → 50% |
+    | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
+    | 5 | TODAS las persianas de la casa → 100% | TODAS las persianas de la casa → 0% |
+    | larga / fin | mover mientras se mantiene, parar al soltar (estima
+      posición por tiempo si no llega a un extremo) |
+
+    Todas las acciones que fijan una posición (1/2/3/4/5) NO llaman a
+    `cover.*` directamente: escriben en el helper `input_number
+    ..._objetivo` de cada persiana afectada, y es `persiana_posicion.yaml`
+    (que debe estar instanciado para esa persiana) quien realmente la
+    mueve y actualiza la posición estimada. Por eso toda persiana que
+    pueda verse afectada — incluidas las de la misma Area o las de toda
+    la casa en pulsación doble/quíntuple — necesita tener ya su propio
+    `persiana_posicion.yaml` configurado, con los helpers nombrados
+    siguiendo el convenio `input_number.<object_id_de_la_cover>_objetivo`
+    y `..._posicion` (p. ej. `cover.persiana_38_39` →
+    `input_number.persiana_38_39_objetivo`). Si un helper no existe con
+    ese nombre exacto para alguna persiana del grupo, esa persiana en
+    concreto no se moverá (sin error visible) — revisa el nombrado si
+    ves que alguna se queda descolgada.
+  domain: automation
+  input:
+    boton_device_id:
+      name: Pulsador (device)
+      selector:
+        device:
+          integration: mqtt
+    boton_subtype:
+      name: Subtype del botón
+      description: >
+        P. ej. "boton_2". Cópialo desde la UI al añadir el disparador
+        Device para evitar errores de tecleo.
+      selector:
+        text: {}
+    cover_entity:
+      name: Persiana controlada por este botón
+      selector:
+        entity:
+          domain: cover
+    direccion:
+      name: Dirección de este botón
+      selector:
+        select:
+          options:
+            - label: Subir
+              value: subir
+            - label: Bajar
+              value: bajar
+    tiempo_abrir_helper:
+      name: Helper de tiempo de apertura total (de esta persiana)
+      description: >
+        El mismo helper `tiempo_abrir` usado en la instancia de
+        `persiana_posicion.yaml` de esta persiana — se usa aquí para
+        estimar la posición al soltar una pulsación larga parcial.
+      selector:
+        entity:
+          domain: input_number
+    tiempo_cerrar_helper:
+      name: Helper de tiempo de cierre total (de esta persiana)
+      selector:
+        entity:
+          domain: input_number
+    inicio_larga_helper:
+      name: Helper de inicio de pulsación larga
+      description: >
+        input_datetime (con hora, no solo fecha) dedicado a este botón
+        concreto — guarda el instante en que empezó la pulsación larga
+        para poder calcular cuánto se mantuvo pulsado al soltar. Crea
+        uno distinto por cada instancia de este blueprint (no lo
+        compartas entre el botón de subir y el de bajar de la misma
+        persiana, ni entre persianas).
+      selector:
+        entity:
+          domain: input_datetime
+
+mode: restart
+
+trigger:
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_short_press
+    subtype: !input boton_subtype
+    id: p1
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_double_press
+    subtype: !input boton_subtype
+    id: p2
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_triple_press
+    subtype: !input boton_subtype
+    id: p3
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quadruple_press
+    subtype: !input boton_subtype
+    id: p4
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quintuple_press
+    subtype: !input boton_subtype
+    id: p5
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_press
+    subtype: !input boton_subtype
+    id: larga_inicio
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_release
+    subtype: !input boton_subtype
+    id: larga_fin
+
+variables:
+  cover_entity: !input cover_entity
+  direccion: !input direccion
+  tiempo_abrir_helper: !input tiempo_abrir_helper
+  tiempo_cerrar_helper: !input tiempo_cerrar_helper
+  inicio_larga_helper: !input inicio_larga_helper
+  objetivo_extremo: "{{ 100 if direccion == 'subir' else 0 }}"
+  area_id: "{{ area_id(cover_entity) }}"
+  covers_area: "{{ area_entities(area_id) | select('match', '^cover\\.') | list if area_id else [cover_entity] }}"
+  covers_casa: "{{ states.cover | map(attribute='entity_id') | list }}"
+  objetivo_helper_esta: "input_number.{{ cover_entity.split('.')[1] }}_objetivo"
+  posicion_helper_esta: "input_number.{{ cover_entity.split('.')[1] }}_posicion"
+  posicion_actual: "{{ states(posicion_helper_esta) | float(0) }}"
+  paso_relativo: "{{ 5 if direccion == 'subir' else -5 }}"
+  objetivo_relativo: "{{ [[posicion_actual + paso_relativo, 0] | max, 100] | min }}"
+
+action:
+  - choose:
+      # --- 1 pulsación: esta persiana al extremo correspondiente.
+      - conditions:
+          - condition: trigger
+            id: p1
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ objetivo_helper_esta }}"
+            data:
+              value: "{{ objetivo_extremo }}"
+
+      # --- 2 pulsaciones: todas las persianas de la misma Area.
+      - conditions:
+          - condition: trigger
+            id: p2
+        sequence:
+          - repeat:
+              for_each: "{{ covers_area }}"
+              sequence:
+                - service: input_number.set_value
+                  target:
+                    entity_id: "input_number.{{ repeat.item.split('.')[1] }}_objetivo"
+                  data:
+                    value: "{{ objetivo_extremo }}"
+                  continue_on_error: true
+
+      # --- 3 pulsaciones: esta persiana al 50%.
+      - conditions:
+          - condition: trigger
+            id: p3
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ objetivo_helper_esta }}"
+            data:
+              value: 50
+
+      # --- 4 pulsaciones: ajuste fino ±5% desde la posición actual.
+      - conditions:
+          - condition: trigger
+            id: p4
+        sequence:
+          - service: input_number.set_value
+            target:
+              entity_id: "{{ objetivo_helper_esta }}"
+            data:
+              value: "{{ objetivo_relativo }}"
+
+      # --- 5 pulsaciones: TODAS las persianas de la casa.
+      - conditions:
+          - condition: trigger
+            id: p5
+        sequence:
+          - repeat:
+              for_each: "{{ covers_casa }}"
+              sequence:
+                - service: input_number.set_value
+                  target:
+                    entity_id: "input_number.{{ repeat.item.split('.')[1] }}_objetivo"
+                  data:
+                    value: "{{ objetivo_extremo }}"
+                  continue_on_error: true
+
+      # --- Larga: guarda el instante de inicio (para medir duración al
+      # soltar) y empieza a mover.
+      - conditions:
+          - condition: trigger
+            id: larga_inicio
+        sequence:
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: !input inicio_larga_helper
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
+            target:
+              entity_id: "{{ cover_entity }}"
+
+      # --- Fin de larga: parar, y si no llegó a un extremo, estimar la
+      # posición recorrida a partir de cuánto tiempo estuvo pulsado
+      # (inicio_larga_helper vs. ahora) en vez de dejarla desactualizada
+      # hasta el siguiente recorrido completo.
+      - conditions:
+          - condition: trigger
+            id: larga_fin
+        sequence:
+          - service: cover.stop_cover
+            target:
+              entity_id: "{{ cover_entity }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ is_state(cover_entity, 'open') or is_state(cover_entity, 'closed') }}"
+                sequence: []
+            default:
+              - variables:
+                  tiempo_abrir: "{{ states(tiempo_abrir_helper) | float(0) }}"
+                  tiempo_cerrar: "{{ states(tiempo_cerrar_helper) | float(0) }}"
+                  segundos_mantenido: >-
+                    {{ (now().timestamp() - as_timestamp(states(inicio_larga_helper), now().timestamp())) | max(0) }}
+                  tiempo_total: "{{ tiempo_abrir if direccion == 'subir' else tiempo_cerrar }}"
+                  delta_pct: >-
+                    {{ (segundos_mantenido / tiempo_total * 100) if tiempo_total > 0 else 0 }}
+              - service: input_number.set_value
+                target:
+                  entity_id: "{{ posicion_helper_esta }}"
+                data:
+                  value: >-
+                    {{ [[posicion_actual + (delta_pct if direccion == 'subir' else -delta_pct), 0] | max, 100] | min }}

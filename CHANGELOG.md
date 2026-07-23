@@ -43,6 +43,20 @@ número de versión sino el nombre del tag de este commit).
   para luces con los triggers libres (doble, cuádruple, quíntuple,
   larga) y detalle del enfoque de brillo/temperatura vía Zigbee en vez
   de PWM en el relé.
+- `home_assistant/blueprints/persiana_pulsador_completo.yaml`:
+  alternativa a `persiana_pulsador.yaml` que usa los 5 niveles de
+  pulsación del botón (no solo mantener pulsado) para un patrón
+  subir/bajar completo: 1 pulsación = esta persiana al extremo, 2 =
+  todas las persianas de la misma Area al extremo, 3 = esta persiana al
+  50%, 4 = ajuste fino ±5% desde la posición actual, 5 = todas las
+  persianas de la casa al extremo, larga = mover mientras se mantiene
+  (y al soltar sin llegar a un extremo, estima la posición recorrida
+  por tiempo mantenido en vez de dejarla desactualizada). Depende de
+  que cada persiana afectada tenga ya su propia instancia de
+  `persiana_posicion.yaml`, con los helpers de esa persiana nombrados
+  siguiendo el convenio `input_number.<object_id>_objetivo`/
+  `..._posicion` que el blueprint deriva automáticamente del
+  `entity_id` de cada `cover.*`.
 
 ## [1.2.0] - 2026-07-23
 
