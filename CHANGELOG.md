@@ -5,7 +5,7 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
-## [1.2.0] - Sin publicar
+## [1.2.0] - 2026-07-23
 
 ### Changed
 - El `unique_id` de cada pulsador/luz/persiana (`boton_XX`, `luz_XX`,
@@ -41,7 +41,7 @@ de cada dispositivo.
 - `mega_pulsadores/pines_a.h`, `mega_pulsadores/pines_b.h`,
   `mega_dispositivos/pines_a.h`, `mega_dispositivos/pines_b.h`.
 
-## [1.1.0] - Sin publicar
+## [1.1.0] - 2026-07-23
 
 ### Added
 - `README.md` con documentación completa del proyecto (hardware,
