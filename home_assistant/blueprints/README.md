@@ -71,6 +71,88 @@ identifica → ⋮ → Recargar configuración de YAML, sección "Helpers de
 input_number") o reinicia HA — no hace falta reiniciar todo el sistema,
 con recargar la configuración YAML basta.
 
+### Varias persianas a la vez
+
+Si tienes que dar de alta muchas persianas (p. ej. 7), escribir los 4
+helpers a mano por cada una es repetitivo. En vez de copiar el bloque
+YAML de arriba 7 veces, genera los 28 helpers con un script a partir de
+una lista de nombres — usa el `object_id` que le vayas a dar a cada
+`cover` en HA (el nombre final, no el sufijo de pines: si vas a
+renombrar las persianas a algo más legible, usa ya ese nombre aquí para
+no tener que rehacer esto después):
+
+```python
+persianas = ["salon", "cocina", "dormitorio_1", "dormitorio_2", "estudio", "pasillo", "terraza"]
+
+for p in persianas:
+    print(f"""  {p}_posicion:
+    name: Persiana {p.replace('_', ' ').title()} - Posición actual
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+  {p}_objetivo:
+    name: Persiana {p.replace('_', ' ').title()} - Objetivo
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+  {p}_tiempo_abrir:
+    name: Persiana {p.replace('_', ' ').title()} - Tiempo apertura
+    min: 0
+    max: 60
+    step: 0.5
+    unit_of_measurement: s
+  {p}_tiempo_cerrar:
+    name: Persiana {p.replace('_', ' ').title()} - Tiempo cierre
+    min: 0
+    max: 60
+    step: 0.5
+    unit_of_measurement: s""")
+```
+
+Pega la salida bajo `input_number:` en `configuration.yaml`. Cambiar el
+nombre de una persiana más adelante solo implica renombrar sus 4
+entradas (buscar/reemplazar el slug antiguo por el nuevo) — no afecta al
+resto.
+
+### Instanciar el blueprint en varias persianas por YAML
+
+Si tu instalación gestiona las automatizaciones en modo YAML (no solo
+UI), puedes instanciar el blueprint para varias persianas escribiendo
+directamente bajo `automation:` en vez de repetir el asistente de la UI
+7 veces:
+
+```yaml
+automation:
+  - alias: Persiana Salón - posición
+    use_blueprint:
+      path: persiana_posicion.yaml
+      input:
+        cover_entity: cover.salon
+        posicion_helper: input_number.salon_posicion
+        objetivo_helper: input_number.salon_objetivo
+        tiempo_abrir_helper: input_number.salon_tiempo_abrir
+        tiempo_cerrar_helper: input_number.salon_tiempo_cerrar
+  - alias: Persiana Cocina - posición
+    use_blueprint:
+      path: persiana_posicion.yaml
+      input:
+        cover_entity: cover.cocina
+        posicion_helper: input_number.cocina_posicion
+        objetivo_helper: input_number.cocina_objetivo
+        tiempo_abrir_helper: input_number.cocina_tiempo_abrir
+        tiempo_cerrar_helper: input_number.cocina_tiempo_cerrar
+  # ... repetir una entrada por persiana
+```
+
+`path` es relativo a `<config>/blueprints/automation/<usuario_o_carpeta>/`
+— ajústalo a donde tengas copiado `persiana_posicion.yaml` dentro de
+`blueprints/automation/`. Sigue habiendo una entrada por persiana (HA no
+soporta instanciar un blueprint en bucle desde YAML), pero es mucho menos
+manual que repetir el asistente gráfico 7 veces, y además queda en
+control de versiones junto con el resto de la config.
+
 ### Cómo calibrar `tiempo_abrir` / `tiempo_cerrar`
 
 1. Cierra la persiana del todo manualmente desde HA (botón cerrar) y
