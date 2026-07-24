@@ -33,6 +33,44 @@ Usa el mismo sufijo de pines que ya usa la entidad `cover` (p. ej.
 `_38_39`) para no perder la referencia de a qué persiana pertenece cada
 helper.
 
+Alternativa más rápida si tienes varias persianas: añade los helpers
+por YAML en vez de crearlos uno a uno desde la UI. Tienen que declararse
+bajo la clave `input_number:` de `configuration.yaml` (o un paquete
+aparte incluido desde ahí):
+
+```yaml
+input_number:
+  persiana_38_39_posicion:
+    name: Persiana 38/39 - Posición actual
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+  persiana_38_39_objetivo:
+    name: Persiana 38/39 - Objetivo
+    min: 0
+    max: 100
+    step: 1
+    unit_of_measurement: "%"
+  persiana_38_39_tiempo_abrir:
+    name: Persiana 38/39 - Tiempo apertura
+    min: 0
+    max: 60
+    step: 0.5
+    unit_of_measurement: s
+  persiana_38_39_tiempo_cerrar:
+    name: Persiana 38/39 - Tiempo cierre
+    min: 0
+    max: 60
+    step: 0.5
+    unit_of_measurement: s
+```
+
+Tras guardar, recarga los helpers (Ajustes → Sistema → Repara e
+identifica → ⋮ → Recargar configuración de YAML, sección "Helpers de
+input_number") o reinicia HA — no hace falta reiniciar todo el sistema,
+con recargar la configuración YAML basta.
+
 ### Cómo calibrar `tiempo_abrir` / `tiempo_cerrar`
 
 1. Cierra la persiana del todo manualmente desde HA (botón cerrar) y
