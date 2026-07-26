@@ -364,3 +364,213 @@ Una instancia por cada luz Zigbee con relé de respaldo:
    activa el ciclo automático cálida/fría. Ajusta
    `temp_calida_mireds`/`temp_fria_mireds` si tu bombilla tiene un
    rango distinto al de la IKEA TRÅDFRI WW/CW.
+
+## Persianas que se ajustan solas según el sol: Adaptive Cover (HACS)
+
+No es un blueprint de este repo, sino una **integración externa de HA**
+(no Arduino/firmware) que calcula la posición óptima de cada persiana
+para bloquear el sol directo, a partir de azimut/elevación del sol
+(`sun.sun`) y la orientación de la fachada donde está esa persiana.
+Encaja con `persiana_posicion.yaml` sin pisarlo: Adaptive Cover escribe
+en el mismo helper `input_number.<cover>_objetivo` que ya usan
+`persiana_pulsador_completo.yaml` (pulsaciones 1/2/3/4/5) y el slider
+manual — es solo otro "escritor" más del objetivo, igual que ellos.
+
+- Repo: https://github.com/basbruss/adaptive-cover
+- Se instala vía HACS (Ajustes → HACS → Integraciones → buscar
+  "Adaptive Cover" → instalar → reiniciar HA), luego se añade como
+  integración normal (Ajustes → Dispositivos y servicios → Añadir
+  integración → "Adaptive Cover").
+
+### Qué pide por persiana al configurarla
+
+- **Orientación de la ventana/fachada** (azimut en grados, 0 = norte,
+  90 = este, 180 = sur, 270 = oeste) — el dato clave, tienes que
+  saberlo tú por persiana.
+- Opcional: alto y ancho de la ventana, distancia a la ventana del
+  punto que quieres proteger del sol — mejora la precisión del cálculo
+  de sombra, pero no es obligatorio para un primer ajuste.
+- Modo **blind** (persiana normal de subir/bajar, tu caso — solo
+  calcula cuánto bajarla para cortar el sol directo) frente a modo
+  **venetian** (lamas orientables, no aplica aquí).
+
+### Cómo conectarlo a lo que ya tienes
+
+Adaptive Cover puede exponer directamente una entidad `cover` propia
+que mueve la persiana real, o (más simple con tu arquitectura actual)
+puedes leer su sensor de "posición recomendada" y volcarlo tú al mismo
+helper `..._objetivo` que ya usan tus otros blueprints, con una
+automatización corta tipo:
+
+```yaml
+automation:
+  - alias: Persiana Salón - seguir sol (Adaptive Cover)
+    trigger:
+      - platform: state
+        entity_id: sensor.adaptive_cover_salon  # el sensor que cree la integración para esa ventana
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.salon_objetivo
+        data:
+          value: "{{ trigger.to_state.state | float(0) }}"
+```
+
+Así el cálculo de sol lo hace la integración, pero quien mueve
+físicamente el relé sigue siendo `persiana_posicion.yaml` — mismo
+mecanismo que ya usas para el pulsador físico y el slider manual, sin
+tocar `mega_dispositivos.ino` para nada.
+
+**Por qué disparador de estado y no `time_pattern`**: a diferencia del
+ciclo de temperatura de color de `luz_zigbee_respaldo.yaml` (donde el
+cálculo con `sun.sun` lo hace la propia automatización cada 15 min),
+aquí el cálculo de posición ya lo hace Adaptive Cover internamente y
+solo publica un valor nuevo en su sensor cuando cambia — un trigger
+`platform: state` sobre ese sensor ya se dispara justo con esa cadencia
+sin necesidad de sondear con un intervalo fijo propio.
+
+### Pendiente importante: no pisar un ajuste manual del usuario
+
+Problema a tener en cuenta antes de dar esto por terminado: si dejas la
+persiana del salón a mano en, p. ej., 10% (viendo una peli) y luego
+Adaptive Cover recalcula y publica 35%, el puente de arriba tal cual la
+subiría sin que tú lo pidieras — el sensor no sabe que hubo un ajuste
+manual de por medio.
+
+La solución NO es meter en el puente una comprobación tipo "¿el
+objetivo actual ya se superó?" (frágil: no distingue un override real
+de una coincidencia numérica). Adaptive Cover ya trae detección de
+override manual incorporada — al mover tú la persiana (desde la
+tarjeta, el pulsador físico, o el propio `objetivo`), la integración lo
+detecta y dejaría de forzar su cálculo hasta que se le devuelva el
+control (normalmente vía un `switch`/botón que expone la propia
+integración, del tipo "reanudar control automático" — el nombre exacto
+depende de la versión instalada; revisarlo al dar de alta la instancia
+real).
+
+El puente debe respetar esa señal: antes de escribir en `..._objetivo`,
+comprobar que esa entidad de override NO está activa, y si lo está, no
+tocar nada (el usuario manda hasta que decida devolver el control).
+Ejemplo de cómo quedaría la automatización con esa condición añadida:
+
+```yaml
+automation:
+  - alias: Persiana Salón - seguir sol (Adaptive Cover)
+    trigger:
+      - platform: state
+        entity_id: sensor.adaptive_cover_salon
+    condition:
+      - condition: state
+        entity_id: switch.adaptive_cover_salon_override  # nombre real a confirmar al configurar la instancia
+        state: "off"
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.salon_objetivo
+        data:
+          value: "{{ trigger.to_state.state | float(0) }}"
+```
+
+Pendiente de confirmar el `entity_id` exacto de esa entidad de override
+una vez se dé de alta la instancia real de Adaptive Cover para cada
+persiana (ver `todo.md`).
+
+### Opcional: resetear el override manual cada mañana
+
+Para no quedarte en modo manual indefinidamente si un día se te olvida
+devolver el control (p. ej. dejaste el salón a mano anoche viendo una
+peli y ya no te acuerdas al día siguiente), se puede añadir una
+automatización aparte que fuerce el override a `off` todas las mañanas
+a una hora fija (p. ej. 07:00), una por persiana/instancia:
+
+```yaml
+automation:
+  - alias: Persiana Salón - reset override Adaptive Cover (7am)
+    trigger:
+      - platform: time
+        at: "07:00:00"
+    action:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.adaptive_cover_salon_override  # mismo entity_id que en la condición del puente
+```
+
+**Solo aplica si tu versión de Adaptive Cover expone el override como
+un `switch` controlable por servicio** (la mayoría lo hace). Algunas
+versiones en cambio resetean el override solo al pasar la persiana por
+un extremo (abierta/cerrada del todo) en vez de mantenerlo indefinido —
+en ese caso este reset horario no sería necesario. Confirmar cuál de
+los dos comportamientos tiene la instancia real antes de dar esto por
+implementado (ver `todo.md`); si no aplica, simplemente no crear esta
+automatización.
+
+### Opcional: tener en cuenta clima exterior (viento, lluvia, temperatura)
+
+Pendiente de una estación meteorológica propia planeada por el usuario
+(sensores de viento, temperatura y lluvia — marca/protocolo aún sin
+decidir). Cuando esté instalada, expondrá sus propios `sensor.*` /
+`binary_sensor.*` en HA, que se pueden usar para dos casos distintos
+sobre el mismo puente de `persiana_posicion.yaml`:
+
+1. **Bloquear el ajuste solar cuando no tiene sentido** (p. ej. está
+   nublado/lloviendo y no hay sol directo que cortar, o hace frío y de
+   hecho interesa dejar entrar el sol en vez de bloquearlo). Mismo
+   mecanismo que el override manual: una condición más en el puente,
+   además de comprobar el switch de override.
+2. **Forzar cierre de seguridad por viento fuerte**, independiente del
+   cálculo solar — esto no es "no tocar la persiana" como los casos
+   anteriores, sino "bajarla activamente" para proteger la lona/lama
+   física del viento. Conviene como automatización aparte (no dentro
+   del puente de Adaptive Cover), con prioridad sobre cualquier otro
+   control — incluido el override manual, ya que aquí el motivo es
+   proteger el hardware, no una preferencia de usuario.
+
+Ejemplo orientativo (entity_id de la estación meteo son placeholders,
+pendientes de la instalación real):
+
+```yaml
+automation:
+  - alias: Persiana Salón - seguir sol (Adaptive Cover, con clima)
+    trigger:
+      - platform: state
+        entity_id: sensor.adaptive_cover_salon
+    condition:
+      - condition: state
+        entity_id: switch.adaptive_cover_salon_override
+        state: "off"
+      - condition: numeric_state
+        entity_id: sensor.estacion_lluvia_mm_h  # placeholder, nombre real a confirmar
+        below: 0.1
+    action:
+      - service: input_number.set_value
+        target:
+          entity_id: input_number.salon_objetivo
+        data:
+          value: "{{ trigger.to_state.state | float(0) }}"
+
+  - alias: Persianas - cierre de seguridad por viento fuerte
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.estacion_viento_kmh  # placeholder, nombre real a confirmar
+        above: 50  # umbral a decidir según la instalación física real
+    action:
+      - repeat:
+          for_each: "{{ states.cover | map(attribute='entity_id') | list }}"
+          sequence:
+            - service: cover.close_cover
+              target:
+                entity_id: "{{ repeat.item }}"
+```
+
+Sin decidir todavía: umbrales exactos de lluvia/viento, y si el cierre
+por viento debe afectar a todas las persianas o solo a las expuestas
+(toldos/persianas exteriores) según orientación/instalación física. Ver
+`todo.md`.
+
+### Nota
+
+Como cada persiana necesita su propia orientación de fachada, esto se
+configura **una instancia de la integración por persiana** (o por
+grupo de ventanas con la misma orientación). Pendiente de decidir la
+orientación real de cada fachada de la casa antes de dar de alta las
+instancias — ver `todo.md`.

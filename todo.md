@@ -125,6 +125,70 @@
       `cover.stop_cover`. Decidir qué pulsador de cada agrupación de 4 se
       asigna a subir y cuál a bajar la persiana de esa habitación.
 
+## Persianas siguiendo el sol (Adaptive Cover)
+
+- [ ] Decidir la orientación real (azimut, grados desde el norte) de
+      cada fachada/ventana con persiana — dato necesario para configurar
+      la integración Adaptive Cover (HACS) por persiana. Ver
+      `home_assistant/blueprints/README.md`.
+- [ ] Instalar Adaptive Cover vía HACS y dar de alta una instancia por
+      persiana (o por grupo de ventanas con la misma orientación).
+- [ ] Crear la automatización puente que vuelca el sensor de posición
+      recomendada de Adaptive Cover al helper `..._objetivo` de cada
+      persiana (mismo patrón que ya usan `persiana_pulsador_completo.yaml`
+      y el slider manual) — no mueve el `cover` directamente.
+- [ ] **Importante**: el puente debe respetar un ajuste manual del
+      usuario (p. ej. persiana dejada a mano al 10% viendo una peli) y
+      NO pisarlo con el cálculo del sol. Añadir a la condición del
+      puente una comprobación de la entidad de override manual que
+      expone Adaptive Cover (switch/botón tipo "reanudar control
+      automático") — confirmar su `entity_id` real al dar de alta cada
+      instancia. Ver detalle y YAML de ejemplo en
+      `home_assistant/blueprints/README.md`.
+- [ ] Opcional: decidir si se quiere resetear ese override manual cada
+      mañana (p. ej. 7am) con una automatización aparte por persiana,
+      para no quedarse en manual indefinidamente si se olvida devolver
+      el control. Solo aplica si la instancia real expone el override
+      como `switch` controlable — confirmar, ya que algunas versiones
+      de Adaptive Cover lo resetean solas al pasar por un extremo. Ver
+      YAML de ejemplo en `home_assistant/blueprints/README.md`.
+- [ ] Opcional, pendiente de instalar una estación meteorológica propia
+      (viento/temperatura/lluvia, marca/protocolo sin decidir todavía):
+      cuando exista, añadir sus sensores como condición extra del
+      puente solar (no bajar/subir por sol si está lloviendo o no
+      interesa) y una automatización aparte de cierre de seguridad por
+      viento fuerte (prioridad sobre cualquier control, incluido el
+      override manual). Umbrales de lluvia/viento y qué persianas
+      afecta el cierre por viento aún sin decidir. Ver YAML de ejemplo
+      en `home_assistant/blueprints/README.md`.
+
+### Otras ideas futuras (sin desarrollar, solo para tener en cuenta)
+
+- [ ] **Calor interior**: con sensor de temperatura interior (o el
+      termostato, cuando se defina su arquitectura), priorizar cerrar
+      persianas por encima del cálculo de Adaptive Cover si se supera
+      un umbral en verano — ahorro energético antes que estético.
+- [ ] **Frío + sol directo en invierno**: lo contrario al caso de
+      lluvia — con temperatura interior/exterior baja, dejar entrar el
+      sol aunque Adaptive Cover normalmente lo bloquearía.
+- [ ] **Modo ausente/vacaciones**: con nadie en casa
+      (`person.*`/`device_tracker` o un `input_boolean` manual),
+      simular presencia moviendo persianas en ciertos momentos en vez
+      de dejarlas siempre igual.
+- [ ] **Rutina de dormir/despertar**: bajar persianas de dormitorios a
+      una hora fija por la noche y subirlas por la mañana — se
+      solaparía con Adaptive Cover, pendiente de decidir qué manda.
+- [ ] **Generalizar el override manual con presencia+TV**: si hay
+      sensor de presencia y la TV del salón está encendida, tratarlo
+      como override automático sin que haga falta tocar la persiana a
+      mano primero.
+- [ ] **Corte de red/MQTT a media subida/bajada**: qué debe pasar con
+      una persiana si `mega_dispositivos` pierde conexión mientras se
+      estaba moviendo — laguna de seguridad de la arquitectura actual,
+      no específica de Adaptive Cover.
+- [ ] **Nieve/granizo** (si la estación meteo lo detecta): mismo
+      tratamiento que el cierre de seguridad por viento fuerte.
+
 ## Ajustes finos / hardware
 
 - [ ] Comprobar si los módulos de relé (luces y persianas) son activos en
