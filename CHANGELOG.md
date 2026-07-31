@@ -64,6 +64,23 @@ número de versión sino el nombre del tag de este commit).
   `..._posicion` que el blueprint deriva automáticamente del
   `entity_id` de cada `cover.*`.
 
+## [1.3.0] - 2026-07-31
+
+### Added
+- Diagnóstico por Serial (9600 baudios) en ambos `.ino`: al arrancar
+  imprime el nombre de la placa y su MAC, el resultado de `Ethernet.begin`
+  (IP asignada por DHCP, o error explícito si falla), y los eventos de
+  conexión/desconexión MQTT (`mqtt.onConnected`/`onDisconnected`).
+  Pensado para diagnosticar en campo si una placa no aparece en la red
+  (fallo de boot vs. fallo de DHCP vs. fallo de MQTT) sin depender de
+  verla en el listado de clientes del router.
+- `mega_dispositivos`: cada comando de luz o persiana ejecutado
+  (encender/apagar, abrir/cerrar/parar) se imprime por Serial con el ID
+  de la entidad afectada.
+- `mega_pulsadores`: cada evento de pulsador detectado (corta, doble,
+  multiclick con el número exacto de clics, inicio y fin de pulsación
+  larga) se imprime por Serial con el ID del botón.
+
 ## [1.2.0] - 2026-07-23
 
 ### Changed

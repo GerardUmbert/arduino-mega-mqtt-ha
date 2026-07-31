@@ -105,13 +105,37 @@ HADeviceTrigger* largaFin[NUM_PULSADORES];
 // no con una copia.
 char idBoton[NUM_PULSADORES][10];
 
+void imprimirMac() {
+    for (uint8_t i = 0; i < sizeof(mac); i++) {
+        if (mac[i] < 0x10) Serial.print('0');
+        Serial.print(mac[i], HEX);
+        if (i < sizeof(mac) - 1) Serial.print(':');
+    }
+}
+
+void onMqttConnected() {
+    Serial.println(F("[mqtt] conectado al broker"));
+}
+
+void onMqttDisconnected() {
+    Serial.println(F("[mqtt] desconectado del broker"));
+}
+
 void setup() {
+    Serial.begin(9600);
+    Serial.println();
+    Serial.print(F("[boot] "));
+    Serial.println(NOMBRE_PLACA);
+    Serial.print(F("[boot] MAC: "));
+    imprimirMac();
+    Serial.println();
+
     // Evita que HA confunda entidades/triggers con el mismo ID
     // entre la unidad A y la B (les añade un prefijo único por placa).
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.2.0");
+    device.setSoftwareVersion("1.3.0");
 
     // --- creamos cada pulsador y sus 7 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -132,29 +156,46 @@ void setup() {
 
         botones[i]->attachClick([idx](){
             corta[idx]->trigger();
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[idx]);
+            Serial.println(F(" -> corta"));
         });
 
         botones[i]->attachDoubleClick([idx](){
             doble[idx]->trigger();
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[idx]);
+            Serial.println(F(" -> doble"));
         });
 
         // OneButton no tiene "attachTripleClick"/"attachQuadrupleClick"/
         // "attachQuintupleClick" propios: se usa attachMultiClick (una
         // sola vez) y se filtra el número exacto de clics detectados.
         botones[i]->attachMultiClick([idx](){
-            switch (botones[idx]->getNumberClicks()) {
+            int clics = botones[idx]->getNumberClicks();
+            switch (clics) {
                 case 3: triple[idx]->trigger();    break;
                 case 4: cuadruple[idx]->trigger(); break;
                 case 5: quintuple[idx]->trigger(); break;
             }
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[idx]);
+            Serial.print(F(" -> multiclick x"));
+            Serial.println(clics);
         });
 
         botones[i]->attachLongPressStart([idx](){
             larga[idx]->trigger();
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[idx]);
+            Serial.println(F(" -> larga (inicio)"));
         });
 
         botones[i]->attachLongPressStop([idx](){
             largaFin[idx]->trigger();
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[idx]);
+            Serial.println(F(" -> larga (fin)"));
         });
 
         // Ajustes opcionales de temporización (descomenta y ajusta si
@@ -164,7 +205,18 @@ void setup() {
         // botones[i]->setPressMs(1000);  // tiempo para considerar "larga"
     }
 
-    Ethernet.begin(mac);
+    Serial.println(F("[boot] iniciando Ethernet (DHCP)..."));
+    if (Ethernet.begin(mac) == 0) {
+        Serial.println(F("[boot] ERROR: fallo DHCP, no se obtuvo IP"));
+    } else {
+        Serial.print(F("[boot] IP asignada: "));
+        Serial.println(Ethernet.localIP());
+    }
+
+    mqtt.onConnected(onMqttConnected);
+    mqtt.onDisconnected(onMqttDisconnected);
+
+    Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
 }
 

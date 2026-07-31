@@ -106,6 +106,9 @@ void onSwitchCommand(bool state, HASwitch* sender) {
         if (luces[i] == sender) {
             digitalWrite(PINES_LUCES[i], state ? HIGH : LOW);
             sender->setState(state); // confirma el estado a HA
+            Serial.print(F("[luz] "));
+            Serial.print(idLuz[i]);
+            Serial.println(state ? F(" -> ON") : F(" -> OFF"));
             return;
         }
     }
@@ -127,28 +130,61 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinSubir, HIGH);
                 sender->setState(HACover::StateOpening);
+                Serial.print(F("[persiana] "));
+                Serial.print(idPersiana[i]);
+                Serial.println(F(" -> OPEN"));
             } else if (cmd == HACover::CommandClose) {
                 digitalWrite(pinSubir, LOW);
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinBajar, HIGH);
                 sender->setState(HACover::StateClosing);
+                Serial.print(F("[persiana] "));
+                Serial.print(idPersiana[i]);
+                Serial.println(F(" -> CLOSE"));
             } else if (cmd == HACover::CommandStop) {
                 // Parar = apagar los dos relés a la vez.
                 digitalWrite(pinSubir, LOW);
                 digitalWrite(pinBajar, LOW);
                 sender->setState(HACover::StateStopped);
+                Serial.print(F("[persiana] "));
+                Serial.print(idPersiana[i]);
+                Serial.println(F(" -> STOP"));
             }
             return;
         }
     }
 }
 
+void imprimirMac() {
+    for (uint8_t i = 0; i < sizeof(mac); i++) {
+        if (mac[i] < 0x10) Serial.print('0');
+        Serial.print(mac[i], HEX);
+        if (i < sizeof(mac) - 1) Serial.print(':');
+    }
+}
+
+void onMqttConnected() {
+    Serial.println(F("[mqtt] conectado al broker"));
+}
+
+void onMqttDisconnected() {
+    Serial.println(F("[mqtt] desconectado del broker"));
+}
+
 void setup() {
+    Serial.begin(9600);
+    Serial.println();
+    Serial.print(F("[boot] "));
+    Serial.println(NOMBRE_PLACA);
+    Serial.print(F("[boot] MAC: "));
+    imprimirMac();
+    Serial.println();
+
     // Evita que HA confunda entidades con el mismo ID entre unidad A y B
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.2.0");
+    device.setSoftwareVersion("1.3.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -174,7 +210,18 @@ void setup() {
         persianas[i]->onCommand(onCoverCommand);
     }
 
-    Ethernet.begin(mac);
+    Serial.println(F("[boot] iniciando Ethernet (DHCP)..."));
+    if (Ethernet.begin(mac) == 0) {
+        Serial.println(F("[boot] ERROR: fallo DHCP, no se obtuvo IP"));
+    } else {
+        Serial.print(F("[boot] IP asignada: "));
+        Serial.println(Ethernet.localIP());
+    }
+
+    mqtt.onConnected(onMqttConnected);
+    mqtt.onDisconnected(onMqttDisconnected);
+
+    Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
 }
 
