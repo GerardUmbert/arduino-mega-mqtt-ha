@@ -5,6 +5,22 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.4.0] - 2026-08-02
+
+### Changed
+- Ambos `.ino` ya no piden IP por DHCP (`Ethernet.begin(mac)`): ahora
+  usan IP fija (`Ethernet.begin(mac, IP_ESTATICA)`), con la IP definida
+  junto a la MAC en el `board_config_*.h` de cada unidad. Se elimina la
+  rama de error "fallo DHCP" y la llamada `Ethernet.maintain()` en
+  `loop()` (solo aplicable a renovación de lease DHCP).
+- Los ficheros `pines_a.h`/`pines_b.h` de ambos sketches se renombran a
+  `board_config_a.h`/`board_config_b.h`, y pasan a concentrar TODA la
+  identidad de cada unidad física: pines cableados, MAC, IP fija y
+  nombre en HA (`NOMBRE_PLACA`). Antes la MAC y el nombre vivían en el
+  `.ino`, seleccionados con `#if defined(PLACA_A)/(PLACA_B)`; ahora ese
+  bloque desaparece del `.ino` y cada `board_config_*.h` define sus
+  propios `mac[]` y `NOMBRE_PLACA` directamente, sin condicionales.
+
 ## [ha-blueprints] - 2026-07-23
 
 No es una versión de firmware (no toca ningún `.ino`, por eso no lleva

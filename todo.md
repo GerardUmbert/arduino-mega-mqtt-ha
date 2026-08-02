@@ -53,17 +53,23 @@
       reprogramar o hacer mantenimiento — ya no hay jumper que lo delate en
       runtime si te equivocas de unidad al flashear.
 
-## Pines reales cableados
+## Pines reales cableados e IP fija
 
-- [ ] `mega_pulsadores/pines_a.h` y `pines_b.h` (`PINES_BOTONES`): ajustar la
-      lista de pines a los pulsadores realmente cableados en CADA unidad (A
-      y B tendrán listas distintas si no cablean lo mismo).
-- [ ] `mega_dispositivos/pines_a.h` y `pines_b.h` (`PINES_LUCES` y
-      `PINES_PERSIANAS`): idem para luces y pares subir/bajar de persianas
-      — cada unidad puede tener una mezcla distinta (p. ej. una unidad solo
-      con luces, la otra con luces y persianas).
+- [ ] `mega_pulsadores/board_config_a.h` y `board_config_b.h`
+      (`PINES_BOTONES`): ajustar la lista de pines a los pulsadores
+      realmente cableados en CADA unidad (A y B tendrán listas distintas
+      si no cablean lo mismo).
+- [ ] `mega_dispositivos/board_config_a.h` y `board_config_b.h`
+      (`PINES_LUCES` y `PINES_PERSIANAS`): idem para luces y pares
+      subir/bajar de persianas — cada unidad puede tener una mezcla
+      distinta (p. ej. una unidad solo con luces, la otra con luces y
+      persianas).
 - [ ] Revisar que ningún pin usado choque con los reservados por el shield
       Ethernet (SPI: 50/51/52/53, CS: normalmente 10).
+- [ ] `IP_ESTATICA` en los 4 `board_config_*.h`: ahora mismo son
+      placeholders (`192.168.1.60`-`.63`) — confirmar que están fuera del
+      rango DHCP de tu router (o reservadas para la MAC de cada unidad) y
+      ajustar si hace falta.
 
 ## RAM / límite de pulsadores por unidad
 
@@ -84,14 +90,14 @@
       Serial, compilar con un `PINES_BOTONES` grande de prueba, y
       flashear a una placa real para medir el límite exacto antes de
       cablear muchos más pulsadores de los que ya hay en
-      `pines_a.h`/`pines_b.h`.
+      `board_config_a.h`/`board_config_b.h`.
 - [ ] Si el número real de pulsadores deseados se acerca al límite
       medido: revisar si compensa (a) recortar a 5 triggers por botón
       (quitar `ButtonQuadruplePressType`/`ButtonQuintuplePressType`, sin
       caso de uso confirmado todavía — ver "Lógica de automatizaciones"
       más abajo), o (b) añadir una tercera unidad `mega_pulsadores`
-      (arquitectura ya lo permite: añadir `PLACA_C`, `pines_c.h` y un
-      tercer byte de MAC, mismo patrón que A/B).
+      (arquitectura ya lo permite: añadir `PLACA_C`, `board_config_c.h` y
+      un tercer byte de MAC, mismo patrón que A/B).
 - [ ] `mega_dispositivos` no se ha medido — su coste por dispositivo es
       menor (`HASwitch`/`HACover` sin `OneButton` de por medio), pero no
       hay número real todavía tampoco.

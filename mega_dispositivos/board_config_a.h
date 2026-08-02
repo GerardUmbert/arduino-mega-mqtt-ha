@@ -1,13 +1,31 @@
 // ===========================================================
-// PINES_B.H — pines cableados en la UNIDAD B de mega_dispositivos
+// BOARD_CONFIG_A.H — identidad y pines de la UNIDAD A de mega_dispositivos
 // Edita este fichero para reflejar lo que tengas cableado
 // físicamente en ESTA unidad. Ver PLACA_A/PLACA_B en el .ino para
-// saber cuál de los dos ficheros (pines_a.h o pines_b.h) se usa al
-// compilar.
+// saber cuál de los dos ficheros (board_config_a.h o board_config_b.h)
+// se usa al compilar.
 // ===========================================================
 
-#ifndef PINES_H
-#define PINES_H
+#ifndef BOARD_CONFIG_H
+#define BOARD_CONFIG_H
+
+const char* NOMBRE_PLACA = "Mega Dispositivos A";
+
+// El Mega + shield Ethernet NO trae MAC de fábrica: hay que inventarla.
+// Solo debe ser única en tu red local.
+// 0x02 en el primer byte = MAC "administrada localmente".
+// byte[3] = 0x02 identifica la "familia" mega_dispositivos (distinta
+// de mega_pulsadores, que usa 0x01) para que nunca choquen entre sí.
+// El último byte distingue unidad A (0x00) de B (0x01).
+byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x00};
+
+// ===========================================================
+// IP FIJA de esta unidad.
+// Debe estar fuera del rango DHCP de tu router (o reservada para
+// esta MAC) para que no choque con otro dispositivo de la red.
+// Distinta de la IP de PLACA_B y de BROKER_ADDR (config.h).
+// ===========================================================
+const IPAddress IP_ESTATICA(192, 168, 1, 60);
 
 // ===========================================================
 // LUCES

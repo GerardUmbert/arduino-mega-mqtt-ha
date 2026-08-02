@@ -29,17 +29,19 @@ y persianas. Los Arduinos nunca se comunican directamente entre sí.
 ## Identificación de unidades A/B (mismo .ino, distinta compilación por unidad)
 
 Cada rol (`mega_pulsadores`, `mega_dispositivos`) usa **un único fichero
-`.ino`**, pero la identidad de cada unidad física (pines, MAC, nombre en
-HA) se decide en **tiempo de compilación**, no con jumper:
+`.ino`**, pero la identidad de cada unidad física (pines, MAC, IP fija,
+nombre en HA) se decide en **tiempo de compilación**, no con jumper:
 
 - Al principio del `.ino`, un bloque `#define PLACA_A` / `#define PLACA_B`
   (uno comentado, el otro no) selecciona la unidad. Antes de compilar y
   subir, se deja descomentada SOLO la línea de la unidad física a la que
   se va a flashear.
-- Ese `#define` selecciona a la vez: qué fichero de pines se incluye
-  (`pines_a.h` o `pines_b.h`, con `#include` condicional), el último byte
-  de la MAC (distinto en A/B), y el nombre del dispositivo en HA
-  (`Mega Pulsadores A/B`, `Mega Dispositivos A/B`).
+- Ese `#define` selecciona a la vez qué fichero de configuración se
+  incluye (`board_config_a.h` o `board_config_b.h`, con `#include`
+  condicional) — y ese fichero trae consigo los pines, el último byte de
+  la MAC (distinto en A/B), la IP fija (`IP_ESTATICA`, distinta en A/B) y
+  el nombre del dispositivo en HA (`Mega Pulsadores A/B`, `Mega
+  Dispositivos A/B`).
 - Si no se descomenta ninguna línea, o se descomentan las dos a la vez, el
   `.ino` falla la compilación con `#error` en vez de subir un firmware con
   identidad ambigua.
@@ -49,30 +51,36 @@ HA) se decide en **tiempo de compilación**, no con jumper:
 
 Motivo del cambio (antes había un jumper físico en pin 40 leído en
 runtime): al pasar los pines cableados a ficheros separados por unidad
-(`pines_a.h`/`pines_b.h`, ver más abajo), ya había que editar/recompilar
-por unidad de todos modos — el jumper se volvió redundante. Ahora es
-imposible flashear el mismo binario a A y B sin querer (habría que
-recompilar cambiando el `#define` a propósito), a cambio de perder la
-"red de seguridad" runtime que un jumper daba si alguien confundía las
-placas.
+(`board_config_a.h`/`board_config_b.h`, ver más abajo), ya había que
+editar/recompilar por unidad de todos modos — el jumper se volvió
+redundante. Ahora es imposible flashear el mismo binario a A y B sin
+querer (habría que recompilar cambiando el `#define` a propósito), a
+cambio de perder la "red de seguridad" runtime que un jumper daba si
+alguien confundía las placas.
 
 MACs: como el Mega + shield Ethernet no trae MAC de fábrica, se inventan
 localmente (primer byte `0x02` = "administrada localmente"). Se usa el
 byte `[3]` para distinguir familia (`0x01` = mega_pulsadores,
 `0x02` = mega_dispositivos) y no colisionar en la red.
 
-## Pines por unidad (`pines_a.h` / `pines_b.h`)
+IP: cada unidad usa IP fija (`Ethernet.begin(mac, IP_ESTATICA)`), no
+DHCP — `IP_ESTATICA` vive junto a la MAC en su `board_config_*.h`, debe
+quedar fuera del rango DHCP del router (o reservada para esa MAC) y ser
+distinta entre A y B.
+
+## Pines, MAC e IP por unidad (`board_config_a.h` / `board_config_b.h`)
 
 `PINES_BOTONES` (mega_pulsadores) y `PINES_LUCES`/`PINES_PERSIANAS`
-(mega_dispositivos) ya no viven dentro del `.ino`: cada sketch tiene
-`pines_a.h` y `pines_b.h`, uno por unidad física, incluido
-condicionalmente según `PLACA_A`/`PLACA_B`. Motivo: separar la
-configuración de wiring (que cambia por unidad y con el tiempo, según lo
-que se cablee) de la lógica del firmware (que es igual en A y B), y dejar
-claro que A y B pueden tener listas de pines completamente distintas —
-tanto en cantidad como en tipo de dispositivo (p. ej. una unidad
-`mega_dispositivos` solo con luces y la otra con luces + persianas
-mezcladas) — sin que eso rompa nada del resto del código.
+(mega_dispositivos), junto con `mac[]`, `IP_ESTATICA` y `NOMBRE_PLACA`,
+ya no viven dentro del `.ino`: cada sketch tiene `board_config_a.h` y
+`board_config_b.h`, uno por unidad física, incluido condicionalmente
+según `PLACA_A`/`PLACA_B`. Motivo: separar la identidad/wiring de cada
+unidad (que cambia por unidad y con el tiempo, según lo que se cablee o
+la IP que se reserve) de la lógica del firmware (que es igual en A y B),
+y dejar claro que A y B pueden tener listas de pines completamente
+distintas — tanto en cantidad como en tipo de dispositivo (p. ej. una
+unidad `mega_dispositivos` solo con luces y la otra con luces +
+persianas mezcladas) — sin que eso rompa nada del resto del código.
 
 ## Librerías usadas
 

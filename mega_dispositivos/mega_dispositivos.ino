@@ -5,7 +5,7 @@
 // No lee ningún pulsador. Solo RECIBE órdenes y las ejecuta.
 //
 // Mismo firmware para las 2 unidades físicas (A y B): la identidad
-// (pines, MAC, nombre) se decide en TIEMPO DE COMPILACIÓN con
+// (pines, MAC, IP, nombre) se decide en TIEMPO DE COMPILACIÓN con
 // PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
@@ -30,8 +30,9 @@ struct ParPines { uint8_t subir; uint8_t bajar; };
 // IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
 // Deja SOLO una de las dos líneas descomentada según a qué unidad
 // física vayas a subir este firmware. Selecciona a la vez: los pines
-// cableados (pines_a.h / pines_b.h), la MAC y el nombre en Home
-// Assistant. Vuelve a compilar y subir tras cambiarla.
+// cableados, la MAC, la IP fija y el nombre en Home Assistant
+// (todo en board_config_a.h / board_config_b.h). Vuelve a compilar
+// y subir tras cambiarla.
 // ===========================================================
 #define PLACA_A
 // #define PLACA_B
@@ -43,23 +44,9 @@ struct ParPines { uint8_t subir; uint8_t bajar; };
 #endif
 
 #if defined(PLACA_A)
-    #include "pines_a.h"
+    #include "board_config_a.h"
 #elif defined(PLACA_B)
-    #include "pines_b.h"
-#endif
-
-// El Mega + shield Ethernet NO trae MAC de fábrica: hay que inventarla.
-// Solo debe ser única en tu red local.
-// 0x02 en el primer byte = MAC "administrada localmente".
-// byte[3] = 0x02 identifica la "familia" mega_dispositivos (distinta
-// de mega_pulsadores, que usa 0x01) para que nunca choquen entre sí.
-// El último byte distingue unidad A (0x00) de B (0x01).
-#if defined(PLACA_A)
-    byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x00};
-    const char* NOMBRE_PLACA = "Mega Dispositivos A";
-#elif defined(PLACA_B)
-    byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x01};
-    const char* NOMBRE_PLACA = "Mega Dispositivos B";
+    #include "board_config_b.h"
 #endif
 
 EthernetClient client;
@@ -71,8 +58,8 @@ HADevice device(mac, sizeof(mac));
 //   CS del chip Ethernet: normalmente el pin 10
 // ===========================================================
 
-// PINES_LUCES y PINES_PERSIANAS están definidos en pines_a.h o
-// pines_b.h según PLACA_A/PLACA_B (ver más arriba) — edita esos
+// PINES_LUCES y PINES_PERSIANAS están definidos en board_config_a.h o
+// board_config_b.h según PLACA_A/PLACA_B (ver más arriba) — edita esos
 // ficheros para reflejar lo que tengas cableado en cada unidad.
 // El unique_id de cada persiana incluye ambos pines del par, SIEMPRE
 // en el orden subir_bajar (p. ej. {subir: 38, bajar: 39} →
@@ -184,7 +171,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.3.0");
+    device.setSoftwareVersion("1.4.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -210,13 +197,10 @@ void setup() {
         persianas[i]->onCommand(onCoverCommand);
     }
 
-    Serial.println(F("[boot] iniciando Ethernet (DHCP)..."));
-    if (Ethernet.begin(mac) == 0) {
-        Serial.println(F("[boot] ERROR: fallo DHCP, no se obtuvo IP"));
-    } else {
-        Serial.print(F("[boot] IP asignada: "));
-        Serial.println(Ethernet.localIP());
-    }
+    Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
+    Ethernet.begin(mac, IP_ESTATICA);
+    Serial.print(F("[boot] IP asignada: "));
+    Serial.println(Ethernet.localIP());
 
     mqtt.onConnected(onMqttConnected);
     mqtt.onDisconnected(onMqttDisconnected);
@@ -226,6 +210,5 @@ void setup() {
 }
 
 void loop() {
-    Ethernet.maintain();
     mqtt.loop();
 }

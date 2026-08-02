@@ -6,7 +6,7 @@
 // No controla ningún relé. Solo ENVÍA información.
 //
 // Mismo firmware para las 2 unidades físicas (A y B): la identidad
-// (pines, MAC, nombre) se decide en TIEMPO DE COMPILACIÓN con
+// (pines, MAC, IP, nombre) se decide en TIEMPO DE COMPILACIÓN con
 // PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
@@ -31,8 +31,9 @@
 // IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
 // Deja SOLO una de las dos líneas descomentada según a qué unidad
 // física vayas a subir este firmware. Selecciona a la vez: los pines
-// cableados (pines_a.h / pines_b.h), la MAC y el nombre en Home
-// Assistant. Vuelve a compilar y subir tras cambiarla.
+// cableados, la MAC, la IP fija y el nombre en Home Assistant
+// (todo en board_config_a.h / board_config_b.h). Vuelve a compilar
+// y subir tras cambiarla.
 // ===========================================================
 #define PLACA_A
 // #define PLACA_B
@@ -44,31 +45,16 @@
 #endif
 
 #if defined(PLACA_A)
-    #include "pines_a.h"
+    #include "board_config_a.h"
 #elif defined(PLACA_B)
-    #include "pines_b.h"
-#endif
-
-// El Mega + shield Ethernet NO trae MAC de fábrica: hay que inventarla.
-// Solo debe ser única en tu red local.
-// 0x02 en el primer byte = MAC "administrada localmente" (evita
-// coincidir por casualidad con una MAC real de fábrica).
-// byte[3] = 0x01 identifica la "familia" mega_pulsadores (distinta
-// de mega_dispositivos, que usa 0x02) para que nunca choquen entre sí.
-// El último byte distingue unidad A (0x00) de B (0x01).
-#if defined(PLACA_A)
-    byte mac[] = {0x02, 0x00, 0x00, 0x01, 0x00, 0x00};
-    const char* NOMBRE_PLACA = "Mega Pulsadores A";
-#elif defined(PLACA_B)
-    byte mac[] = {0x02, 0x00, 0x00, 0x01, 0x00, 0x01};
-    const char* NOMBRE_PLACA = "Mega Pulsadores B";
+    #include "board_config_b.h"
 #endif
 
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
 
 // NUM_PULSADORES se calcula a partir de PINES_BOTONES, definido en
-// pines_a.h o pines_b.h según PLACA_A/PLACA_B (ver más arriba).
+// board_config_a.h o board_config_b.h según PLACA_A/PLACA_B (ver más arriba).
 //
 // ⚠️ RAM: cada pulsador cuesta aprox. 250 bytes de SRAM (objeto
 // OneButton + 7 HADeviceTrigger + punteros + buffer de ID). El Mega
@@ -77,7 +63,7 @@ HADevice device(mac, sizeof(mac));
 // real todavía de cuántos pulsadores caben con margen — estimación sin
 // verificar: unos 20-25 por unidad. Ver "RAM / límite de pulsadores"
 // en todo.md antes de cablear muchos más de los que ya hay en
-// pines_a.h/pines_b.h.
+// board_config_a.h/board_config_b.h.
 const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 
 // 7 triggers por pulsador (corta, doble, triple, cuádruple, quíntuple,
@@ -135,7 +121,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.3.0");
+    device.setSoftwareVersion("1.4.0");
 
     // --- creamos cada pulsador y sus 7 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -205,13 +191,10 @@ void setup() {
         // botones[i]->setPressMs(1000);  // tiempo para considerar "larga"
     }
 
-    Serial.println(F("[boot] iniciando Ethernet (DHCP)..."));
-    if (Ethernet.begin(mac) == 0) {
-        Serial.println(F("[boot] ERROR: fallo DHCP, no se obtuvo IP"));
-    } else {
-        Serial.print(F("[boot] IP asignada: "));
-        Serial.println(Ethernet.localIP());
-    }
+    Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
+    Ethernet.begin(mac, IP_ESTATICA);
+    Serial.print(F("[boot] IP asignada: "));
+    Serial.println(Ethernet.localIP());
 
     mqtt.onConnected(onMqttConnected);
     mqtt.onDisconnected(onMqttDisconnected);
@@ -221,7 +204,6 @@ void setup() {
 }
 
 void loop() {
-    Ethernet.maintain();
     mqtt.loop();
     for (int i = 0; i < NUM_PULSADORES; i++) {
         botones[i]->tick();

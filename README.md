@@ -16,13 +16,13 @@ entre sí.
 
 - `mega_pulsadores/mega_pulsadores.ino` — firmware para las 2 unidades que
   leen pulsadores físicos. No controla nada, solo envía eventos.
-- `mega_pulsadores/pines_a.h`, `mega_pulsadores/pines_b.h` — pines
-  cableados en cada una de las 2 unidades físicas.
+- `mega_pulsadores/board_config_a.h`, `mega_pulsadores/board_config_b.h` —
+  pines, MAC, IP fija y nombre HA de cada una de las 2 unidades físicas.
 - `mega_dispositivos/mega_dispositivos.ino` — firmware para las 2 unidades
   que controlan relés de luces y persianas. No lee pulsadores, solo recibe
   órdenes.
-- `mega_dispositivos/pines_a.h`, `mega_dispositivos/pines_b.h` — pines
-  cableados en cada una de las 2 unidades físicas.
+- `mega_dispositivos/board_config_a.h`, `mega_dispositivos/board_config_b.h`
+  — pines, MAC, IP fija y nombre HA de cada una de las 2 unidades físicas.
 - `todo.md` — lista de tareas pendientes antes de dar el proyecto por
   terminado (IPs, credenciales, pines reales, automatizaciones...).
 - `CHANGELOG.md` — historial de cambios del proyecto, versionado igual
@@ -49,12 +49,13 @@ descomentada SOLO una de las dos líneas según a qué unidad física vayas a
 subir ese firmware, se compila y se sube. Para la otra unidad, se cambia
 la línea descomentada y se vuelve a subir.
 
-Ese único `#define` selecciona a la vez tres cosas:
+Ese único `#define` selecciona a la vez cuatro cosas:
 
-- Qué fichero de pines se incluye (`pines_a.h` o `pines_b.h`), con los
-  pines realmente cableados en esa unidad.
+- Qué fichero de configuración se incluye (`board_config_a.h` o
+  `board_config_b.h`), con los pines realmente cableados en esa unidad.
 - El último byte de la MAC (distinto en A y B, para no colisionar en la
   red).
+- La IP fija de esa unidad (`IP_ESTATICA`, distinta en A y B).
 - El nombre del dispositivo en HA (`Mega Pulsadores A/B`, `Mega
   Dispositivos A/B`).
 
@@ -151,17 +152,21 @@ Como las 2 unidades de cada rol (A y B) comparten el mismo broker MQTT,
 normalmente usarás el mismo `config.h` en ambas — solo cambia el
 `#define PLACA_A`/`PLACA_B` para diferenciarlas.
 
-### Pines reales cableados
+### Pines, IP fija y demás identidad por unidad (`board_config_a.h` / `board_config_b.h`)
 
-- `PINES_BOTONES` (`mega_pulsadores/pines_a.h` / `pines_b.h`) y
-  `PINES_LUCES`/`PINES_PERSIANAS` (`mega_dispositivos/pines_a.h` /
-  `pines_b.h`): a diferencia de la IP/credenciales, estos SÍ se editan
-  directamente en su fichero, porque son distintos en cada una de las 2
-  unidades físicas de cada rol según lo que tengan cableado. No es
-  necesario que las 2 unidades de un mismo rol tengan la misma cantidad
-  ni el mismo tipo de dispositivos — por ejemplo, nada impide que la
-  unidad A de `mega_dispositivos` sea solo luces y la B tenga luces y
-  persianas mezcladas.
+- `PINES_BOTONES` (`mega_pulsadores/board_config_a.h` /
+  `board_config_b.h`) y `PINES_LUCES`/`PINES_PERSIANAS`
+  (`mega_dispositivos/board_config_a.h` / `board_config_b.h`): a
+  diferencia del broker/credenciales, estos SÍ se editan directamente en
+  su fichero, porque son distintos en cada una de las 2 unidades físicas
+  de cada rol según lo que tengan cableado. No es necesario que las 2
+  unidades de un mismo rol tengan la misma cantidad ni el mismo tipo de
+  dispositivos — por ejemplo, nada impide que la unidad A de
+  `mega_dispositivos` sea solo luces y la B tenga luces y persianas
+  mezcladas.
+- `IP_ESTATICA`: IP fija de esa unidad en la red local. Debe quedar
+  fuera del rango DHCP de tu router (o reservada para su MAC) y ser
+  distinta entre A y B para no colisionar.
 
 El `unique_id` de cada entidad (`boton_14`, `luz_22`,
 `persiana_38_39`...) se genera a partir del **número de pin**, no de la
