@@ -70,4 +70,22 @@ const ParPines PINES_PERSIANAS[] = {
     // (A0-A15 también funcionan como pines digitales normales en el Mega)
 };
 
+// ===========================================================
+// TIEMPOS DE RECORRIDO — uno por persiana, mismo orden/índice que
+// PINES_PERSIANAS. Se usan para estimar la posición (0-100%) por
+// tiempo de relé activo, ya que estos motores no tienen encoder.
+//
+// CALIBRA cada persiana por separado: cronometra cuánto tarda en
+// hacer el recorrido COMPLETO de un extremo al otro (con margen, mejor
+// pasarse un poco de tiempo que quedarse corto) y pon aquí los
+// milisegundos reales. subida y bajada pueden ser distintos si el
+// motor no tarda lo mismo en los dos sentidos.
+// ===========================================================
+struct TiempoRecorrido { unsigned long subida_ms; unsigned long bajada_ms; };
+const TiempoRecorrido TIEMPOS_PERSIANAS[] = {
+    {20000, 20000}, {20000, 20000}, {20000, 20000}, {20000, 20000},
+    {20000, 20000}, {20000, 20000}, {20000, 20000}, {20000, 20000}
+    // un par de valores por cada persiana de arriba, mismo orden
+};
+
 #endif

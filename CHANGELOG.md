@@ -5,6 +5,42 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.6.0] - 2026-09-02
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.6.0). `mega_pulsadores`
+no controla persianas, se queda en 1.5.1 — a partir de aquí ambos `.ino`
+pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.
+
+### Added
+- Las persianas ahora reportan posición real (0-100%) a Home Assistant,
+  estimada por tiempo de relé activo (sin encoder, no hay otra forma).
+  Cada persiana necesita calibrar su tiempo de recorrido completo en
+  `TIEMPOS_PERSIANAS` (`board_config_*.h`), en el mismo orden que
+  `PINES_PERSIANAS`. Arranca asumiendo 100% (abierta) hasta que el
+  usuario la lleve a un extremo real, momento en el que se resincroniza
+  sola a 0/100. Al llegar sola a un extremo por tiempo, se para y pasa a
+  `open`/`closed` en vez de quedarse indefinidamente con el relé
+  activado.
+- Parada de seguridad general a los `TIEMPO_MAX_MOVIMIENTO_MS` (20s por
+  defecto, variable global en `mega_dispositivos.ino`): si una persiana
+  lleva ese tiempo en movimiento sin llegar a un extremo ni recibir
+  STOP, se para sola para no forzar el motor.
+
+### Fixed
+- Sin `HACover::PositionFeature`, Home Assistant no tiene un estado real
+  de "parada a medias": al recibir `stopped` sin posición conocida,
+  colapsa el estado a `open` o `closed` según lo que estuviera haciendo
+  justo antes (comportamiento documentado de MQTT Cover, no un fallo del
+  firmware) — de ahí que pulsar "stop" pareciera no hacer nada y el
+  botón de sentido contrario quedara bloqueado. Ahora que cada `HACover`
+  se crea con `PositionFeature` y reporta una posición real, `stopped`
+  se refleja correctamente y ambos botones (abrir/cerrar) quedan
+  disponibles tras parar a medio recorrido.
+- Cambiar de sentido (p. ej. pulsar "abrir" mientras estaba cerrando)
+  sin haber parado antes perdía el tramo recorrido hasta ese momento y
+  desincronizaba la posición estimada; ahora se congela la posición
+  real recorrida antes de invertir el sentido.
+
 ## [1.5.1] - 2026-09-02
 
 ### Added

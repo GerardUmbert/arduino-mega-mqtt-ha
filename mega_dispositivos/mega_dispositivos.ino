@@ -72,6 +72,12 @@ const int NUM_PERSIANAS = sizeof(PINES_PERSIANAS) / sizeof(PINES_PERSIANAS[0]);
 // Si tus relés/módulo ya tienen interlock por hardware, puedes bajarlo.
 #define RETARDO_INVERSION_MS 200
 
+// Tiempo máximo que se deja un relé de persiana energizado sin parar.
+// Protege el motor si HA no envía STOP (fallo de red, tarjeta de HA
+// cerrada a medio camino, etc.): pasado este tiempo se para sola.
+// Ajusta al tiempo real de recorrido de tus persianas + margen.
+unsigned long TIEMPO_MAX_MOVIMIENTO_MS = 20000;
+
 // ===========================================================
 // OBJETOS HA — se crean dinámicamente en setup(), no a mano
 // ===========================================================
@@ -82,6 +88,25 @@ char      idLuz[NUM_LUCES][8]; // buffers de texto: deben vivir todo el programa
 
 HACover*  persianas[NUM_PERSIANAS];
 char      idPersiana[NUM_PERSIANAS][17];
+
+// 0 = parada. Distinto de 0 = en movimiento desde ese momento (millis()),
+// para poder pararla sola si se pasa de TIEMPO_MAX_MOVIMIENTO_MS y para
+// estimar la posición recorrida por tiempo.
+unsigned long inicioMovimiento[NUM_PERSIANAS] = {0};
+
+// Sentido del movimiento en curso (solo válido mientras inicioMovimiento[i] != 0).
+bool subiendo[NUM_PERSIANAS] = {false};
+
+// Posición estimada 0-100 (0 = cerrada del todo, 100 = abierta del todo).
+// Sin encoder no hay forma de saberla de verdad al arrancar: se asume
+// 100 (abierta) hasta que el usuario mueva la persiana a un extremo real,
+// momento en el que se resincroniza sola a 0 o 100.
+int16_t posicionActual[NUM_PERSIANAS];
+
+// Última vez que se publicó la posición por MQTT mientras se movía
+// (evita saturar el broker publicando en cada vuelta de loop()).
+unsigned long ultimaPublicacionPosicion[NUM_PERSIANAS] = {0};
+#define INTERVALO_PUBLICAR_POSICION_MS 500
 
 // ===========================================================
 // CALLBACK LUCES
@@ -106,6 +131,42 @@ void onSwitchCommand(bool state, HASwitch* sender) {
 // Soporta abrir, cerrar y PARAR (los tres botones que HA muestra
 // automáticamente en la tarjeta de la persiana).
 // ===========================================================
+// Posición estimada mientras se mueve, a partir del tiempo transcurrido
+// desde que arrancó y el tiempo de recorrido completo calibrado para esa
+// persiana y ese sentido. Se satura a 0/100 por si el tiempo transcurrido
+// se pasa del calibrado (más vale reportar el extremo que un valor fuera
+// de rango).
+int16_t posicionEnCurso(int i) {
+    if (inicioMovimiento[i] == 0) return posicionActual[i];
+
+    unsigned long transcurrido = millis() - inicioMovimiento[i];
+    unsigned long total = subiendo[i] ? TIEMPOS_PERSIANAS[i].subida_ms
+                                       : TIEMPOS_PERSIANAS[i].bajada_ms;
+    if (total == 0) return posicionActual[i];
+
+    long avance = (long)(100UL * transcurrido / total);
+    long estimado = subiendo[i] ? posicionActual[i] + avance
+                                 : posicionActual[i] - avance;
+    if (estimado > 100) estimado = 100;
+    if (estimado < 0) estimado = 0;
+    return (int16_t)estimado;
+}
+
+void pararPersiana(int i, const __FlashStringHelper* motivo) {
+    posicionActual[i] = posicionEnCurso(i);
+    digitalWrite(PINES_PERSIANAS[i].subir, LOW);
+    digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
+    inicioMovimiento[i] = 0;
+    persianas[i]->setPosition(posicionActual[i]);
+    persianas[i]->setState(HACover::StateStopped);
+    Serial.print(F("[persiana] "));
+    Serial.print(idPersiana[i]);
+    Serial.print(F(" -> STOP ("));
+    Serial.print(motivo);
+    Serial.print(F(") pos="));
+    Serial.println(posicionActual[i]);
+}
+
 void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
     for (int i = 0; i < NUM_PERSIANAS; i++) {
         if (persianas[i] == sender) {
@@ -113,29 +174,32 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
             uint8_t pinBajar = PINES_PERSIANAS[i].bajar;
 
             if (cmd == HACover::CommandOpen) {
+                // Si venía moviéndose (p. ej. cerrando) sin haber parado,
+                // primero congela la posición real recorrida hasta ahora
+                // — si no, se pierde ese tramo y la posición se desincroniza.
+                if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
                 digitalWrite(pinBajar, LOW);
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinSubir, HIGH);
+                subiendo[i] = true;
+                inicioMovimiento[i] = millis();
                 sender->setState(HACover::StateOpening);
                 Serial.print(F("[persiana] "));
                 Serial.print(idPersiana[i]);
                 Serial.println(F(" -> OPEN"));
             } else if (cmd == HACover::CommandClose) {
+                if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
                 digitalWrite(pinSubir, LOW);
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinBajar, HIGH);
+                subiendo[i] = false;
+                inicioMovimiento[i] = millis();
                 sender->setState(HACover::StateClosing);
                 Serial.print(F("[persiana] "));
                 Serial.print(idPersiana[i]);
                 Serial.println(F(" -> CLOSE"));
             } else if (cmd == HACover::CommandStop) {
-                // Parar = apagar los dos relés a la vez.
-                digitalWrite(pinSubir, LOW);
-                digitalWrite(pinBajar, LOW);
-                sender->setState(HACover::StateStopped);
-                Serial.print(F("[persiana] "));
-                Serial.print(idPersiana[i]);
-                Serial.println(F(" -> STOP"));
+                pararPersiana(i, F("orden HA"));
             }
             return;
         }
@@ -171,7 +235,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.5.1");
+    device.setSoftwareVersion("1.6.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -193,9 +257,18 @@ void setup() {
 
         // Orden fijo subir_bajar en el ID, no alfabético ni el que sea menor.
         snprintf(idPersiana[i], sizeof(idPersiana[i]), "persiana_%d_%d", PINES_PERSIANAS[i].subir, PINES_PERSIANAS[i].bajar);
-        persianas[i] = new HACover(idPersiana[i]);
+        // PositionFeature: sin esto, HA colapsa "stopped" a open/closed
+        // (no existe un estado "parada a medias" sin posición real).
+        persianas[i] = new HACover(idPersiana[i], HACover::PositionFeature);
         persianas[i]->setDeviceClass("shutter");
         persianas[i]->onCommand(onCoverCommand);
+
+        // Sin encoder no hay forma de saber la posición real al arrancar:
+        // se asume abierta del todo hasta que el usuario la lleve a un
+        // extremo real y se resincronice sola.
+        posicionActual[i] = 100;
+        persianas[i]->setPosition(posicionActual[i]);
+        persianas[i]->setState(HACover::StateOpen);
     }
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
@@ -241,5 +314,42 @@ void loop() {
     if (!mqtt.isConnected() && millis() - ultimoAviso > 5000) {
         ultimoAviso = millis();
         Serial.println(F("[mqtt] sigue sin conectar, reintentando..."));
+    }
+
+    for (int i = 0; i < NUM_PERSIANAS; i++) {
+        if (inicioMovimiento[i] == 0) continue;
+
+        // Parada de seguridad: si lleva demasiado tiempo en movimiento
+        // (p. ej. HA no llegó a enviar STOP), se para sola para no forzar
+        // el motor contra el tope indefinidamente.
+        if (millis() - inicioMovimiento[i] > TIEMPO_MAX_MOVIMIENTO_MS) {
+            pararPersiana(i, F("timeout seguridad"));
+            continue;
+        }
+
+        int16_t posicion = posicionEnCurso(i);
+
+        // Llegó sola a un extremo real (recorrido completo calibrado):
+        // parar y resincronizar a 0/100 exactos, con el estado final
+        // correcto (abierta/cerrada, no "stopped").
+        if (posicion <= 0 || posicion >= 100) {
+            posicionActual[i] = posicion <= 0 ? 0 : 100;
+            digitalWrite(PINES_PERSIANAS[i].subir, LOW);
+            digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
+            inicioMovimiento[i] = 0;
+            persianas[i]->setPosition(posicionActual[i]);
+            persianas[i]->setState(posicionActual[i] == 0 ? HACover::StateClosed : HACover::StateOpen);
+            Serial.print(F("[persiana] "));
+            Serial.print(idPersiana[i]);
+            Serial.println(posicionActual[i] == 0 ? F(" -> CLOSED (fin recorrido)") : F(" -> OPEN (fin recorrido)"));
+            continue;
+        }
+
+        // Mientras se mueve, publica la posición estimada cada cierto
+        // intervalo (no en cada vuelta de loop(), para no saturar el broker).
+        if (millis() - ultimaPublicacionPosicion[i] > INTERVALO_PUBLICAR_POSICION_MS) {
+            ultimaPublicacionPosicion[i] = millis();
+            persianas[i]->setPosition(posicion);
+        }
     }
 }
