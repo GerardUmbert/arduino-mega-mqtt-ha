@@ -194,6 +194,7 @@ void setup() {
         // Orden fijo subir_bajar en el ID, no alfabético ni el que sea menor.
         snprintf(idPersiana[i], sizeof(idPersiana[i]), "persiana_%d_%d", PINES_PERSIANAS[i].subir, PINES_PERSIANAS[i].bajar);
         persianas[i] = new HACover(idPersiana[i]);
+        persianas[i]->setDeviceClass("shutter");
         persianas[i]->onCommand(onCoverCommand);
     }
 
