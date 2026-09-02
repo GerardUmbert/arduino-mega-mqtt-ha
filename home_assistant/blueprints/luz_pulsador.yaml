@@ -20,6 +20,13 @@ blueprint:
       Area en HA (Ajustes → Áreas y zonas) — si el pulsador no tiene Area
       asignada, actúa solo sobre `light_entity` como si fuera pulsación
       corta.
+
+      Además, SOLO en la rama de apagar (había alguna luz encendida),
+      cierra también todas las persianas (`cover.*`) de esa misma Area —
+      gesto de "buenas noches", apaga y cierra todo de una. Cuando la
+      rama es encender luces (estaban todas apagadas), las persianas NO
+      se tocan. Si el Area no tiene ninguna persiana, este paso
+      simplemente no hace nada (lista vacía, sin error).
   domain: automation
   input:
     boton_device_id:
@@ -79,6 +86,7 @@ variables:
   light_entity: !input light_entity
   area_id: "{{ area_id(boton_device_id) }}"
   lights_area: "{{ area_entities(area_id) | select('match', '^switch\\.') | list if area_id else [light_entity] }}"
+  covers_area: "{{ area_entities(area_id) | select('match', '^cover\\.') | list if area_id else [] }}"
   hay_alguna_encendida: "{{ lights_area | select('is_state', 'on') | list | count > 0 }}"
 
 action:
@@ -109,3 +117,11 @@ action:
           - service: "switch.{{ 'turn_off' if hay_alguna_encendida else 'turn_on' }}"
             target:
               entity_id: "{{ lights_area }}"
+          - if:
+              - condition: template
+                value_template: "{{ hay_alguna_encendida and covers_area | count > 0 }}"
+            then:
+              - service: cover.close_cover
+                target:
+                  entity_id: "{{ covers_area }}"
+                continue_on_error: true
