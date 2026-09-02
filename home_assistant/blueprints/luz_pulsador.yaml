@@ -1,17 +1,25 @@
 blueprint:
-  name: Luz controlada por pulsador físico (corta = toggle, triple = auto-apagado)
+  name: Luz controlada por pulsador físico (corta = toggle, triple = auto-apagado, larga = toggle Area)
   description: >
     Conecta un pulsador físico de `mega_pulsadores` con una luz de
     `mega_dispositivos` (`HASwitch`, on/off simple, sin brillo/temperatura
     de color — ver README principal del repo).
 
-    - Pulsación corta: apaga/enciende (toggle).
-    - Pulsación triple: enciende y programa apagado automático a los N
-      minutos (por defecto 5). Si la luz se apaga manualmente antes de
-      que pase ese tiempo, el apagado programado no hace nada raro
+    - Pulsación corta: apaga/enciende (toggle) SOLO esta luz.
+    - Pulsación triple: enciende esta luz y programa apagado automático a
+      los N minutos (por defecto 5). Si la luz se apaga manualmente antes
+      de que pase ese tiempo, el apagado programado no hace nada raro
       (vuelve a apagar una luz ya apagada, sin efecto visible). Si se
       vuelve a pulsar triple antes de que expire, el temporizador se
       reinicia desde cero (gracias a `mode: restart`).
+    - Pulsación larga: TODAS las luces del Area de este pulsador (no la
+      del `light_entity` — la del propio dispositivo del pulsador en HA).
+      Si alguna está encendida, las apaga todas; si están todas apagadas,
+      las enciende todas. Requiere que el device del pulsador y los
+      `switch.*` de las luces de esa habitación tengan asignada la misma
+      Area en HA (Ajustes → Áreas y zonas) — si el pulsador no tiene Area
+      asignada, actúa solo sobre `light_entity` como si fuera pulsación
+      corta.
   domain: automation
   input:
     boton_device_id:
@@ -59,6 +67,19 @@ trigger:
     type: button_triple_press
     subtype: !input boton_subtype
     id: triple
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_press
+    subtype: !input boton_subtype
+    id: larga
+
+variables:
+  boton_device_id: !input boton_device_id
+  light_entity: !input light_entity
+  area_id: "{{ area_id(boton_device_id) }}"
+  lights_area: "{{ area_entities(area_id) | select('match', '^switch\\.') | list if area_id else [light_entity] }}"
+  hay_alguna_encendida: "{{ lights_area | select('is_state', 'on') | list | count > 0 }}"
 
 action:
   - choose:
@@ -81,3 +102,10 @@ action:
           - service: switch.turn_off
             target:
               entity_id: !input light_entity
+      - conditions:
+          - condition: trigger
+            id: larga
+        sequence:
+          - service: "switch.{{ 'turn_off' if hay_alguna_encendida else 'turn_on' }}"
+            target:
+              entity_id: "{{ lights_area }}"
