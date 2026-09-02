@@ -84,10 +84,12 @@ unsigned long TIEMPO_MAX_MOVIMIENTO_MS = 20000;
 HAMqtt mqtt(client, device, NUM_LUCES + NUM_PERSIANAS + 2);
 
 HASwitch* luces[NUM_LUCES];
-char      idLuz[NUM_LUCES][8]; // buffers de texto: deben vivir todo el programa
+char      idLuz[NUM_LUCES][8];    // buffers de texto: deben vivir todo el programa
+char      nombreLuz[NUM_LUCES][10]; // "Luz " + hasta 3 dígitos + '\0'
 
 HACover*  persianas[NUM_PERSIANAS];
 char      idPersiana[NUM_PERSIANAS][17];
+char      nombrePersiana[NUM_PERSIANAS][20]; // "Persiana " + "XX/YY" + '\0'
 
 // 0 = parada. Distinto de 0 = en movimiento desde ese momento (millis()),
 // para poder pararla sola si se pasa de TIEMPO_MAX_MOVIMIENTO_MS y para
@@ -235,7 +237,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.6.1");
+    device.setSoftwareVersion("1.6.2");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -246,6 +248,11 @@ void setup() {
         luces[i] = new HASwitch(idLuz[i]);
         luces[i]->onCommand(onSwitchCommand);
         luces[i]->setIcon("mdi:lightbulb");
+
+        // Nombre visible en HA (unique_id/idLuz sigue siendo luz_XX, esto
+        // solo cambia lo que se ve — renómbralo luego en HA si quieres).
+        snprintf(nombreLuz[i], sizeof(nombreLuz[i]), "Luz %d", PINES_LUCES[i]);
+        luces[i]->setName(nombreLuz[i]);
     }
 
     // --- persianas: idem ---
@@ -262,6 +269,11 @@ void setup() {
         persianas[i] = new HACover(idPersiana[i], HACover::PositionFeature);
         persianas[i]->setDeviceClass("shutter");
         persianas[i]->onCommand(onCoverCommand);
+
+        // Nombre visible en HA (unique_id/idPersiana sigue siendo
+        // persiana_XX_YY, esto solo cambia lo que se ve).
+        snprintf(nombrePersiana[i], sizeof(nombrePersiana[i]), "Persiana %d/%d", PINES_PERSIANAS[i].subir, PINES_PERSIANAS[i].bajar);
+        persianas[i]->setName(nombrePersiana[i]);
 
         // Sin encoder no hay forma de saber la posición real al arrancar:
         // se asume abierta del todo hasta que el usuario la lleve a un

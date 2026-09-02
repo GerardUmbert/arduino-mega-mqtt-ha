@@ -5,6 +5,21 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.6.2] - 2026-09-02
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.6.2).
+
+### Added
+- Cada luz y persiana ahora tiene un nombre visible propio en HA (`Luz
+  22`, `Persiana 38/39`) en vez del genérico "MQTT Switch"/"MQTT Cover"
+  con sufijo numérico automático. El `unique_id` (`luz_22`,
+  `persiana_38_39`) no cambia — solo el nombre que se ve, que sigue
+  siendo renombrable a mano en HA como siempre.
+- `HADeviceTrigger` (usado en `mega_pulsadores` para los pulsadores) no
+  tiene equivalente de `setName()` en la librería — los triggers de
+  botón se identifican en HA por tipo + subtype dentro del device, no
+  como entidad individual, así que no aplica el mismo cambio ahí.
+
 ## [1.6.1] - 2026-09-02
 
 Solo afecta a `mega_dispositivos` (versión de firmware 1.6.1).
