@@ -5,6 +5,22 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.5.1] - 2026-09-02
+
+### Added
+- Más diagnóstico por Serial tras `Ethernet.begin()` en ambos `.ino`:
+  se imprime también el gateway, la máscara de subred y el DNS
+  realmente aplicados (`Ethernet.gatewayIP()`, `subnetMask()`,
+  `dnsServerIP()`), y una prueba de conexión TCP directa al broker en
+  el puerto 1883 (sin pasar por MQTT) antes de `mqtt.begin()`, para
+  distinguir un fallo de red/alcanzabilidad de un fallo del propio
+  protocolo MQTT. En `loop()`, si sigue sin conectar, se imprime un
+  aviso cada 5 segundos en vez de quedarse en silencio indefinidamente.
+  Este diagnóstico ayudó a identificar un caso real de shield Ethernet
+  defectuoso (enlace detectado como activo pero sin tráfico real
+  saliendo a la red: sin respuesta a ping, sin entrada ARP, TCP
+  fallando siempre).
+
 ## [1.5.0] - 2026-09-02
 
 ### Fixed

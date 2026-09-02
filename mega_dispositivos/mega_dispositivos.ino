@@ -171,7 +171,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.5.0");
+    device.setSoftwareVersion("1.5.1");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -210,6 +210,21 @@ void setup() {
 
     Serial.print(F("[boot] IP asignada: "));
     Serial.println(Ethernet.localIP());
+    Serial.print(F("[boot] Gateway: "));
+    Serial.println(Ethernet.gatewayIP());
+    Serial.print(F("[boot] Subnet: "));
+    Serial.println(Ethernet.subnetMask());
+    Serial.print(F("[boot] DNS: "));
+    Serial.println(Ethernet.dnsServerIP());
+
+    Serial.println(F("[boot] probando TCP directo al broker (puerto 1883)..."));
+    EthernetClient testClient;
+    if (testClient.connect(BROKER_ADDR, 1883)) {
+        Serial.println(F("[boot] TCP OK: el broker responde en ese puerto"));
+        testClient.stop();
+    } else {
+        Serial.println(F("[boot] TCP FALLO: no se pudo abrir conexion al broker (revisa IP/puerto/firewall)"));
+    }
 
     mqtt.onConnected(onMqttConnected);
     mqtt.onDisconnected(onMqttDisconnected);
@@ -220,4 +235,10 @@ void setup() {
 
 void loop() {
     mqtt.loop();
+
+    static unsigned long ultimoAviso = 0;
+    if (!mqtt.isConnected() && millis() - ultimoAviso > 5000) {
+        ultimoAviso = millis();
+        Serial.println(F("[mqtt] sigue sin conectar, reintentando..."));
+    }
 }
