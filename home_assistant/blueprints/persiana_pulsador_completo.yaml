@@ -18,23 +18,14 @@ blueprint:
     | 5 | TODAS las persianas de la casa → 100% | TODAS las persianas de la casa → 0% |
     | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
-    En ambos casos, si se suelta sin llegar a un extremo, se estima la
-    posición alcanzada a partir de cuánto tiempo estuvo mantenida.
-
-    Todas las acciones que fijan una posición (1/2/3/4/5) NO llaman a
-    `cover.*` directamente: escriben en el helper `input_number
-    ..._objetivo` de cada persiana afectada, y es `persiana_posicion.yaml`
-    (que debe estar instanciado para esa persiana) quien realmente la
-    mueve y actualiza la posición estimada. Por eso toda persiana que
-    pueda verse afectada — incluidas las de la misma Area o las de toda
-    la casa en pulsación doble/quíntuple — necesita tener ya su propio
-    `persiana_posicion.yaml` configurado, con los helpers nombrados
-    siguiendo el convenio `input_number.<object_id_de_la_cover>_objetivo`
-    y `..._posicion` (p. ej. `cover.persiana_38_39` →
-    `input_number.persiana_38_39_objetivo`). Si un helper no existe con
-    ese nombre exacto para alguna persiana del grupo, esa persiana en
-    concreto no se moverá (sin error visible) — revisa el nombrado si
-    ves que alguna se queda descolgada.
+    Usa la posición NATIVA que reporta `mega_dispositivos` (firmware
+    1.6.0+, `HACover::PositionFeature`) vía `cover.set_cover_position` —
+    no depende de ningún helper `input_number` ni de otro blueprint
+    intermedio. Requiere que las persianas afectadas (incluidas las de
+    la misma Area en pulsación doble, o todas las de la casa en
+    quíntuple) soporten de verdad `set_cover_position` — si alguna no la
+    soporta (persiana sin actualizar al firmware con posición), la
+    llamada a esa persiana en concreto no hace nada, sin error visible.
   domain: automation
   input:
     boton_device_id:
@@ -63,32 +54,6 @@ blueprint:
               value: subir
             - label: Bajar
               value: bajar
-    tiempo_abrir_helper:
-      name: Helper de tiempo de apertura total (de esta persiana)
-      description: >
-        El mismo helper `tiempo_abrir` usado en la instancia de
-        `persiana_posicion.yaml` de esta persiana — se usa aquí para
-        estimar la posición al soltar una pulsación larga parcial.
-      selector:
-        entity:
-          domain: input_number
-    tiempo_cerrar_helper:
-      name: Helper de tiempo de cierre total (de esta persiana)
-      selector:
-        entity:
-          domain: input_number
-    inicio_larga_helper:
-      name: Helper de inicio de pulsación larga
-      description: >
-        input_datetime (con hora, no solo fecha) dedicado a este botón
-        concreto — guarda el instante en que empezó la pulsación larga
-        para poder calcular cuánto se mantuvo pulsado al soltar. Crea
-        uno distinto por cada instancia de este blueprint (no lo
-        compartas entre el botón de subir y el de bajar de la misma
-        persiana, ni entre persianas).
-      selector:
-        entity:
-          domain: input_datetime
 
 mode: restart
 
@@ -139,16 +104,11 @@ trigger:
 variables:
   cover_entity: !input cover_entity
   direccion: !input direccion
-  tiempo_abrir_helper: !input tiempo_abrir_helper
-  tiempo_cerrar_helper: !input tiempo_cerrar_helper
-  inicio_larga_helper: !input inicio_larga_helper
   objetivo_extremo: "{{ 100 if direccion == 'subir' else 0 }}"
   area_id: "{{ area_id(cover_entity) }}"
   covers_area: "{{ area_entities(area_id) | select('match', '^cover\\.') | list if area_id else [cover_entity] }}"
   covers_casa: "{{ states.cover | map(attribute='entity_id') | list }}"
-  objetivo_helper_esta: "input_number.{{ cover_entity.split('.')[1] }}_objetivo"
-  posicion_helper_esta: "input_number.{{ cover_entity.split('.')[1] }}_posicion"
-  posicion_actual: "{{ states(posicion_helper_esta) | float(0) }}"
+  posicion_actual: "{{ state_attr(cover_entity, 'current_position') | float(0) }}"
   paso_relativo: "{{ 5 if direccion == 'subir' else -5 }}"
   objetivo_relativo: "{{ [[posicion_actual + paso_relativo, 0] | max, 100] | min }}"
 
@@ -159,83 +119,64 @@ action:
           - condition: trigger
             id: p1
         sequence:
-          - service: input_number.set_value
+          - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
             target:
-              entity_id: "{{ objetivo_helper_esta }}"
-            data:
-              value: "{{ objetivo_extremo }}"
+              entity_id: "{{ cover_entity }}"
 
       # --- 2 pulsaciones: todas las persianas de la misma Area.
       - conditions:
           - condition: trigger
             id: p2
         sequence:
-          - repeat:
-              for_each: "{{ covers_area }}"
-              sequence:
-                - service: input_number.set_value
-                  target:
-                    entity_id: "input_number.{{ repeat.item.split('.')[1] }}_objetivo"
-                  data:
-                    value: "{{ objetivo_extremo }}"
-                  continue_on_error: true
+          - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
+            target:
+              entity_id: "{{ covers_area }}"
+            continue_on_error: true
 
       # --- 3 pulsaciones: esta persiana al 50%.
       - conditions:
           - condition: trigger
             id: p3
         sequence:
-          - service: input_number.set_value
+          - service: cover.set_cover_position
             target:
-              entity_id: "{{ objetivo_helper_esta }}"
+              entity_id: "{{ cover_entity }}"
             data:
-              value: 50
+              position: 50
 
       # --- 4 pulsaciones: ajuste fino ±5% desde la posición actual.
       - conditions:
           - condition: trigger
             id: p4
         sequence:
-          - service: input_number.set_value
+          - service: cover.set_cover_position
             target:
-              entity_id: "{{ objetivo_helper_esta }}"
+              entity_id: "{{ cover_entity }}"
             data:
-              value: "{{ objetivo_relativo }}"
+              position: "{{ objetivo_relativo }}"
 
       # --- 5 pulsaciones: TODAS las persianas de la casa.
       - conditions:
           - condition: trigger
             id: p5
         sequence:
-          - repeat:
-              for_each: "{{ covers_casa }}"
-              sequence:
-                - service: input_number.set_value
-                  target:
-                    entity_id: "input_number.{{ repeat.item.split('.')[1] }}_objetivo"
-                  data:
-                    value: "{{ objetivo_extremo }}"
-                  continue_on_error: true
+          - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
+            target:
+              entity_id: "{{ covers_casa }}"
+            continue_on_error: true
 
-      # --- Larga: guarda el instante de inicio (para medir duración al
-      # soltar) y empieza a mover.
+      # --- Larga: mover mientras se mantiene.
       - conditions:
           - condition: trigger
             id: larga_inicio
         sequence:
-          - service: input_datetime.set_datetime
-            target:
-              entity_id: !input inicio_larga_helper
-            data:
-              timestamp: "{{ now().timestamp() }}"
           - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
             target:
               entity_id: "{{ cover_entity }}"
 
-      # --- Fin de larga: parar, y si no llegó a un extremo, estimar la
-      # posición recorrida a partir de cuánto tiempo estuvo pulsado
-      # (inicio_larga_helper vs. ahora) en vez de dejarla desactualizada
-      # hasta el siguiente recorrido completo.
+      # --- Fin de larga: parar. El propio firmware reporta la posición
+      # real alcanzada (estimada por tiempo de relé) al parar — no hace
+      # falta ningún cálculo aparte aquí.
       - conditions:
           - condition: trigger
             id: larga_fin
@@ -243,23 +184,3 @@ action:
           - service: cover.stop_cover
             target:
               entity_id: "{{ cover_entity }}"
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ is_state(cover_entity, 'open') or is_state(cover_entity, 'closed') }}"
-                sequence: []
-            default:
-              - variables:
-                  tiempo_abrir: "{{ states(tiempo_abrir_helper) | float(0) }}"
-                  tiempo_cerrar: "{{ states(tiempo_cerrar_helper) | float(0) }}"
-                  segundos_mantenido: >-
-                    {{ (now().timestamp() - as_timestamp(states(inicio_larga_helper), now().timestamp())) | max(0) }}
-                  tiempo_total: "{{ tiempo_abrir if direccion == 'subir' else tiempo_cerrar }}"
-                  delta_pct: >-
-                    {{ (segundos_mantenido / tiempo_total * 100) if tiempo_total > 0 else 0 }}
-              - service: input_number.set_value
-                target:
-                  entity_id: "{{ posicion_helper_esta }}"
-                data:
-                  value: >-
-                    {{ [[posicion_actual + (delta_pct if direccion == 'subir' else -delta_pct), 0] | max, 100] | min }}

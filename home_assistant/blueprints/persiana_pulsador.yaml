@@ -6,15 +6,10 @@ blueprint:
     para el patrón "agrupación de 4 pulsadores en una habitación" descrito
     en `todo.md` — un botón de la agrupación para subir, otro para bajar.
 
-    Como el pulsador siempre manda la persiana a un extremo (se suelta
-    cuando ya está donde se quiere, normalmente el tope, o se para a
-    medias), este blueprint deja la posición a medias sin resincronizar
-    automáticamente salvo que la persiana llegue de verdad a abierta o
-    cerrada del todo — eso ya lo cubre `persiana_posicion.yaml`, que
-    escucha el estado `open`/`closed` de la propia entidad `cover`
-    independientemente de quién la haya movido. Si usas ambos blueprints
-    sobre la misma persiana, la posición se mantiene correcta también
-    para los movimientos iniciados desde el pulsador.
+    Solo llama a `cover.open_cover` / `close_cover` / `stop_cover` — la
+    posición (firmware 1.6.0+) la reporta `mega_dispositivos` por su
+    cuenta independientemente de quién haya movido la persiana, sin
+    necesitar ningún blueprint ni helper aparte para mantenerla correcta.
   domain: automation
   input:
     boton_device_id:

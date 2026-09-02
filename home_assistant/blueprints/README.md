@@ -1,183 +1,22 @@
 # Blueprints de Home Assistant
 
-## `persiana_posicion.yaml`
+## Posición de persianas: ahora nativa (firmware 1.6.0+)
 
-Añade una posición estimada (0-100%) a una persiana controlada por
-`mega_dispositivos`, cuyo firmware **no** reporta posición real (no hay
-encoder en los motores — ver `todo.md` del repo). La estimación es
-puramente por tiempo: se calibra cuánto tarda la persiana en abrir/cerrar
-del todo, y se calcula el tiempo de relé necesario para moverla un % dado.
+Desde `mega_dispositivos` 1.6.0, cada persiana reporta su propia
+posición (0-100%) directamente por MQTT (`HACover::PositionFeature`),
+estimada en el propio firmware por tiempo de relé activo — ver
+`README.md` del repo raíz, sección "Calibración de persianas". La
+tarjeta normal de HA ya muestra el slider de posición sin necesidad de
+ningún helper ni blueprint intermedio: usa `cover.set_cover_position` /
+`cover.open_cover` / `cover.close_cover` / `cover.stop_cover`
+directamente sobre la entidad `cover.persiana_XX_YY`.
 
-Cada vez que la persiana llega a abierta o cerrada del todo (ya sea
-pedido desde este blueprint, desde la tarjeta normal de HA, o desde un
-pulsador físico vía automatización aparte), la posición guardada se
-resincroniza a 0/100 exacto, así que el error de estimación no se
-acumula indefinidamente entre usos — solo importa la deriva dentro de un
-mismo tramo sin pasar por un extremo.
-
-### Helpers necesarios por persiana
-
-Antes de instanciar el blueprint para una persiana (p. ej.
-`cover.persiana_38_39`), crea 4 helpers `input_number`
-(Ajustes → Dispositivos y servicios → Ayudantes → Crear ayudante →
-Número):
-
-| Helper | Min | Max | Paso | Unidad | Para qué |
-|---|---|---|---|---|---|
-| `input_number.persiana_38_39_posicion` | 0 | 100 | 1 | % | Posición estimada actual (la gestiona el blueprint, no la toques a mano salvo para corregirla manualmente si sabes que está mal). |
-| `input_number.persiana_38_39_objetivo` | 0 | 100 | 1 | % | Slider que usas para pedir "ir a X%". Cambiar su valor dispara el movimiento. |
-| `input_number.persiana_38_39_tiempo_abrir` | 0 | 60 | 0.5 | s | Segundos que tarda en abrir del todo (calibrado a mano, ver abajo). |
-| `input_number.persiana_38_39_tiempo_cerrar` | 0 | 60 | 0.5 | s | Segundos que tarda en cerrar del todo. |
-
-Usa el mismo sufijo de pines que ya usa la entidad `cover` (p. ej.
-`_38_39`) para no perder la referencia de a qué persiana pertenece cada
-helper.
-
-Alternativa más rápida si tienes varias persianas: añade los helpers
-por YAML en vez de crearlos uno a uno desde la UI. Tienen que declararse
-bajo la clave `input_number:` de `configuration.yaml` (o un paquete
-aparte incluido desde ahí):
-
-```yaml
-input_number:
-  persiana_38_39_posicion:
-    name: Persiana 38/39 - Posición actual
-    min: 0
-    max: 100
-    step: 1
-    unit_of_measurement: "%"
-  persiana_38_39_objetivo:
-    name: Persiana 38/39 - Objetivo
-    min: 0
-    max: 100
-    step: 1
-    unit_of_measurement: "%"
-  persiana_38_39_tiempo_abrir:
-    name: Persiana 38/39 - Tiempo apertura
-    min: 0
-    max: 60
-    step: 0.5
-    unit_of_measurement: s
-  persiana_38_39_tiempo_cerrar:
-    name: Persiana 38/39 - Tiempo cierre
-    min: 0
-    max: 60
-    step: 0.5
-    unit_of_measurement: s
-```
-
-Tras guardar, recarga los helpers (Ajustes → Sistema → Repara e
-identifica → ⋮ → Recargar configuración de YAML, sección "Helpers de
-input_number") o reinicia HA — no hace falta reiniciar todo el sistema,
-con recargar la configuración YAML basta.
-
-### Varias persianas a la vez
-
-Si tienes que dar de alta muchas persianas (p. ej. 7), escribir los 4
-helpers a mano por cada una es repetitivo. En vez de copiar el bloque
-YAML de arriba 7 veces, genera los 28 helpers con un script a partir de
-una lista de nombres — usa el `object_id` que le vayas a dar a cada
-`cover` en HA (el nombre final, no el sufijo de pines: si vas a
-renombrar las persianas a algo más legible, usa ya ese nombre aquí para
-no tener que rehacer esto después):
-
-```python
-persianas = ["salon", "cocina", "dormitorio_1", "dormitorio_2", "estudio", "pasillo", "terraza"]
-
-for p in persianas:
-    print(f"""  {p}_posicion:
-    name: Persiana {p.replace('_', ' ').title()} - Posición actual
-    min: 0
-    max: 100
-    step: 1
-    unit_of_measurement: "%"
-  {p}_objetivo:
-    name: Persiana {p.replace('_', ' ').title()} - Objetivo
-    min: 0
-    max: 100
-    step: 1
-    unit_of_measurement: "%"
-  {p}_tiempo_abrir:
-    name: Persiana {p.replace('_', ' ').title()} - Tiempo apertura
-    min: 0
-    max: 60
-    step: 0.5
-    unit_of_measurement: s
-  {p}_tiempo_cerrar:
-    name: Persiana {p.replace('_', ' ').title()} - Tiempo cierre
-    min: 0
-    max: 60
-    step: 0.5
-    unit_of_measurement: s""")
-```
-
-Pega la salida bajo `input_number:` en `configuration.yaml`. Cambiar el
-nombre de una persiana más adelante solo implica renombrar sus 4
-entradas (buscar/reemplazar el slug antiguo por el nuevo) — no afecta al
-resto.
-
-### Instanciar el blueprint en varias persianas por YAML
-
-Si tu instalación gestiona las automatizaciones en modo YAML (no solo
-UI), puedes instanciar el blueprint para varias persianas escribiendo
-directamente bajo `automation:` en vez de repetir el asistente de la UI
-7 veces:
-
-```yaml
-automation:
-  - alias: Persiana Salón - posición
-    use_blueprint:
-      path: persiana_posicion.yaml
-      input:
-        cover_entity: cover.salon
-        posicion_helper: input_number.salon_posicion
-        objetivo_helper: input_number.salon_objetivo
-        tiempo_abrir_helper: input_number.salon_tiempo_abrir
-        tiempo_cerrar_helper: input_number.salon_tiempo_cerrar
-  - alias: Persiana Cocina - posición
-    use_blueprint:
-      path: persiana_posicion.yaml
-      input:
-        cover_entity: cover.cocina
-        posicion_helper: input_number.cocina_posicion
-        objetivo_helper: input_number.cocina_objetivo
-        tiempo_abrir_helper: input_number.cocina_tiempo_abrir
-        tiempo_cerrar_helper: input_number.cocina_tiempo_cerrar
-  # ... repetir una entrada por persiana
-```
-
-`path` es relativo a `<config>/blueprints/automation/<usuario_o_carpeta>/`
-— ajústalo a donde tengas copiado `persiana_posicion.yaml` dentro de
-`blueprints/automation/`. Sigue habiendo una entrada por persiana (HA no
-soporta instanciar un blueprint en bucle desde YAML), pero es mucho menos
-manual que repetir el asistente gráfico 7 veces, y además queda en
-control de versiones junto con el resto de la config.
-
-### Cómo calibrar `tiempo_abrir` / `tiempo_cerrar`
-
-1. Cierra la persiana del todo manualmente desde HA (botón cerrar) y
-   espera a que pare.
-2. Pulsa abrir y cronometra hasta que se detenga sola en el tope
-   superior. Repite 2-3 veces y usa el promedio.
-3. Repite lo mismo para el cierre (desde abierta del todo hasta cerrada).
-4. Escribe esos valores en `tiempo_abrir` / `tiempo_cerrar`. Si con el
-   uso real ves que la estimación se desvía mucho, ajusta el número —
-   no hace falta tocar el blueprint.
-
-### Instanciar el blueprint
-
-Ajustes → Automatizaciones y escenas → Blueprints → importar
-`persiana_posicion.yaml` → Crear automatización, y rellenar los 5
-inputs (la entidad `cover` y los 4 helpers) para esa persiana en
-concreto. Repetir una vez por cada persiana — cada una es una
-automatización independiente con sus propios helpers.
-
-### Dashboard
-
-Añade el slider de `input_number.persiana_38_39_objetivo` a la tarjeta
-de esa persiana en Lovelace (p. ej. con una tarjeta "Entities" o
-"Tile") — así tienes un control de posición aproximada sin que
-`mega_dispositivos` necesite reportar `PositionFeature` real.
+`persiana_posicion.yaml` (el blueprint que simulaba esto por HA con 4
+helpers `input_number` por persiana, para firmwares sin posición real)
+queda en [`legacy/persiana_posicion.yaml`](legacy/persiana_posicion.yaml)
+— solo aplica si tienes una unidad `mega_dispositivos` en una versión
+de firmware anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
+instancies: usa la posición nativa.
 
 ## `persiana_pulsador.yaml`
 
@@ -215,24 +54,6 @@ Por cada botón de la agrupación que vaya a mover esta persiana (normalmente
 Repite para el segundo botón (el de la acción contraria) sobre la misma
 persiana.
 
-### Combinarlo con `persiana_posicion.yaml`
-
-Los dos blueprints pueden convivir sobre la misma persiana sin pisarse:
-`persiana_pulsador.yaml` solo llama a `cover.open_cover` /
-`close_cover` / `stop_cover`, nunca toca los helpers de posición
-directamente. `persiana_posicion.yaml` escucha el estado `open`/`closed`
-de la entidad `cover` (venga de donde venga el comando) y resincroniza
-`posicion` a 0/100 cuando corresponda — así un recorrido completo hecho
-desde el pulsador también deja la posición estimada correcta para la
-próxima vez que uses el slider `objetivo`.
-
-Ten en cuenta que si sueltas el pulsador a medio recorrido (sin llegar al
-tope), la posición estimada NO se actualiza con ese movimiento — se
-queda como estaba hasta el siguiente recorrido completo. Es una
-limitación conocida y aceptada del enfoque por tiempo (ver discusión en
-el historial del proyecto): el error no se acumula sin límite, pero
-tampoco es exacto entre resyncs.
-
 ## `persiana_pulsador_completo.yaml`
 
 Alternativa a `persiana_pulsador.yaml` que aprovecha los 5 niveles de
@@ -249,24 +70,15 @@ todas las persianas de esa agrupación:
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
 | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
-**Dependencia dura**: 1/2/3/4/5 no mueven la persiana directamente —
-escriben en el helper `..._objetivo` de cada persiana afectada, y es
-`persiana_posicion.yaml` quien la mueve de verdad. Por eso **toda**
-persiana que pueda verse afectada (incluidas las de la Area en doble
-pulsación, o todas las de la casa en quíntuple) necesita ya su propia
-instancia de `persiana_posicion.yaml`, con helpers nombrados
-`input_number.<object_id_de_la_cover>_objetivo` /
-`..._posicion` — el blueprint deriva esos nombres del `entity_id` de
-cada `cover.*`, no los pides a mano uno a uno. Si el nombrado no
-coincide para alguna persiana del grupo, esa persiana en concreto
-simplemente no se mueve (sin error visible) — revisa el nombrado si ves
-alguna que se queda descolgada.
-
-La pulsación larga sí sigue llamando a `cover.*` directamente (igual
-que `persiana_pulsador.yaml`), pero al soltar, si la persiana no llegó
-a un extremo, estima cuánto se movió a partir de cuánto tiempo estuvo
-mantenida y actualiza `posicion` directamente — cierra el hueco que
-`persiana_pulsador.yaml` deja en pulsaciones largas parciales.
+Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
+`set_cover_position` sobre la posición NATIVA que reporta
+`mega_dispositivos` (firmware 1.6.0+) — sin helpers `input_number` ni
+`input_datetime`, sin depender de `persiana_posicion.yaml`. Requiere que
+toda persiana que pueda verse afectada (incluidas las de la Area en
+doble pulsación, o todas las de la casa en quíntuple) soporte de verdad
+`set_cover_position` — si alguna corre un firmware sin posición (versión
+anterior a 1.6.0 sin actualizar), la llamada a esa persiana en concreto
+no hace nada, sin error visible.
 
 ### Instanciar el blueprint
 
@@ -280,13 +92,6 @@ más si varias persianas comparten el mismo par de botones subir/bajar:
 3. **Persiana controlada por este botón**: la entidad `cover` concreta
    (para 1/3/4/larga; 2/5 se calculan solas a partir de esta).
 4. **Dirección**: Subir o Bajar, según qué botón sea este.
-5. **Helper de tiempo de apertura/cierre total**: los mismos helpers
-   `tiempo_abrir`/`tiempo_cerrar` que ya usa la instancia de
-   `persiana_posicion.yaml` de esta persiana.
-6. **Helper de inicio de pulsación larga**: crea un `input_datetime`
-   nuevo y dedicado a esta instancia concreta (uno por botón, no
-   compartido) — Ajustes → Ayudantes → Crear ayudante → Fecha y hora,
-   con la opción de hora activada.
 
 ## `luz_pulsador.yaml`
 
@@ -371,10 +176,10 @@ No es un blueprint de este repo, sino una **integración externa de HA**
 (no Arduino/firmware) que calcula la posición óptima de cada persiana
 para bloquear el sol directo, a partir de azimut/elevación del sol
 (`sun.sun`) y la orientación de la fachada donde está esa persiana.
-Encaja con `persiana_posicion.yaml` sin pisarlo: Adaptive Cover escribe
-en el mismo helper `input_number.<cover>_objetivo` que ya usan
-`persiana_pulsador_completo.yaml` (pulsaciones 1/2/3/4/5) y el slider
-manual — es solo otro "escritor" más del objetivo, igual que ellos.
+Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+), llama
+directamente a `cover.set_cover_position` sobre la entidad `cover.*` —
+mismo servicio que usan `persiana_pulsador_completo.yaml` (pulsaciones
+1/2/3/4/5) y cualquier slider manual, sin ningún helper intermedio.
 
 - Repo: https://github.com/basbruss/adaptive-cover
 - Se instala vía HACS (Ajustes → HACS → Integraciones → buscar
@@ -398,8 +203,8 @@ manual — es solo otro "escritor" más del objetivo, igual que ellos.
 
 Adaptive Cover puede exponer directamente una entidad `cover` propia
 que mueve la persiana real, o (más simple con tu arquitectura actual)
-puedes leer su sensor de "posición recomendada" y volcarlo tú al mismo
-helper `..._objetivo` que ya usan tus otros blueprints, con una
+puedes leer su sensor de "posición recomendada" y volcarlo tú a
+`cover.set_cover_position` sobre la entidad `cover.*` real, con una
 automatización corta tipo:
 
 ```yaml
@@ -409,17 +214,16 @@ automation:
       - platform: state
         entity_id: sensor.adaptive_cover_salon  # el sensor que cree la integración para esa ventana
     action:
-      - service: input_number.set_value
+      - service: cover.set_cover_position
         target:
-          entity_id: input_number.salon_objetivo
+          entity_id: cover.salon
         data:
-          value: "{{ trigger.to_state.state | float(0) }}"
+          position: "{{ trigger.to_state.state | float(0) }}"
 ```
 
-Así el cálculo de sol lo hace la integración, pero quien mueve
-físicamente el relé sigue siendo `persiana_posicion.yaml` — mismo
-mecanismo que ya usas para el pulsador físico y el slider manual, sin
-tocar `mega_dispositivos.ino` para nada.
+Así el cálculo de sol lo hace la integración, y quien mueve físicamente
+el relé sigue siendo `mega_dispositivos` — sin tocar `mega_dispositivos.ino`
+ni ningún helper intermedio para nada.
 
 **Por qué disparador de estado y no `time_pattern`**: a diferencia del
 ciclo de temperatura de color de `luz_zigbee_respaldo.yaml` (donde el
@@ -441,17 +245,18 @@ La solución NO es meter en el puente una comprobación tipo "¿el
 objetivo actual ya se superó?" (frágil: no distingue un override real
 de una coincidencia numérica). Adaptive Cover ya trae detección de
 override manual incorporada — al mover tú la persiana (desde la
-tarjeta, el pulsador físico, o el propio `objetivo`), la integración lo
-detecta y dejaría de forzar su cálculo hasta que se le devuelva el
-control (normalmente vía un `switch`/botón que expone la propia
-integración, del tipo "reanudar control automático" — el nombre exacto
-depende de la versión instalada; revisarlo al dar de alta la instancia
-real).
+tarjeta, el pulsador físico, o cualquier llamada a `set_cover_position`),
+la integración lo detecta y dejaría de forzar su cálculo hasta que se le
+devuelva el control (normalmente vía un `switch`/botón que expone la
+propia integración, del tipo "reanudar control automático" — el nombre
+exacto depende de la versión instalada; revisarlo al dar de alta la
+instancia real).
 
-El puente debe respetar esa señal: antes de escribir en `..._objetivo`,
-comprobar que esa entidad de override NO está activa, y si lo está, no
-tocar nada (el usuario manda hasta que decida devolver el control).
-Ejemplo de cómo quedaría la automatización con esa condición añadida:
+El puente debe respetar esa señal: antes de llamar a
+`set_cover_position`, comprobar que esa entidad de override NO está
+activa, y si lo está, no tocar nada (el usuario manda hasta que decida
+devolver el control). Ejemplo de cómo quedaría la automatización con esa
+condición añadida:
 
 ```yaml
 automation:
@@ -464,11 +269,11 @@ automation:
         entity_id: switch.adaptive_cover_salon_override  # nombre real a confirmar al configurar la instancia
         state: "off"
     action:
-      - service: input_number.set_value
+      - service: cover.set_cover_position
         target:
-          entity_id: input_number.salon_objetivo
+          entity_id: cover.salon
         data:
-          value: "{{ trigger.to_state.state | float(0) }}"
+          position: "{{ trigger.to_state.state | float(0) }}"
 ```
 
 Pendiente de confirmar el `entity_id` exacto de esa entidad de override
@@ -510,7 +315,7 @@ Pendiente de una estación meteorológica propia planeada por el usuario
 (sensores de viento, temperatura y lluvia — marca/protocolo aún sin
 decidir). Cuando esté instalada, expondrá sus propios `sensor.*` /
 `binary_sensor.*` en HA, que se pueden usar para dos casos distintos
-sobre el mismo puente de `persiana_posicion.yaml`:
+sobre el mismo puente de Adaptive Cover:
 
 1. **Bloquear el ajuste solar cuando no tiene sentido** (p. ej. está
    nublado/lloviendo y no hay sol directo que cortar, o hace frío y de
@@ -542,11 +347,11 @@ automation:
         entity_id: sensor.estacion_lluvia_mm_h  # placeholder, nombre real a confirmar
         below: 0.1
     action:
-      - service: input_number.set_value
+      - service: cover.set_cover_position
         target:
-          entity_id: input_number.salon_objetivo
+          entity_id: cover.salon
         data:
-          value: "{{ trigger.to_state.state | float(0) }}"
+          position: "{{ trigger.to_state.state | float(0) }}"
 
   - alias: Persianas - cierre de seguridad por viento fuerte
     trigger:
