@@ -176,6 +176,30 @@ Assistant cambie de identidad — y mirando el pin en el propio Arduino
 sabes directamente qué entidad es en HA, sin tener que contar
 posiciones en una lista.
 
+### Calibración de persianas (`TIEMPOS_PERSIANAS`)
+
+Los motores de persiana no tienen encoder, así que `mega_dispositivos`
+estima la posición (0-100%) por tiempo de relé activo. Cada persiana
+necesita su propio tiempo de recorrido completo (subida y bajada, pueden
+ser distintos) en `TIEMPOS_PERSIANAS` (`mega_dispositivos/board_config_a.h`
+/ `board_config_b.h`), en el **mismo orden e índice** que
+`PINES_PERSIANAS` — la primera pareja de `TIEMPOS_PERSIANAS` corresponde
+a la primera pareja de pines de `PINES_PERSIANAS`, y así sucesivamente.
+
+Por defecto ambos valores están puestos a 20000 ms (20s) como placeholder
+en las 8 persianas — hay que sustituirlos por el tiempo real de cada una:
+
+1. Sube o baja la persiana hasta un extremo real conocido.
+2. Cronometra cuánto tarda en llegar al otro extremo (mejor pasarse un
+   poco de margen que quedarse corto — quedarse corto hace que se pare
+   antes de llegar de verdad al tope).
+3. Pon ese tiempo en milisegundos en `subida_ms`/`bajada_ms` de esa
+   persiana en `TIEMPOS_PERSIANAS`.
+
+Sin esta calibración, la posición reportada a HA no coincide con la
+posición real de la persiana, aunque el control abrir/cerrar/parar sigue
+funcionando igual.
+
 Ver [todo.md](todo.md) para la lista completa de tareas pendientes.
 
 ## Seguridad / notas de hardware
@@ -184,6 +208,12 @@ Ver [todo.md](todo.md) para la lista completa de tareas pendientes.
   actual = `RETARDO_INVERSION_MS` (200ms) en software entre apagar un
   sentido y encender el otro. Si el módulo de relés ya tiene interlock por
   hardware, este retardo se puede reducir.
+- Relés de persiana: si una persiana lleva más de
+  `TIEMPO_MAX_MOVIMIENTO_MS` (20s por defecto, variable global en
+  `mega_dispositivos.ino`) en movimiento sin llegar a un extremo
+  calibrado ni recibir STOP, se para sola — protege el motor si HA no
+  llega a enviar la orden de parar (fallo de red, etc.). Ajusta este
+  valor si tus persianas tardan más de 20s en un recorrido completo.
 - Comprobar si los módulos de relé son activos en HIGH o en LOW antes de
   tocar la lógica de `digitalWrite` (los sketches actuales asumen activo en
   HIGH).
