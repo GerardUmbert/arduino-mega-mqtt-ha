@@ -235,7 +235,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.6.0");
+    device.setSoftwareVersion("1.6.1");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -329,10 +329,15 @@ void loop() {
 
         int16_t posicion = posicionEnCurso(i);
 
-        // Llegó sola a un extremo real (recorrido completo calibrado):
-        // parar y resincronizar a 0/100 exactos, con el estado final
-        // correcto (abierta/cerrada, no "stopped").
-        if (posicion <= 0 || posicion >= 100) {
+        // Llegó sola al extremo hacia el que se estaba moviendo (recorrido
+        // completo calibrado): parar y resincronizar a 0/100 exactos, con
+        // el estado final correcto (abierta/cerrada, no "stopped").
+        // OJO: comprobar solo el extremo de la dirección actual — si no,
+        // p. ej. un CLOSE que arranca desde posicionActual=100 lee 100 en
+        // la primera vuelta de loop() (aún no ha avanzado) y se confunde
+        // con "ya llegó a abierta del todo".
+        bool llegoAlExtremo = subiendo[i] ? (posicion >= 100) : (posicion <= 0);
+        if (llegoAlExtremo) {
             posicionActual[i] = posicion <= 0 ? 0 : 100;
             digitalWrite(PINES_PERSIANAS[i].subir, LOW);
             digitalWrite(PINES_PERSIANAS[i].bajar, LOW);

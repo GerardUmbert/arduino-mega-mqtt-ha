@@ -5,6 +5,21 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.6.1] - 2026-09-02
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.6.1).
+
+### Fixed
+- El auto-stop al llegar a un extremo (añadido en 1.6.0) comprobaba
+  `posicion <= 0 || posicion >= 100` sin mirar hacia qué lado se estaba
+  moviendo la persiana. Como `posicionActual` arranca en 100 (asumida
+  abierta), un CLOSE recién empezado leía posición 100 en la primera
+  vuelta de `loop()` (aún no había transcurrido tiempo suficiente para
+  que bajara) y se paraba en seco confundiéndolo con "ya llegó abierta
+  del todo" — CLOSE y el falso OPEN aparecían casi instantáneos en el
+  log. Ahora solo comprueba el extremo de la dirección en curso (100 si
+  está subiendo, 0 si está bajando).
+
 ## [1.6.0] - 2026-09-02
 
 Solo afecta a `mega_dispositivos` (versión de firmware 1.6.0). `mega_pulsadores`
