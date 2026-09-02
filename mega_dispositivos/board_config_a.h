@@ -28,6 +28,17 @@ byte mac[] = {0x02, 0x00, 0x00, 0x02, 0x00, 0x00};
 const IPAddress IP_ESTATICA(192, 168, 1, 60);
 
 // ===========================================================
+// GATEWAY y MÁSCARA DE SUBRED.
+// Imprescindibles: Ethernet.begin(mac, ip) sin más argumentos NO fija
+// el gateway real de tu router (asume uno por defecto que puede no
+// coincidir con el tuyo), y sin gateway correcto la placa nunca sale
+// de tu red aunque la IP parezca asignada correctamente.
+// Pon aquí la IP de tu router/gateway real.
+// ===========================================================
+const IPAddress IP_GATEWAY(192, 168, 150, 254);
+const IPAddress IP_SUBNET(255, 255, 255, 0);
+
+// ===========================================================
 // LUCES
 // Un pin por luz (activa el relé correspondiente).
 //

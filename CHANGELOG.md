@@ -5,6 +5,28 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.5.0] - 2026-09-02
+
+### Fixed
+- `Ethernet.begin(mac, IP_ESTATICA)` en ambos `.ino` solo fijaba la IP:
+  la librería Ethernet asumía un gateway por defecto que no coincidía
+  con el router real, así que la placa se quedaba con IP fija pero sin
+  ruta de salida — nunca llegaba a conectar con el broker MQTT aunque
+  el log por Serial no mostrara ningún error explícito, y el dispositivo
+  no aparecía ni en el listado de clientes del router ni en los logs de
+  Mosquitto. Ahora cada `board_config_*.h` define `IP_GATEWAY` e
+  `IP_SUBNET` junto a `IP_ESTATICA`, y ambos `.ino` llaman a
+  `Ethernet.begin(mac, ip, dns, gateway, subnet)` pasando el gateway
+  real explícitamente.
+
+### Added
+- Diagnóstico adicional por Serial tras `Ethernet.begin()` en ambos
+  `.ino`: distingue entre shield Ethernet no detectado
+  (`Ethernet.hardwareStatus()`) y cable sin enlace
+  (`Ethernet.linkStatus()`), para poder diferenciar un fallo de
+  hardware/cableado de un fallo de gateway/red sin necesidad de acceso
+  físico a la placa.
+
 ## [1.4.0] - 2026-08-02
 
 ### Changed

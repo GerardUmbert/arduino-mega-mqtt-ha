@@ -121,7 +121,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.4.0");
+    device.setSoftwareVersion("1.5.0");
 
     // --- creamos cada pulsador y sus 7 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -192,7 +192,16 @@ void setup() {
     }
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
-    Ethernet.begin(mac, IP_ESTATICA);
+    Ethernet.begin(mac, IP_ESTATICA, IP_GATEWAY, IP_GATEWAY, IP_SUBNET);
+
+    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+        Serial.println(F("[boot] ERROR: no se detecta el shield Ethernet"));
+    } else if (Ethernet.linkStatus() == LinkOFF) {
+        Serial.println(F("[boot] ERROR: sin enlace de red (revisa el cable)"));
+    } else {
+        Serial.println(F("[boot] Ethernet enlazado correctamente"));
+    }
+
     Serial.print(F("[boot] IP asignada: "));
     Serial.println(Ethernet.localIP());
 
