@@ -9,30 +9,38 @@ de cada dispositivo.
 
 Solo afecta a `mega_pulsadores` (versión de firmware 1.7.0).
 
-### Changed
-- ⚠️ **Cambio de comportamiento**: los triggers de pulsación cuádruple
-  y quíntuple ahora están DESACTIVADOS por defecto
-  (`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` comentados al principio
-  del `.ino`). Motivo: probado en placa real que 12 pulsadores con los
-  7 triggers completos arrancan bien pero 16 ya entra en bucle de
-  reinicio por falta de RAM (ver "RAM / límite de pulsadores" en
-  `todo.md`); quitar estos dos triggers por defecto deja más margen de pulsadores
-  por unidad para el caso común, ya que no hay uso confirmado todavía
-  de pulsación 4/5 salvo en `persiana_pulsador_completo.yaml`.
-  **Si tienes alguna instancia de `persiana_pulsador_completo.yaml`
-  usando pulsación 4 (ajuste fino ±5%) o 5 (todas las persianas de la
-  casa), descomenta `HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` antes
-  de flashear esta versión — si no, esas automatizaciones dejan de
-  dispararse sin error visible (el trigger deja de existir, sin más).**
-
 ### Added
-- Los triggers de pulsación cuádruple y quíntuple ahora se pueden
-  activar/desactivar por unidad completa (afecta a todos los
-  pulsadores de esa unidad, no a uno solo) comentando/descomentando
-  `HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` al principio del `.ino`.
-  Desactivar cualquiera de las dos ahorra RAM (deja de crear ese
-  `HADeviceTrigger` en cada pulsador), pensado para poder cablear más
-  pulsadores por unidad de los que caben con los 7 triggers completos.
+- Cada uno de los 7 triggers de pulsador (corta, doble, triple,
+  cuádruple, quíntuple, larga, fin de larga) ahora se puede activar o
+  desactivar por separado, por unidad completa (afecta a todos los
+  pulsadores de esa unidad, no a uno solo), comentando/descomentando
+  `HABILITAR_CORTA`/`HABILITAR_DOBLE`/`HABILITAR_TRIPLE`/
+  `HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE`/`HABILITAR_LARGA`/
+  `HABILITAR_LARGA_FIN` al principio del `.ino`. Desactivar cualquiera
+  ahorra RAM (deja de crear ese `HADeviceTrigger`, y de asignar el
+  array correspondiente, en cada pulsador), pensado para poder cablear
+  más pulsadores por unidad de los que caben con los 7 triggers
+  completos.
+
+### Changed
+- ⚠️ **Cambio de comportamiento**: los triggers de pulsación triple,
+  cuádruple y quíntuple ahora están DESACTIVADOS por defecto
+  (`HABILITAR_TRIPLE`/`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE`
+  comentados). Corta, doble, larga y fin de larga siguen activos por
+  defecto (sin cambio de comportamiento en esos cuatro). Motivo:
+  probado en placa real que 12 pulsadores con los 7 triggers completos
+  arrancan bien pero 16 ya entra en bucle de reinicio por falta de RAM
+  (ver "RAM / límite de pulsadores" en `todo.md`); quitar estos tres
+  triggers por defecto deja más margen de pulsadores por unidad para
+  el caso común.
+  **Si tienes alguna instancia de blueprint que dependa de triple,
+  cuádruple o quíntuple, descomenta el `HABILITAR_*` correspondiente
+  antes de flashear esta versión — si no, esa automatización deja de
+  dispararse sin error visible (el trigger deja de existir, sin más):**
+  - `persiana_pulsador_completo.yaml` usa las 5 pulsaciones + larga →
+    necesita `HABILITAR_TRIPLE`/`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE`.
+  - `luz_pulsador.yaml` usa corta/triple/larga (el triple es el
+    apagado automático a los N minutos) → necesita `HABILITAR_TRIPLE`.
 
 ## [1.6.3] - 2026-09-04 (mega_pulsadores)
 

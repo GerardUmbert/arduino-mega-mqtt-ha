@@ -1,11 +1,13 @@
 // ===========================================================
 // MEGA_PULSADORES
 // Lee pulsadores físicos y envía eventos MQTT (device triggers)
-// a Home Assistant: pulsación corta, doble, triple, larga y fin de
-// larga (al soltar) siempre; cuádruple y quíntuple son opcionales
-// (ver HABILITAR_CUADRUPLE/HABILITAR_QUINTUPLE más abajo — desactivarlas
-// ahorra RAM, útil si necesitas más pulsadores de los que caben con los
-// 7 triggers completos).
+// a Home Assistant: pulsación corta, doble, triple, cuádruple,
+// quíntuple, larga y fin de larga (al soltar). Cada uno de los 7 se
+// activa/desactiva por separado (ver HABILITAR_CORTA/HABILITAR_DOBLE/
+// etc. más abajo — desactivar alguno ahorra RAM, útil si necesitas más
+// pulsadores de los que caben con los 7 triggers completos). Por
+// defecto: corta, doble, larga y fin de larga activos; triple,
+// cuádruple y quíntuple desactivados.
 // No controla ningún relé. Solo ENVÍA información.
 //
 // Mismo firmware para las 2 unidades físicas (A y B): la identidad
@@ -55,20 +57,34 @@
 
 // ===========================================================
 // EVENTOS ACTIVOS POR PULSADOR
-// Desactivadas por defecto (ahorran RAM — cada HADeviceTrigger que no
-// se crea es memoria y una entidad MQTT menos, útil si necesitas más
-// pulsadores de los que caben con los 7 triggers completos, ver "RAM /
-// límite de pulsadores" más abajo y en todo.md). Descomenta cualquiera
-// de estas dos líneas para crear ese trigger en TODOS los pulsadores
-// de esta unidad — ⚠️ si activas alguna, revisa que ningún blueprint
-// instanciado dependa de "button_quadruple_press"/"button_quintuple_press"
-// antes de dejarla desactivada de nuevo (p. ej.
-// persiana_pulsador_completo.yaml, pulsaciones 4/5).
-// corta/doble/triple/larga/largaFin siempre están activos — no hay
-// caso de uso todavía para desactivarlos.
+// Cada uno de los 7 triggers se activa/desactiva por separado, para
+// TODOS los pulsadores de esta unidad. Comenta/descomenta según
+// necesites — desactivar uno ahorra RAM (cada HADeviceTrigger que no
+// se crea es memoria y una entidad MQTT menos), útil si necesitas más
+// pulsadores de los que caben con los 7 triggers completos (ver "RAM /
+// límite de pulsadores" más abajo y en todo.md).
+// ⚠️ Antes de cambiar cualquiera de estas líneas, revisa qué
+// blueprints tienes instanciados en HA para los pulsadores de esta
+// unidad — un blueprint que espera un trigger que ya no existe
+// simplemente deja de dispararse, sin error visible:
+//   - persiana_pulsador_completo.yaml usa corta/doble/triple/cuádruple/
+//     quíntuple/larga/largaFin (las 5 pulsaciones + larga).
+//   - luz_pulsador.yaml usa corta/triple/larga — con el TRIPLE
+//     desactivado por defecto, su función de apagado-automático-a-los-
+//     N-minutos deja de dispararse.
+//   - persiana_pulsador.yaml usa solo larga/largaFin.
+// Por defecto: corta, doble, larga y fin de larga activos (caso de uso
+// confirmado); triple, cuádruple y quíntuple desactivados (sin caso de
+// uso confirmado salvo los blueprints de arriba — actívalos si los
+// usas).
 // ===========================================================
+#define HABILITAR_CORTA
+#define HABILITAR_DOBLE
+// #define HABILITAR_TRIPLE
 // #define HABILITAR_CUADRUPLE
 // #define HABILITAR_QUINTUPLE
+#define HABILITAR_LARGA
+#define HABILITAR_LARGA_FIN
 
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
@@ -91,15 +107,45 @@ HADevice device(mac, sizeof(mac));
 // todo.md.
 const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 
-// Triggers por pulsador: corta, doble, triple, larga y fin de larga
-// siempre (5) + cuádruple/quíntuple si están habilitados arriba.
-#if defined(HABILITAR_CUADRUPLE) && defined(HABILITAR_QUINTUPLE)
-    #define NUM_TRIGGERS_POR_PULSADOR 7
-#elif defined(HABILITAR_CUADRUPLE) || defined(HABILITAR_QUINTUPLE)
-    #define NUM_TRIGGERS_POR_PULSADOR 6
+// Cuenta cuántos de los 7 triggers están activos (para dimensionar
+// HAMqtt más abajo). defined() no se puede usar dentro del cuerpo de
+// un #define normal, así que se acumula paso a paso dentro de #if.
+#if defined(HABILITAR_CORTA)
+    #define _TRIGGERS_ACTIVOS_1 1
 #else
-    #define NUM_TRIGGERS_POR_PULSADOR 5
+    #define _TRIGGERS_ACTIVOS_1 0
 #endif
+#if defined(HABILITAR_DOBLE)
+    #define _TRIGGERS_ACTIVOS_2 (_TRIGGERS_ACTIVOS_1 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_2 _TRIGGERS_ACTIVOS_1
+#endif
+#if defined(HABILITAR_TRIPLE)
+    #define _TRIGGERS_ACTIVOS_3 (_TRIGGERS_ACTIVOS_2 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_3 _TRIGGERS_ACTIVOS_2
+#endif
+#if defined(HABILITAR_CUADRUPLE)
+    #define _TRIGGERS_ACTIVOS_4 (_TRIGGERS_ACTIVOS_3 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_4 _TRIGGERS_ACTIVOS_3
+#endif
+#if defined(HABILITAR_QUINTUPLE)
+    #define _TRIGGERS_ACTIVOS_5 (_TRIGGERS_ACTIVOS_4 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_5 _TRIGGERS_ACTIVOS_4
+#endif
+#if defined(HABILITAR_LARGA)
+    #define _TRIGGERS_ACTIVOS_6 (_TRIGGERS_ACTIVOS_5 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_6 _TRIGGERS_ACTIVOS_5
+#endif
+#if defined(HABILITAR_LARGA_FIN)
+    #define _TRIGGERS_ACTIVOS_7 (_TRIGGERS_ACTIVOS_6 + 1)
+#else
+    #define _TRIGGERS_ACTIVOS_7 _TRIGGERS_ACTIVOS_6
+#endif
+#define NUM_TRIGGERS_POR_PULSADOR _TRIGGERS_ACTIVOS_7
 
 // + margen
 HAMqtt mqtt(client, device, NUM_PULSADORES * NUM_TRIGGERS_POR_PULSADOR + 2);
@@ -109,20 +155,30 @@ OneButton* botones[NUM_PULSADORES];
 // Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
 // (progresión 1-2-3-4-5 pulsaciones), y larga/fin de larga aparte, al
 // final, como caso especial.
+#ifdef HABILITAR_CORTA
 HADeviceTrigger* corta[NUM_PULSADORES];
+#endif
+#ifdef HABILITAR_DOBLE
 HADeviceTrigger* doble[NUM_PULSADORES];
+#endif
+#ifdef HABILITAR_TRIPLE
 HADeviceTrigger* triple[NUM_PULSADORES];
+#endif
 #ifdef HABILITAR_CUADRUPLE
 HADeviceTrigger* cuadruple[NUM_PULSADORES];
 #endif
 #ifdef HABILITAR_QUINTUPLE
 HADeviceTrigger* quintuple[NUM_PULSADORES];
 #endif
+#ifdef HABILITAR_LARGA
 HADeviceTrigger* larga[NUM_PULSADORES];
+#endif
 // Se dispara al SOLTAR una pulsación larga. Imprescindible para
 // automatizaciones "mantener pulsado para mover / soltar para parar"
 // (p. ej. persianas): "larga" = empezar a subir, "larga_fin" = parar.
+#ifdef HABILITAR_LARGA_FIN
 HADeviceTrigger* largaFin[NUM_PULSADORES];
+#endif
 
 // Buffers de texto para los IDs. Deben ser globales (viven todo el
 // programa) porque HADeviceTrigger se queda con el puntero al texto,
@@ -145,11 +201,20 @@ void onMqttDisconnected() {
     Serial.println(F("[mqtt] desconectado del broker"));
 }
 
-// OneButton::attachXxx() solo acepta funciones sin captura (function
-// pointer puro) o su variante parameterizedCallbackFunction(void*) — una
-// lambda con captura como [idx](){...} no convierte a ninguna de las dos
-// firmas. Usamos la variante con parámetro, pasando el índice del
-// pulsador como void* (reinterpret_cast<void*>(idx) / de vuelta a int).
+// ⚠️ TEMPORAL — DEBUG DE RAM (quitar cuando ya no haga falta medir).
+// Técnica estándar en AVR: la RAM libre es la distancia entre el final
+// del heap (__brkval, o el final de .bss si el heap aún no se ha
+// tocado) y la dirección actual del stack pointer. Se llama una vez al
+// final de setup(), cuando ya está todo creado (pulsadores, triggers,
+// Ethernet, MQTT) — el punto de mínima RAM libre del programa.
+extern char* __brkval;
+extern char __bss_end;
+int freeMemory() {
+    char top;
+    return &top - (__brkval ? __brkval : &__bss_end);
+}
+
+#ifdef HABILITAR_CORTA
 void onClick(void* param) {
     int idx = reinterpret_cast<int>(param);
     corta[idx]->trigger();
@@ -157,7 +222,9 @@ void onClick(void* param) {
     Serial.print(idBoton[idx]);
     Serial.println(F(" -> corta"));
 }
+#endif
 
+#ifdef HABILITAR_DOBLE
 void onDoubleClick(void* param) {
     int idx = reinterpret_cast<int>(param);
     doble[idx]->trigger();
@@ -165,15 +232,21 @@ void onDoubleClick(void* param) {
     Serial.print(idBoton[idx]);
     Serial.println(F(" -> doble"));
 }
+#endif
 
 // OneButton no tiene "attachTripleClick"/"attachQuadrupleClick"/
 // "attachQuintupleClick" propios: se usa attachMultiClick (una sola vez)
-// y se filtra el número exacto de clics detectados.
+// y se filtra el número exacto de clics detectados. Solo hace falta
+// este callback (y el attachMultiClick de setup()) si triple, cuádruple
+// o quíntuple están activos.
+#if defined(HABILITAR_TRIPLE) || defined(HABILITAR_CUADRUPLE) || defined(HABILITAR_QUINTUPLE)
 void onMultiClick(void* param) {
     int idx = reinterpret_cast<int>(param);
     int clics = botones[idx]->getNumberClicks();
     switch (clics) {
+#ifdef HABILITAR_TRIPLE
         case 3: triple[idx]->trigger();    break;
+#endif
 #ifdef HABILITAR_CUADRUPLE
         case 4: cuadruple[idx]->trigger(); break;
 #endif
@@ -186,7 +259,9 @@ void onMultiClick(void* param) {
     Serial.print(F(" -> multiclick x"));
     Serial.println(clics);
 }
+#endif
 
+#ifdef HABILITAR_LARGA
 void onLongPressStart(void* param) {
     int idx = reinterpret_cast<int>(param);
     larga[idx]->trigger();
@@ -194,7 +269,9 @@ void onLongPressStart(void* param) {
     Serial.print(idBoton[idx]);
     Serial.println(F(" -> larga (inicio)"));
 }
+#endif
 
+#ifdef HABILITAR_LARGA_FIN
 void onLongPressStop(void* param) {
     int idx = reinterpret_cast<int>(param);
     largaFin[idx]->trigger();
@@ -202,6 +279,7 @@ void onLongPressStop(void* param) {
     Serial.print(idBoton[idx]);
     Serial.println(F(" -> larga (fin)"));
 }
+#endif
 
 void setup() {
     Serial.begin(9600);
@@ -219,23 +297,33 @@ void setup() {
     device.setName(NOMBRE_PLACA);
     device.setSoftwareVersion("1.7.0");
 
-    // --- creamos cada pulsador y sus triggers (NUM_TRIGGERS_POR_PULSADOR) ---
+    // --- creamos cada pulsador y sus triggers activos (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "boton_%d", PINES_BOTONES[i]);
 
         botones[i] = new OneButton(PINES_BOTONES[i], true); // true = INPUT_PULLUP, activo en LOW
 
+#ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
+#endif
+#ifdef HABILITAR_DOBLE
         doble[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType,    idBoton[i]);
+#endif
+#ifdef HABILITAR_TRIPLE
         triple[i]    = new HADeviceTrigger(HADeviceTrigger::ButtonTriplePressType,    idBoton[i]);
+#endif
 #ifdef HABILITAR_CUADRUPLE
         cuadruple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuadruplePressType, idBoton[i]);
 #endif
 #ifdef HABILITAR_QUINTUPLE
         quintuple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuintuplePressType, idBoton[i]);
 #endif
+#ifdef HABILITAR_LARGA
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
+#endif
+#ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
+#endif
 
         // void* que se le pasa de vuelta a cada callback (ver onClick() etc.
         // más arriba) para que sepa de qué pulsador se trata — no podemos
@@ -243,11 +331,21 @@ void setup() {
         // function pointer puro o su variante con parámetro void*.
         void* idxParam = reinterpret_cast<void*>(i);
 
+#ifdef HABILITAR_CORTA
         botones[i]->attachClick(onClick, idxParam);
+#endif
+#ifdef HABILITAR_DOBLE
         botones[i]->attachDoubleClick(onDoubleClick, idxParam);
+#endif
+#if defined(HABILITAR_TRIPLE) || defined(HABILITAR_CUADRUPLE) || defined(HABILITAR_QUINTUPLE)
         botones[i]->attachMultiClick(onMultiClick, idxParam);
+#endif
+#ifdef HABILITAR_LARGA
         botones[i]->attachLongPressStart(onLongPressStart, idxParam);
+#endif
+#ifdef HABILITAR_LARGA_FIN
         botones[i]->attachLongPressStop(onLongPressStop, idxParam);
+#endif
 
         // Ajustes opcionales de temporización (descomenta y ajusta si
         // los pulsadores van demasiado rápido/lentos para tu gusto):
@@ -290,6 +388,14 @@ void setup() {
 
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
+
+    // ⚠️ TEMPORAL — DEBUG DE RAM: quitar junto con freeMemory() de más
+    // arriba cuando ya no haga falta medir. Se imprime al final de
+    // setup() a propósito: es el punto de mínima RAM libre del
+    // programa (todo ya creado — pulsadores, triggers, Ethernet, MQTT).
+    Serial.print(F("[debug] RAM libre: "));
+    Serial.print(freeMemory());
+    Serial.println(F(" bytes"));
 }
 
 void loop() {
