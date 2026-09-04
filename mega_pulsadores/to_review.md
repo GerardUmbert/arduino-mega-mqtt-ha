@@ -60,22 +60,32 @@ click, sin ningún mecanismo para contar 3+ pulsaciones seguidas.**
 Confirmado leyendo el código fuente (`AceButton.h`/`ButtonConfig.h`),
 no es una limitación de configuración.
 
-Eso rompería (si algún día se activan esos triggers, cosa que hoy con
+Eso afecta de forma distinta a cada blueprint (si algún día se activan
+esos triggers, cosa que hoy con
 `HABILITAR_TRIPLE`/`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE`
 comentados no pasa):
 
-- **`persiana_pulsador_completo.yaml`**: usa las 5 pulsaciones
-  (1/2/3/4/5) — sin triple/cuádruple/quíntuple, pierde el ajuste
-  fino ±5%, el "todas las persianas de la Area", y el "todas las
-  persianas de la casa".
-- **`luz_pulsador.yaml`**: usa el triple clic para el apagado
-  automático a los N minutos — sin triple, esa función deja de
-  existir.
+- **`persiana_pulsador_completo.yaml`** — **sin solución posible con
+  AceButton.** Usa corta+doble+triple+cuádruple+quíntuple SIMULTÁNEAMENTE
+  como 5 niveles distintos sobre el mismo botón (1/2/3/4/5
+  pulsaciones). AceButton solo da 2 slots de clic (single/double) — no
+  hay hueco donde remapear los otros 3, perdería el ajuste fino ±5%,
+  el "todas las persianas de la Area" y el "todas las persianas de la
+  casa" sin remedio.
+- **`luz_pulsador.yaml`** — **sí se podría salvar remapeando.** Solo
+  usa corta + triple + larga (ni doble, ni cuádruple, ni quíntuple, ni
+  largaFin — comprobado en el propio blueprint). El triple clic
+  (apagado automático a los N minutos) podría remapearse a doble clic
+  antes de dejar OneButton, ya que AceButton sí soporta
+  `kEventDoubleClicked` y ese blueprint no usa el doble para nada más.
+  Cambio de un renglón en el blueprint (`type: button_triple_press` →
+  `button_double_press`), no una pérdida de función.
 
-Cambiar a AceButton sería una decisión **permanente en la práctica**:
-para volver a tener 3/4/5 clics habría que deshacer el cambio y volver
-a OneButton (no es un simple `#define` como con `HABILITAR_TRIPLE`
-ahora mismo).
+Aun así, cambiar a AceButton seguiría siendo una decisión
+**prácticamente permanente para `persiana_pulsador_completo.yaml`**:
+para volver a tener 3/4/5 clics ahí habría que deshacer el cambio y
+volver a OneButton (no es un simple `#define` como con
+`HABILITAR_TRIPLE` ahora mismo).
 
 ### Cuándo reconsiderar esto
 
