@@ -1374,7 +1374,7 @@ hace con <code>button-&gt;getId()</code>, en vez del <code>void* param</code> qu
 </thead>
 <tbody>
 <tr>
-<td>RAM por instancia (AVR)</td>
+<td>RAM por instancia (solo la clase, AVR)</td>
 <td>~90-100 bytes, <strong>fijo</strong> — reserva sitio para las 8 callbacks posibles aunque no las uses</td>
 <td>~18-26 bytes</td>
 </tr>
@@ -1383,8 +1383,51 @@ hace con <code>button-&gt;getId()</code>, en vez del <code>void* param</code> qu
 <td>Todas las variables miembro (8 punteros a función + parámetros) son incondicionales en la clase</td>
 <td>Clase base más pequeña</td>
 </tr>
+<tr>
+<td><strong>Límite práctico probado en placa</strong> (firmware 1.8.0, con botón virtual)</td>
+<td>12 estable, 16 falla</td>
+<td><strong>24 estable</strong> (623 bytes libres), 25 arranca pero MQTT inestable</td>
+</tr>
+<tr>
+<td><strong>Coste real medido por pulsador</strong></td>
+<td>No desglosado con la misma precisión todavía</td>
+<td><strong>~263 bytes</strong></td>
+</tr>
 </tbody>
 </table>
+<div class="admonition success">
+<p class="admonition-title">Confirmado en placa real (2026-09-05)</p>
+<table>
+<thead>
+<tr>
+<th>Pulsadores</th>
+<th>RAM libre</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>7033 bytes</td>
+</tr>
+<tr>
+<td>1</td>
+<td>6693 bytes</td>
+</tr>
+<tr>
+<td>16</td>
+<td>2727 bytes</td>
+</tr>
+<tr>
+<td>24</td>
+<td>623 bytes (estable)</td>
+</tr>
+<tr>
+<td>25</td>
+<td>361 bytes (MQTT inestable)</td>
+</tr>
+</tbody>
+</table>
+</div>
 <p>Ver <a href="../../reference/ram/">RAM y rendimiento</a> para el desglose completo
 y cómo medir tu propia configuración en placa real.</p>
 <h2 id="compatibilidad-con-blueprints">Compatibilidad con blueprints<a class="headerlink" href="#compatibilidad-con-blueprints" title="Permanent link">&para;</a></h2>
