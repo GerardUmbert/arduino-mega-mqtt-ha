@@ -1,0 +1,21 @@
+// ===========================================================
+// CONFIG.H.EXAMPLE — plantilla de configuración de red
+//
+// Copia este fichero como "config.h" en esta misma carpeta y
+// rellena tus valores reales. "config.h" está en .gitignore,
+// así que nunca se sube al repositorio.
+// ===========================================================
+
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// IP de tu Home Assistant / servidor Mosquitto.
+// No se autodetecta: reserva esta IP en tu router (DHCP estático)
+// para que nunca cambie, y ponla aquí.
+#define BROKER_ADDR IPAddress(192, 168, 1, 50)
+
+// Usuario/contraseña del broker MQTT (los que configuraste en Mosquitto)
+#define MQTT_USER "usuario_mqtt"
+#define MQTT_PASS "password_mqtt"
+
+#endif
