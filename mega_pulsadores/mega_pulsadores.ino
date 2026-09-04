@@ -107,6 +107,60 @@ void onMqttDisconnected() {
     Serial.println(F("[mqtt] desconectado del broker"));
 }
 
+// OneButton::attachXxx() solo acepta funciones sin captura (function
+// pointer puro) o su variante parameterizedCallbackFunction(void*) — una
+// lambda con captura como [idx](){...} no convierte a ninguna de las dos
+// firmas. Usamos la variante con parámetro, pasando el índice del
+// pulsador como void* (reinterpret_cast<void*>(idx) / de vuelta a int).
+void onClick(void* param) {
+    int idx = reinterpret_cast<int>(param);
+    corta[idx]->trigger();
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.println(F(" -> corta"));
+}
+
+void onDoubleClick(void* param) {
+    int idx = reinterpret_cast<int>(param);
+    doble[idx]->trigger();
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.println(F(" -> doble"));
+}
+
+// OneButton no tiene "attachTripleClick"/"attachQuadrupleClick"/
+// "attachQuintupleClick" propios: se usa attachMultiClick (una sola vez)
+// y se filtra el número exacto de clics detectados.
+void onMultiClick(void* param) {
+    int idx = reinterpret_cast<int>(param);
+    int clics = botones[idx]->getNumberClicks();
+    switch (clics) {
+        case 3: triple[idx]->trigger();    break;
+        case 4: cuadruple[idx]->trigger(); break;
+        case 5: quintuple[idx]->trigger(); break;
+    }
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.print(F(" -> multiclick x"));
+    Serial.println(clics);
+}
+
+void onLongPressStart(void* param) {
+    int idx = reinterpret_cast<int>(param);
+    larga[idx]->trigger();
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.println(F(" -> larga (inicio)"));
+}
+
+void onLongPressStop(void* param) {
+    int idx = reinterpret_cast<int>(param);
+    largaFin[idx]->trigger();
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.println(F(" -> larga (fin)"));
+}
+
 void setup() {
     Serial.begin(9600);
     Serial.println();
@@ -121,7 +175,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.5.1");
+    device.setSoftwareVersion("1.6.3");
 
     // --- creamos cada pulsador y sus 7 triggers ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -137,52 +191,17 @@ void setup() {
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
 
-        int idx = i; // captura por VALOR: evita que todas las lambdas
-                     // acaben apuntando al último valor de "i" del bucle
+        // void* que se le pasa de vuelta a cada callback (ver onClick() etc.
+        // más arriba) para que sepa de qué pulsador se trata — no podemos
+        // capturar "i"/"idx" en una lambda porque OneButton exige un
+        // function pointer puro o su variante con parámetro void*.
+        void* idxParam = reinterpret_cast<void*>(i);
 
-        botones[i]->attachClick([idx](){
-            corta[idx]->trigger();
-            Serial.print(F("[boton] "));
-            Serial.print(idBoton[idx]);
-            Serial.println(F(" -> corta"));
-        });
-
-        botones[i]->attachDoubleClick([idx](){
-            doble[idx]->trigger();
-            Serial.print(F("[boton] "));
-            Serial.print(idBoton[idx]);
-            Serial.println(F(" -> doble"));
-        });
-
-        // OneButton no tiene "attachTripleClick"/"attachQuadrupleClick"/
-        // "attachQuintupleClick" propios: se usa attachMultiClick (una
-        // sola vez) y se filtra el número exacto de clics detectados.
-        botones[i]->attachMultiClick([idx](){
-            int clics = botones[idx]->getNumberClicks();
-            switch (clics) {
-                case 3: triple[idx]->trigger();    break;
-                case 4: cuadruple[idx]->trigger(); break;
-                case 5: quintuple[idx]->trigger(); break;
-            }
-            Serial.print(F("[boton] "));
-            Serial.print(idBoton[idx]);
-            Serial.print(F(" -> multiclick x"));
-            Serial.println(clics);
-        });
-
-        botones[i]->attachLongPressStart([idx](){
-            larga[idx]->trigger();
-            Serial.print(F("[boton] "));
-            Serial.print(idBoton[idx]);
-            Serial.println(F(" -> larga (inicio)"));
-        });
-
-        botones[i]->attachLongPressStop([idx](){
-            largaFin[idx]->trigger();
-            Serial.print(F("[boton] "));
-            Serial.print(idBoton[idx]);
-            Serial.println(F(" -> larga (fin)"));
-        });
+        botones[i]->attachClick(onClick, idxParam);
+        botones[i]->attachDoubleClick(onDoubleClick, idxParam);
+        botones[i]->attachMultiClick(onMultiClick, idxParam);
+        botones[i]->attachLongPressStart(onLongPressStart, idxParam);
+        botones[i]->attachLongPressStop(onLongPressStop, idxParam);
 
         // Ajustes opcionales de temporización (descomenta y ajusta si
         // los pulsadores van demasiado rápido/lentos para tu gusto):

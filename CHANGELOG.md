@@ -5,7 +5,24 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
-## [1.6.3] - 2026-09-04
+## [1.6.3] - 2026-09-04 (mega_pulsadores)
+
+Solo afecta a `mega_pulsadores` (versión de firmware 1.6.3).
+
+### Fixed
+- `setup()` adjuntaba los callbacks de `OneButton` (`attachClick`,
+  `attachDoubleClick`, `attachMultiClick`, `attachLongPressStart`,
+  `attachLongPressStop`) con lambdas que capturaban `idx` por valor
+  (`[idx](){...}`). Esa firma no convierte a `callbackFunction` (function
+  pointer puro sin captura) y algunas instalaciones de la librería
+  `OneButton` no exponen la sobrecarga que sí acepta lambdas con
+  captura, dando "no matching function for call to ...attachClick(...)"
+  al compilar. Cambiado a la sobrecarga `parameterizedCallbackFunction`
+  de `OneButton`: funciones sin captura (`onClick`, `onDoubleClick`,
+  etc.) que reciben el índice del pulsador como `void*` en vez de
+  capturarlo.
+
+## [1.6.3] - 2026-09-04 (mega_dispositivos)
 
 Solo afecta a `mega_dispositivos` (versión de firmware 1.6.3).
 
