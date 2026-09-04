@@ -732,6 +732,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#boton-virtual-simular-pulsaciones-desde-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      Botón virtual: simular pulsaciones desde HA
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuracion-de-pines-y-configh" class="md-nav__link">
     <span class="md-ellipsis">
       Configuración de pines y config.h
@@ -1210,6 +1219,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#boton-virtual-simular-pulsaciones-desde-ha" class="md-nav__link">
+    <span class="md-ellipsis">
+      Botón virtual: simular pulsaciones desde HA
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#configuracion-de-pines-y-configh" class="md-nav__link">
     <span class="md-ellipsis">
       Configuración de pines y config.h
@@ -1401,6 +1419,42 @@ y cómo medir tu propia configuración en placa real.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="boton-virtual-simular-pulsaciones-desde-ha">Botón virtual: simular pulsaciones desde HA<a class="headerlink" href="#boton-virtual-simular-pulsaciones-desde-ha" title="Permanent link">&para;</a></h2>
+<div class="admonition success">
+<p class="admonition-title">Desde la versión 1.8.0</p>
+<p>Igual que en <code>mega_pulsadores</code>: cada pulsador tiene un <code>HAButton</code>
+virtual, entidad real y pulsable en la UI de HA, con <code>unique_id</code>
+<code>"v" + pNN</code> (ej. <code>vp14</code>).</p>
+</div>
+<p>El mecanismo de inyección es distinto al de <code>OneButton</code> porque
+<code>AceButton</code> no tiene un método equivalente a <code>tick(bool)</code>. En su lugar
+se usa el punto de extensión oficial de la librería: una subclase de
+<code>ButtonConfig</code> que sobreescribe <code>readButton(pin)</code> (documentado en el
+propio código fuente de AceButton como "Override to use something
+other than digitalRead()") — mientras hay una simulación activa para
+un pin, esa función devuelve <code>LOW</code> en vez de leer el pin real.
+<code>check()</code> (llamado en <code>loop()</code>) usa esa función sin saber que es
+distinta, así que toda la lógica de debounce/multiclic de <code>AceButton</code>
+sigue intacta.</p>
+<pre class="mermaid"><code>flowchart TD
+    HA["`Pulsas el HAButton
+    virtual en HA`"] --&gt; MQTT1["`MQTT: comando
+    al firmware`"]
+    MQTT1 --&gt; Mark["`Se marca ese pin
+    como 'simulación activa'`"]
+    Mark --&gt; Read["`ButtonConfigConSimulacion
+    ::readButton(pin) → LOW`"]
+    Read --&gt; Check["`check() detecta el
+    'pulsado' simulado`"]
+    Check --&gt; Wait["`~90ms después`"]
+    Wait --&gt; Unmark["`Se quita la marca`"]
+    Unmark --&gt; ReadNormal["`readButton(pin) vuelve
+    a digitalRead() normal`"]
+
+    Physical["`Dedo pulsa el pin
+    físico real`"] --&gt; ReadNormal</code></pre>
+<p>Misma limitación que en <code>mega_pulsadores</code>: el pulso simulado es corto
+y fijo, sirve para corta/doble clic, no para simular pulsación larga.</p>
 <h2 id="configuracion-de-pines-y-configh">Configuración de pines y config.h<a class="headerlink" href="#configuracion-de-pines-y-configh" title="Permanent link">&para;</a></h2>
 <p>Igual que <code>mega_pulsadores</code>, pero con ficheros de configuración
 <strong>independientes</strong> (Arduino exige que los <code>.h</code> vivan en la misma

@@ -1322,6 +1322,16 @@ por el proyecto. <strong>No dabas por buena una cifra de "cuántos
 pulsadores caben" sin haberla probado en placa real</strong> — esta es
 la lección que costó ese error.</p>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Estos números son de la versión 1.7.1, sin el botón virtual</p>
+<p>Desde la versión 1.8.0, cada pulsador añade también un <code>HAButton</code>
+virtual (ver <a href="../../firmware/mega-pulsadores/#boton-virtual-simular-pulsaciones-desde-ha"><code>mega_pulsadores</code></a>),
+una entidad más de coste. El límite "12 sí, 16 no" de arriba fue
+medido ANTES de esa entidad extra — probablemente el límite real
+con 1.8.0 sea algo menor. No des por buena la cifra de 12 sin
+remedir con la versión actual — ver "Cómo medir tu propia
+configuración" más abajo.</p>
+</div>
 <h2 id="por-que-el-limite-es-tan-bajo">Por qué el límite es tan bajo<a class="headerlink" href="#por-que-el-limite-es-tan-bajo" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
     Total["8192 bytes SRAM total"] --&gt; Fixed["`Coste fijo:
@@ -1345,8 +1355,10 @@ la lección que costó ese error.</p>
   — no se ha tocado todavía porque reducirlo demasiado puede truncar
   mensajes de discovery en silencio.</li>
 <li><strong>Coste por pulsador</strong>: cada <code>HADeviceTrigger</code> que creas ocupa
-  memoria en el heap (<code>new HADeviceTrigger(...)</code>), y el objeto
-  <code>OneButton</code>/<code>AceButton</code> en sí tiene un tamaño fijo por instancia.</li>
+  memoria en el heap (<code>new HADeviceTrigger(...)</code>), el objeto
+  <code>OneButton</code>/<code>AceButton</code> en sí tiene un tamaño fijo por instancia, y
+  desde la versión 1.8.0 se suma también un <code>HAButton</code> más por
+  pulsador (el botón virtual).</li>
 </ul>
 <h3 id="onebutton-vs-acebutton-el-hallazgo-clave">OneButton vs. AceButton: el hallazgo clave<a class="headerlink" href="#onebutton-vs-acebutton-el-hallazgo-clave" title="Permanent link">&para;</a></h3>
 <p>Confirmado leyendo el código fuente de ambas librerías:</p>

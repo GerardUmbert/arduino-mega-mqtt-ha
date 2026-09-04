@@ -1237,9 +1237,11 @@
     COV --&gt; RelaySub["Relé subir"]
     COV --&gt; RelayBaj["Relé bajar"]</code></pre>
 <h2 id="entidades-que-crea">Entidades que crea<a class="headerlink" href="#entidades-que-crea" title="Permanent link">&para;</a></h2>
-<p>A diferencia de <code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code> (que solo
-envían triggers sin estado), <code>mega_dispositivos</code> crea <strong>entidades
-reales</strong> en HA:</p>
+<p>A diferencia de los <code>HADeviceTrigger</code> de
+<code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code> (sin estado, solo
+disparadores), <code>mega_dispositivos</code> crea entidades <strong>con estado
+persistente</strong> que refleja el mundo físico (encendido/apagado,
+posición):</p>
 <table>
 <thead>
 <tr>

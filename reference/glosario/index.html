@@ -1126,6 +1126,14 @@
 :   <code>#define</code> en el <code>.ino</code> de pulsadores que activa/desactiva un tipo
     de evento concreto (p. ej. <code>HABILITAR_TRIPLE</code>). Comentar la línea
     lo desactiva; ahorra RAM al no crear ese <code>HADeviceTrigger</code>.</p>
+<p><code>HAButton</code>
+:   Clase de ArduinoHA para crear un botón <strong>con entidad real</strong>, a
+    diferencia de <code>HADeviceTrigger</code> — visible en Ajustes → Entidades y
+    pulsable desde cualquier tarjeta de Lovelace. Usado desde la
+    versión 1.8.0 para el "botón virtual" de cada pulsador: al pulsarlo
+    en HA, simula un clic corto inyectado en la misma lógica de
+    debounce/multiclic que procesa las pulsaciones físicas. Ver
+    <a href="../../firmware/mega-pulsadores/#boton-virtual-simular-pulsaciones-desde-ha"><code>mega_pulsadores</code></a>.</p>
 <p><code>HADeviceTrigger</code>
 :   Clase de ArduinoHA para crear un device trigger. Cada instancia
     representa un tipo de pulsación concreto (<code>ButtonShortPressType</code>,
