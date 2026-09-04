@@ -1122,10 +1122,31 @@ La versión de cada entrada debe coincidir con
 (<code>mega_pulsadores</code>, <code>mega_pulsadores_low_ram</code> o <code>mega_dispositivos</code>) —
 es lo que Home Assistant muestra como versión de firmware de cada
 dispositivo.</p>
-<p>Desde el <strong>2026-09-04</strong>, los tres <code>.ino</code> comparten un único número de
-versión (antes versionaban de forma independiente): cualquier cambio
-en cualquiera de los tres implica subir la misma versión en los tres
-ficheros a la vez, aunque el cambio en concreto solo afecte a uno.</p>
+<p>Cada <code>.ino</code> versiona de forma <strong>independiente</strong> — un cambio en uno no
+implica tocar la versión de los otros dos.</p>
+<h2 id="tags-de-git">Tags de git<a class="headerlink" href="#tags-de-git" title="Permanent link">&para;</a></h2>
+<p>Cada bump de versión de un <code>.ino</code>, y cada cambio relevante en un
+blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</code>:</p>
+<ul>
+<li>Firmware: <code>mega_pulsadores/vX.Y.Z</code>, <code>mega_pulsadores_low_ram/vX.Y.Z</code>,
+  <code>mega_dispositivos/vX.Y.Z</code> — el número debe coincidir con el
+  <code>device.setSoftwareVersion(...)</code> de ese <code>.ino</code> en el commit tageado.</li>
+<li>Blueprints (<code>home_assistant/blueprints/*.yaml</code>, que no llevan número
+  de versión dentro del propio fichero): <code>blueprints/&lt;nombre&gt;/vX.Y.Z</code>
+  (p. ej. <code>blueprints/luz_pulsador/v1.1.0</code>) — empieza en <code>v1.0.0</code> la
+  primera vez que se tageé cada blueprint.</li>
+</ul>
+<p>Además de estos tags por componente, sigue existiendo un tag de
+proyecto entero (<code>vX.Y.0</code>, sin subcarpeta) para checkpoints generales
+del repositorio (el último es <code>v1.5.0</code>) — no sustituye a los tags por
+componente, es un nivel aparte.</p>
+<p>Nota histórica: entre el 2026-09-04 (commit <code>d9fbdb5</code>) y este cambio,
+los tres <code>.ino</code> compartieron brevemente un único número de versión
+(<code>1.7.1</code> los tres). Se volvió al versionado independiente el mismo
+día — ambos <code>mega_dispositivos</code> y <code>mega_pulsadores_low_ram</code> retoman
+<code>1.7.1</code> como punto de partida (no se revierte a su número anterior,
+<code>1.6.3</code>/<code>1.0.0-low-ram</code>, para no generar un salto de versión hacia
+atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 <h2 id="171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos">[1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)<a class="headerlink" href="#171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1134,6 +1155,10 @@ ficheros a la vez, aunque el cambio en concreto solo afecte a uno.</p>
   <code>mega_dispositivos</code> 1.6.3, cada uno con su propio historial). Sin
   cambios de comportamiento en ningún firmware — solo el número que
   reporta cada uno a Home Assistant.</li>
+<li><strong>Revertido el mismo día</strong>: cada <code>.ino</code> vuelve a versionar de forma
+  independiente (ver nota histórica arriba). Los tres quedan en
+  <code>1.7.1</code> como nuevo punto de partida común, pero a partir de ahora
+  cada uno sube su propio número según sus propios cambios.</li>
 </ul>
 <h2 id="100-2026-09-04-mega_pulsadores_low_ram">[1.0.0] - 2026-09-04 (mega_pulsadores_low_ram)<a class="headerlink" href="#100-2026-09-04-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
 <p>Firmware nuevo — primera versión de <code>mega_pulsadores_low_ram</code>.</p>
