@@ -98,10 +98,15 @@ más si varias persianas comparten el mismo par de botones subir/bajar:
 Conecta un pulsador físico con una luz (`switch.*`, on/off simple — las
 luces actuales no tienen control de brillo, ver `luces_notas.md`):
 
-- Pulsación corta: toggle on/off.
-- Pulsación triple: enciende y apaga sola pasados N minutos
-  (configurable, 5 por defecto). Volver a pulsar triple antes de que
-  expire reinicia el temporizador.
+| Pulsación | Efecto |
+|---|---|
+| corta | toggle on/off de esta luz (`light_entity`) |
+| triple | enciende esta luz y programa apagado automático a los N minutos (configurable, 5 por defecto); volver a pulsar triple antes de que expire reinicia el temporizador |
+| larga | toggle de TODAS las luces del Area de este pulsador (no solo `light_entity`): si alguna está encendida las apaga todas, si están todas apagadas las enciende todas; además, solo al apagar, cierra también todas las persianas de esa Area ("buenas noches") — al encender, las persianas no se tocan |
+
+La pulsación larga requiere que el device del pulsador y las luces/persianas
+de esa habitación compartan Area en HA; si el pulsador no tiene Area
+asignada, actúa solo sobre `light_entity` como si fuera pulsación corta.
 
 ### Instanciar el blueprint
 
