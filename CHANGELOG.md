@@ -5,6 +5,35 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.7.0] - 2026-09-04 (mega_pulsadores)
+
+Solo afecta a `mega_pulsadores` (versión de firmware 1.7.0).
+
+### Changed
+- ⚠️ **Cambio de comportamiento**: los triggers de pulsación cuádruple
+  y quíntuple ahora están DESACTIVADOS por defecto
+  (`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` comentados al principio
+  del `.ino`). Motivo: probado en placa real que 12 pulsadores con los
+  7 triggers completos arrancan bien pero 16 ya entra en bucle de
+  reinicio por falta de RAM (ver "RAM / límite de pulsadores" en
+  `todo.md`); quitar estos dos triggers por defecto deja más margen de pulsadores
+  por unidad para el caso común, ya que no hay uso confirmado todavía
+  de pulsación 4/5 salvo en `persiana_pulsador_completo.yaml`.
+  **Si tienes alguna instancia de `persiana_pulsador_completo.yaml`
+  usando pulsación 4 (ajuste fino ±5%) o 5 (todas las persianas de la
+  casa), descomenta `HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` antes
+  de flashear esta versión — si no, esas automatizaciones dejan de
+  dispararse sin error visible (el trigger deja de existir, sin más).**
+
+### Added
+- Los triggers de pulsación cuádruple y quíntuple ahora se pueden
+  activar/desactivar por unidad completa (afecta a todos los
+  pulsadores de esa unidad, no a uno solo) comentando/descomentando
+  `HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE` al principio del `.ino`.
+  Desactivar cualquiera de las dos ahorra RAM (deja de crear ese
+  `HADeviceTrigger` en cada pulsador), pensado para poder cablear más
+  pulsadores por unidad de los que caben con los 7 triggers completos.
+
 ## [1.6.3] - 2026-09-04 (mega_pulsadores)
 
 Solo afecta a `mega_pulsadores` (versión de firmware 1.6.3).

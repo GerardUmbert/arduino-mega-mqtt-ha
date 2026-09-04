@@ -73,24 +73,25 @@
 
 ## RAM / límite de pulsadores por unidad
 
-- [ ] **Sin medir todavía.** Cada pulsador en `mega_pulsadores` cuesta
-      aprox. 250 bytes de SRAM (objeto `OneButton` ≈ 96 bytes + 7
-      `HADeviceTrigger` ≈ 19 bytes cada uno + punteros + buffer de ID).
-      El Mega 2560 tiene 8 KB de SRAM totales, pero el shield Ethernet y
-      ArduinoHA ya reservan una parte antes de llegar al `setup()`, así
-      que el margen real disponible NO está medido — es una estimación.
-- [ ] Estimación sin verificar (⚠️ ±30% de margen de error, dos de los
-      números de entrada son supuestos, no medidos): unos 20-25
-      pulsadores por unidad con los 7 triggers actuales, o unos 25-30 si
-      se recorta a 5 triggers (quitando cuádruple/quíntuple).
-- [ ] Para tener un número real: añadir temporalmente al `setup()` de
+- [x] **Probado en placa real (2026-09-04):** con 20 pulsadores
+      cableados en `PINES_BOTONES`, la placa entraba en bucle de
+      reinicio nada más arrancar — crasheaba tan pronto que ni
+      terminaba de imprimir el primer `Serial.print` de `setup()`
+      (salía "M" y basura, repitiendo sin parar). Iterando con menos
+      pulsadores: **12 arrancan bien, 16 ya falla** — el límite real
+      está en algún punto entre 12 y 16, muy por debajo de la vieja
+      estimación sin verificar de "20-25" que había aquí antes. La
+      vieja estimación de ~250 bytes/pulsador se queda corta: el coste
+      real por pulsador (objeto `OneButton` + 7 `HADeviceTrigger` +
+      punteros + buffer de ID) es mayor de lo que asumía ese cálculo.
+- [ ] No se ha acotado más fino que "12 sí, 16 no" — no merece la pena
+      seguir bisecando a mano en placa real. Si se necesita un número
+      exacto (p. ej. porque el límite real de pulsadores deseados cae
+      justo en esa franja 12-16): añadir temporalmente al `setup()` de
       `mega_pulsadores.ino` una comprobación de memoria libre (técnica
       estándar en AVR — función tipo `freeMemory()` que resta el final
       del heap del inicio del stack) que imprima el resultado por
-      Serial, compilar con un `PINES_BOTONES` grande de prueba, y
-      flashear a una placa real para medir el límite exacto antes de
-      cablear muchos más pulsadores de los que ya hay en
-      `board_config_a.h`/`board_config_b.h`.
+      Serial, y medir con distintos tamaños de `PINES_BOTONES`.
 - [ ] Si el número real de pulsadores deseados se acerca al límite
       medido: revisar si compensa (a) recortar a 5 triggers por botón
       (quitar `ButtonQuadruplePressType`/`ButtonQuintuplePressType`, sin
