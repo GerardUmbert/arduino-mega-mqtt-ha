@@ -5,6 +5,20 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.6.3] - 2026-09-04
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.6.3).
+
+### Fixed
+- Los arrays globales `inicioMovimiento`, `subiendo` y
+  `ultimaPublicacionPosicion` (tamaño `NUM_PERSIANAS`) llevaban un
+  inicializador explícito (`= {0}` / `= {false}`) que el compilador
+  rechaza cuando `NUM_PERSIANAS` es 0 ("too many initializers for ...
+  [0]") — caso de una unidad `mega_dispositivos` configurada solo con
+  luces, sin persianas. Al ser arrays globales ya se inicializan a cero
+  por defecto, así que se ha quitado el inicializador explícito: mismo
+  comportamiento con persianas > 0, y ahora compila también con 0.
+
 ## [1.6.2] - 2026-09-02
 
 Solo afecta a `mega_dispositivos` (versión de firmware 1.6.2).

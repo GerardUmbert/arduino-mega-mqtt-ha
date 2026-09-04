@@ -94,10 +94,10 @@ char      nombrePersiana[NUM_PERSIANAS][20]; // "Persiana " + "XX/YY" + '\0'
 // 0 = parada. Distinto de 0 = en movimiento desde ese momento (millis()),
 // para poder pararla sola si se pasa de TIEMPO_MAX_MOVIMIENTO_MS y para
 // estimar la posición recorrida por tiempo.
-unsigned long inicioMovimiento[NUM_PERSIANAS] = {0};
+unsigned long inicioMovimiento[NUM_PERSIANAS];
 
 // Sentido del movimiento en curso (solo válido mientras inicioMovimiento[i] != 0).
-bool subiendo[NUM_PERSIANAS] = {false};
+bool subiendo[NUM_PERSIANAS];
 
 // Posición estimada 0-100 (0 = cerrada del todo, 100 = abierta del todo).
 // Sin encoder no hay forma de saberla de verdad al arrancar: se asume
@@ -107,7 +107,7 @@ int16_t posicionActual[NUM_PERSIANAS];
 
 // Última vez que se publicó la posición por MQTT mientras se movía
 // (evita saturar el broker publicando en cada vuelta de loop()).
-unsigned long ultimaPublicacionPosicion[NUM_PERSIANAS] = {0};
+unsigned long ultimaPublicacionPosicion[NUM_PERSIANAS];
 #define INTERVALO_PUBLICAR_POSICION_MS 500
 
 // ===========================================================
@@ -237,7 +237,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.6.2");
+    device.setSoftwareVersion("1.6.3");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
