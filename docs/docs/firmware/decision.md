@@ -56,4 +56,4 @@ flowchart TD
     (Bounce2, ezButton, Button2) y el detalle de por qué se descartó
     sustituir OneButton directamente en vez de mantener dos firmwares
     está en
-    [`mega_pulsadores/to_review.md`](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_pulsadores/to_review.md).
+    [`mega_pulsadores/to_review.md`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/to_review.md).

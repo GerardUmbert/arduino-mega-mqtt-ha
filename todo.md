@@ -3,8 +3,8 @@
 ## HVAC / termostato (pendiente de definir arquitectura)
 
 - [ ] **Necesita más información antes de poder diseñarse** — hay un único
-      termostato en la casa (setup de un amigo, detalles exactos aún sin
-      confirmar) con:
+      termostato en una vivienda distinta a las de `mega_pulsadores`/
+      `mega_dispositivos`, con detalles exactos aún sin confirmar:
       - Un interruptor FÍSICO que elige modo calor/frío.
       - Un ajuste de temperatura que dispara parar/continuar al alcanzarla.
       - Modo calor → activa suelo radiante; modo frío → activa el AC de

@@ -78,7 +78,7 @@ de los dos firmwares posibles), pero la identidad de cada unidad física
 
 !!! tip "Código fuente"
     Esta documentación describe el repositorio
-    [`ruben_smart_home_arduino`](https://github.com/GerardUmbert/ruben_smart_home_arduino).
+    [`arduino-mega-mqtt-ha`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha).
     Cada página enlaza al fichero real correspondiente — esta web es una
     guía de lectura, no sustituye al código ni a los comentarios dentro
     de cada `.ino`.

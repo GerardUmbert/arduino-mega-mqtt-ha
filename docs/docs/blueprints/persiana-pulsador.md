@@ -4,7 +4,7 @@ Mantener pulsado un botón de la agrupación de 4 sube o baja la
 persiana, soltar para. Un botón de la agrupación se asigna a subir,
 otro a bajar — cada uno es una instancia separada de este blueprint.
 
-[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/home_assistant/blueprints/persiana_pulsador.yaml){ .md-button }
+[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/home_assistant/blueprints/persiana_pulsador.yaml){ .md-button }
 
 Usa los triggers `button_long_press` (empezar a mantener pulsado) y
 `button_long_release` (soltar) que expone tanto

@@ -4,7 +4,7 @@ Para una luz cuyo brillo/temperatura de color se controla por una
 bombilla Zigbee (no por `mega_dispositivos`, pensado para una IKEA
 TRÅDFRI WW/CW regulable).
 
-[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/home_assistant/blueprints/luz_zigbee_respaldo.yaml){ .md-button }
+[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/home_assistant/blueprints/luz_zigbee_respaldo.yaml){ .md-button }
 
 !!! success "Compatible con ambos firmwares"
     Solo usa pulsación corta — funciona igual en

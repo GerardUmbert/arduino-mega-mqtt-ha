@@ -4,7 +4,7 @@ Firmware para las unidades que leen pulsadores físicos y envían
 device triggers MQTT a Home Assistant. **No controla ningún relé,
 solo envía información.**
 
-[:material-github: Ver `mega_pulsadores.ino` en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_pulsadores/mega_pulsadores.ino){ .md-button }
+[:material-github: Ver `mega_pulsadores.ino` en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/mega_pulsadores.ino){ .md-button }
 
 ## Los 7 eventos posibles
 

@@ -90,7 +90,7 @@ flowchart LR
    12 pines. Calcula `(RAM libre paso 2 − RAM libre paso 3) / 12`.
 
 El procedimiento completo, paso a paso, está en
-[`mega_pulsadores/instructions.md`](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_pulsadores/instructions.md).
+[`mega_pulsadores/instructions.md`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/instructions.md).
 
 ## Qué hacer si necesitas más pulsadores de los que caben
 
@@ -113,4 +113,4 @@ El procedimiento completo, paso a paso, está en
 | Button2 | RAM similar o mayor que OneButton (no es un ahorro real), sin evento dedicado de "release tras pulsación larga" |
 
 Detalle completo del research en
-[`mega_pulsadores/to_review.md`](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_pulsadores/to_review.md).
+[`mega_pulsadores/to_review.md`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/to_review.md).

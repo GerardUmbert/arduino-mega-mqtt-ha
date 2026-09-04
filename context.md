@@ -189,13 +189,14 @@ pendientes, para evitar tener dos listas que se puedan desincronizar.
 
 ## HVAC / termostato (futuro, no diseñado aún)
 
-Instalación de un amigo, aún sin detalles exactos de cableado. Hay un
-único termostato en la casa con:
+Instalación en una vivienda distinta a las de `mega_pulsadores`/
+`mega_dispositivos`, con cableado todavía sin documentar en detalle.
+Hay un único termostato en la casa con:
 - Interruptor físico que elige modo calor/frío.
 - Ajuste de temperatura que dispara parar/continuar al alcanzarla.
 - Modo calor → suelo radiante; modo frío → AC de techo/conductos.
-- Probablemente controlado por relés también, "AFAIK" (usuario no está
-  seguro de los detalles exactos, es la instalación de un tercero).
+- Probablemente controlado por relés también — pendiente de confirmar,
+  el cableado exacto de esta instalación no se conoce todavía.
 
 No se ha decidido ninguna arquitectura todavía — deliberadamente, porque
 faltan datos clave (si el termostato decide on/off por sí mismo o es un

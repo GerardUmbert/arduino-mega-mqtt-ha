@@ -3,7 +3,7 @@
 Conecta un pulsador físico con una luz (`switch.*`, on/off simple —
 las luces actuales no tienen control de brillo).
 
-[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/home_assistant/blueprints/luz_pulsador.yaml){ .md-button }
+[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/home_assistant/blueprints/luz_pulsador.yaml){ .md-button }
 
 !!! success "Compatible con ambos firmwares"
     Este blueprint usa solo corta/doble/larga — funciona igual tanto
@@ -60,7 +60,7 @@ Una instancia por cada luz que quieras controlar así:
 
 ## Ideas sin implementar todavía
 
-Ver [`luces_notas.md`](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/home_assistant/blueprints/luces_notas.md)
+Ver [`luces_notas.md`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/home_assistant/blueprints/luces_notas.md)
 para ideas de automatización con cuádruple/quíntuple clic o
 larga_fin — **cuádruple/quíntuple solo están disponibles si el
 pulsador está en una unidad `mega_pulsadores` (OneButton)**, no en

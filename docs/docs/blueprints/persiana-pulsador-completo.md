@@ -5,7 +5,7 @@ aprovecha los 5 niveles de pulsación del botón en vez de solo mantener
 pulsado. Un botón de la agrupación de 4 hace SIEMPRE de "subir", otro
 SIEMPRE de "bajar", para todas las persianas de esa agrupación.
 
-[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/home_assistant/blueprints/persiana_pulsador_completo.yaml){ .md-button }
+[:material-github: Ver el fichero en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/home_assistant/blueprints/persiana_pulsador_completo.yaml){ .md-button }
 
 !!! danger "Solo compatible con mega_pulsadores (OneButton)"
     Este blueprint necesita los 5 niveles de clic a la vez.

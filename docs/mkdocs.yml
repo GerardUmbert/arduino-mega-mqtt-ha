@@ -1,8 +1,8 @@
 site_name: Domótica Arduino Mega + Home Assistant
 site_description: Documentación del sistema de domótica con Arduino Mega 2560 y Home Assistant vía MQTT
 site_dir: site
-repo_url: https://github.com/GerardUmbert/ruben_smart_home_arduino
-repo_name: ruben_smart_home_arduino
+repo_url: https://github.com/GerardUmbert/arduino-mega-mqtt-ha
+repo_name: arduino-mega-mqtt-ha
 edit_uri: edit/master/docs/docs/
 
 theme:
@@ -95,4 +95,4 @@ plugins:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/GerardUmbert/ruben_smart_home_arduino
+      link: https://github.com/GerardUmbert/arduino-mega-mqtt-ha

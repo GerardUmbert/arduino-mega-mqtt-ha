@@ -6,7 +6,7 @@ Firmware **alternativo** para el mismo rol que
 `OneButton`: mucha menos RAM por pulsador, a cambio de perder soporte
 de triple/cuádruple/quíntuple clic **por completo**.
 
-[:material-github: Ver `mega_pulsadores_low_ram.ino` en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_pulsadores_low_ram/mega_pulsadores_low_ram.ino){ .md-button }
+[:material-github: Ver `mega_pulsadores_low_ram.ino` en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores_low_ram/mega_pulsadores_low_ram.ino){ .md-button }
 
 !!! danger "¿Ya sabes si te conviene este firmware?"
     Si tienes dudas, usa la [guía de decisión](decision.md) antes de

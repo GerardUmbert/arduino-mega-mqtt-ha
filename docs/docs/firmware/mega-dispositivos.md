@@ -3,7 +3,7 @@
 Firmware para las unidades que controlan relés de luces y persianas.
 **No lee ningún pulsador — solo recibe órdenes MQTT y las ejecuta.**
 
-[:material-github: Ver `mega_dispositivos.ino` en GitHub](https://github.com/GerardUmbert/ruben_smart_home_arduino/blob/master/mega_dispositivos/mega_dispositivos.ino){ .md-button }
+[:material-github: Ver `mega_dispositivos.ino` en GitHub](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_dispositivos/mega_dispositivos.ino){ .md-button }
 
 ```mermaid
 flowchart LR
