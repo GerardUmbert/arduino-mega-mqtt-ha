@@ -43,10 +43,11 @@ entre sí.
   — pines, MAC, IP fija y nombre HA de cada una de las 2 unidades físicas.
 - `todo.md` — lista de tareas pendientes antes de dar el proyecto por
   terminado (IPs, credenciales, pines reales, automatizaciones...).
-- `CHANGELOG.md` — historial de cambios del proyecto, versionado igual
-  que `device.setSoftwareVersion(...)` en cada `.ino` (los tres
-  comparten un único número de versión desde el 2026-09-04, ver
-  Changelog).
+- `CHANGELOG.md` — historial de cambios del proyecto. Cada `.ino`
+  versiona de forma independiente (coincide con
+  `device.setSoftwareVersion(...)` de ese fichero), y cada bump se
+  marca con un tag de git — ver la sección "Tags de git" del propio
+  Changelog.
 
 ## Hardware
 

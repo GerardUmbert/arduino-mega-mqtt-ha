@@ -7,10 +7,34 @@ La versión de cada entrada debe coincidir con
 es lo que Home Assistant muestra como versión de firmware de cada
 dispositivo.
 
-Desde el **2026-09-04**, los tres `.ino` comparten un único número de
-versión (antes versionaban de forma independiente): cualquier cambio
-en cualquiera de los tres implica subir la misma versión en los tres
-ficheros a la vez, aunque el cambio en concreto solo afecte a uno.
+Cada `.ino` versiona de forma **independiente** — un cambio en uno no
+implica tocar la versión de los otros dos.
+
+## Tags de git
+
+Cada bump de versión de un `.ino`, y cada cambio relevante en un
+blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
+
+- Firmware: `mega_pulsadores/vX.Y.Z`, `mega_pulsadores_low_ram/vX.Y.Z`,
+  `mega_dispositivos/vX.Y.Z` — el número debe coincidir con el
+  `device.setSoftwareVersion(...)` de ese `.ino` en el commit tageado.
+- Blueprints (`home_assistant/blueprints/*.yaml`, que no llevan número
+  de versión dentro del propio fichero): `blueprints/<nombre>/vX.Y.Z`
+  (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
+  primera vez que se tageé cada blueprint.
+
+Además de estos tags por componente, sigue existiendo un tag de
+proyecto entero (`vX.Y.0`, sin subcarpeta) para checkpoints generales
+del repositorio (el último es `v1.5.0`) — no sustituye a los tags por
+componente, es un nivel aparte.
+
+Nota histórica: entre el 2026-09-04 (commit `d9fbdb5`) y este cambio,
+los tres `.ino` compartieron brevemente un único número de versión
+(`1.7.1` los tres). Se volvió al versionado independiente el mismo
+día — ambos `mega_dispositivos` y `mega_pulsadores_low_ram` retoman
+`1.7.1` como punto de partida (no se revierte a su número anterior,
+`1.6.3`/`1.0.0-low-ram`, para no generar un salto de versión hacia
+atrás), y a partir de aquí cada uno evoluciona por su cuenta.
 
 ## [1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)
 
@@ -20,6 +44,10 @@ ficheros a la vez, aunque el cambio en concreto solo afecte a uno.
   `mega_dispositivos` 1.6.3, cada uno con su propio historial). Sin
   cambios de comportamiento en ningún firmware — solo el número que
   reporta cada uno a Home Assistant.
+- **Revertido el mismo día**: cada `.ino` vuelve a versionar de forma
+  independiente (ver nota histórica arriba). Los tres quedan en
+  `1.7.1` como nuevo punto de partida común, pero a partir de ahora
+  cada uno sube su propio número según sus propios cambios.
 
 ## [1.0.0] - 2026-09-04 (mega_pulsadores_low_ram)
 
