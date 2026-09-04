@@ -115,9 +115,13 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
 - **AceButton** — alternativa a `OneButton` usada SOLO en
   `mega_pulsadores_low_ram` (no en `mega_pulsadores`). Repo:
   https://github.com/bxparks/AceButton
-  - Mucho menos RAM por pulsador (~18-26 bytes/instancia frente a
-    ~90-100 de `OneButton`, confirmado leyendo el código fuente de
-    ambas librerías) — pero **sin ningún mecanismo** para
+  - Clase mucho más ligera (~18-26 bytes/instancia frente a ~90-100 de
+    `OneButton`, confirmado leyendo el código fuente de ambas
+    librerías) — el coste real medido por pulsador (con
+    `HADeviceTrigger`/`HAButton`/buffers incluidos, firmware 1.8.0) es
+    de ~263 bytes/pulsador; límite práctico probado en placa: 24
+    estable, 25 arranca pero MQTT inestable (ver "RAM / límite de
+    pulsadores" en `todo.md`). Pero **sin ningún mecanismo** para
     triple/cuádruple/quíntuple clic, no es una opción desactivable
     como en `OneButton`, la librería solo distingue single vs. double
     click.

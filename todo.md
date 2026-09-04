@@ -110,6 +110,39 @@
       menor (`HASwitch`/`HACover` sin `OneButton` de por medio), pero no
       hay número real todavía tampoco.
 
+### `mega_pulsadores_low_ram` (AceButton) — probado en placa real (2026-09-05)
+
+- [x] Medido con `freeMemory()` en varios tamaños de `PINES_BOTONES`,
+      con el firmware 1.8.0 (incluye el botón virtual `HAButton` por
+      pulsador, ver `CHANGELOG.md`):
+
+      | Pulsadores | RAM libre | Estado |
+      |---|---|---|
+      | 0 | 7033 bytes | OK |
+      | 1 | 6693 bytes | OK |
+      | 16 | 2727 bytes | OK |
+      | 24 | 623 bytes | **Estable** |
+      | 25 | 361 bytes | Arranca, pero MQTT se conecta/desconecta solo — inestable en marcha, no un crash de arranque |
+
+      **Límite práctico: 24 pulsadores**, con 623 bytes de margen. A
+      25, la caída a 361 bytes ya no es suficiente para que MQTT opere
+      con estabilidad — probablemente porque operaciones de
+      PubSubClient (parsear paquetes entrantes, construir salientes)
+      necesitan algo de pila/scratch libre, y con casi nada de margen
+      una asignación en pila puede pisar datos globales.
+      Coste real por pulsador (con los puntos 16→24, los más
+      espaciados y fiables): `(2727 − 623) / 8 ≈ 263 bytes/pulsador` —
+      consistente con la estimación anterior de `~269 bytes/pulsador`
+      calculada con 0→16.
+- [x] Casi el doble de pulsadores que `mega_pulsadores` (OneButton,
+      límite entre 12 y 16) con el mismo firmware 1.8.0 (con botón
+      virtual incluido en ambos) — coincide con lo esperado, ya que
+      `AceButton` es la librería más ligera en RAM de las dos.
+- [ ] No se ha probado si desactivar `HABILITAR_LARGA`/`HABILITAR_LARGA_FIN`
+      (solo dejar corta/doble) sube el límite por encima de 24 — cada
+      trigger desactivado ahorra un `HADeviceTrigger` menos por
+      pulsador. Pendiente si se necesita más margen.
+
 ## Verificación en Home Assistant
 
 - [ ] Confirmar en Ajustes → Dispositivos y servicios → MQTT que las 4 unidades

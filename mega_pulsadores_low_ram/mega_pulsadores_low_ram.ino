@@ -2,11 +2,21 @@
 // MEGA_PULSADORES_LOW_RAM
 // Variante de mega_pulsadores que usa AceButton en vez de OneButton —
 // mismo comportamiento MQTT/HA para corta, doble, larga y fin de larga,
-// pero con mucha menos RAM por pulsador (~18-26 bytes/instancia frente
-// a ~90-100 de OneButton, ver mega_pulsadores/to_review.md). A cambio,
-// NO PUEDE hacer triple/cuádruple/quíntuple clic — AceButton no tiene
-// ningún mecanismo para contar 3+ pulsaciones seguidas, no es una
-// opción desactivable como en mega_pulsadores/mega_pulsadores.ino.
+// pero con mucha menos RAM por pulsador. A cambio, NO PUEDE hacer
+// triple/cuádruple/quíntuple clic — AceButton no tiene ningún
+// mecanismo para contar 3+ pulsaciones seguidas, no es una opción
+// desactivable como en mega_pulsadores/mega_pulsadores.ino.
+//
+// ⚠️ RAM — probado en placa real (2026-09-05, firmware 1.8.0, con
+// botón virtual incluido): 24 pulsadores arrancan y funcionan estables
+// (623 bytes libres), 25 ya arranca pero el MQTT se conecta/desconecta
+// solo (361 bytes libres, insuficiente para operar con estabilidad).
+// Coste real ≈ 263 bytes/pulsador (medido, no solo el tamaño de la
+// clase AceButton en sí — incluye también los HADeviceTrigger, el
+// HAButton virtual y los buffers de texto de cada pulsador). Detalle
+// completo en "RAM / límite de pulsadores" en todo.md. Con OneButton
+// (mega_pulsadores/), el límite equivalente está entre 12 y 16 — casi
+// el doble de pulsadores caben aquí.
 //
 // ⚠️ Elige esta unidad en vez de mega_pulsadores/ SOLO si:
 //   - Necesitas más pulsadores por unidad de los que caben con
@@ -116,12 +126,17 @@ HADevice device(mac, sizeof(mac));
 // NUM_PULSADORES se calcula a partir de PINES_BOTONES, definido en
 // board_config_a.h o board_config_b.h según PLACA_A/PLACA_B (ver más arriba).
 //
-// RAM: cada pulsador con AceButton cuesta ~18-26 bytes de SRAM (frente
-// a ~90-100 con OneButton, ver mega_pulsadores/to_review.md) — no hay
-// todavía medición real en placa para esta variante, solo la
-// estimación del research de librerías. Antes de dar por buena una
-// cifra de "cuántos caben", medir con freeMemory() (ver
-// mega_pulsadores/instructions.md, mismo procedimiento aplicado aquí).
+// RAM: el objeto AceButton en sí cuesta ~18-26 bytes (frente a
+// ~90-100 de OneButton, ver mega_pulsadores/to_review.md), pero el
+// coste real por pulsador (con HADeviceTrigger + HAButton virtual +
+// buffers) es mayor — medido en placa real (2026-09-05, firmware
+// 1.8.0): ~263 bytes/pulsador, límite práctico 24 pulsadores estable
+// (623 bytes libres), 25 ya arranca pero deja el MQTT inestable. Ver
+// "RAM / límite de pulsadores" en todo.md para la tabla completa. Si
+// cambias la config de triggers activos (HABILITAR_* más abajo) o el
+// nº de pulsadores, vuelve a medir con freeMemory() en vez de asumir
+// que el límite de 24 se mantiene igual — ver
+// mega_pulsadores/instructions.md para el procedimiento.
 const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 
 // Cuenta cuántos de los 4 triggers están activos (para dimensionar

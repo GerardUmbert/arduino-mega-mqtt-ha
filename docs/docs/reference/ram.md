@@ -21,14 +21,35 @@ límite de pines relevante (el Mega tiene 54 pines digitales).
     pulsadores caben" sin haberla probado en placa real** — esta es
     la lección que costó ese error.
 
-!!! warning "Estos números son de la versión 1.7.1, sin el botón virtual"
+!!! danger "El dato de arriba es de la versión 1.7.1 (sin botón virtual) — ver el número real de 1.8.0 abajo"
     Desde la versión 1.8.0, cada pulsador añade también un `HAButton`
     virtual (ver [`mega_pulsadores`](../firmware/mega-pulsadores.md#boton-virtual-simular-pulsaciones-desde-ha)),
     una entidad más de coste. El límite "12 sí, 16 no" de arriba fue
-    medido ANTES de esa entidad extra — probablemente el límite real
-    con 1.8.0 sea algo menor. No des por buena la cifra de 12 sin
-    remedir con la versión actual — ver "Cómo medir tu propia
-    configuración" más abajo.
+    medido ANTES de esa entidad extra.
+
+!!! success "Confirmado en placa real (2026-09-05) — `mega_pulsadores_low_ram` (AceButton), firmware 1.8.0 con botón virtual"
+    | Pulsadores | RAM libre | Estado |
+    |---|---|---|
+    | 0 | 7033 bytes | OK |
+    | 1 | 6693 bytes | OK |
+    | 16 | 2727 bytes | OK |
+    | 24 | 623 bytes | **Estable** |
+    | 25 | 361 bytes | Arranca, pero MQTT se conecta/desconecta solo — inestable en marcha |
+
+    **Límite práctico: 24 pulsadores**, con 623 bytes de margen. A 25,
+    la caída a 361 bytes ya no basta para que MQTT opere con
+    estabilidad — no es un crash de arranque como con OneButton, es
+    inestabilidad en marcha (probablemente porque una operación de
+    PubSubClient necesita algo de pila/scratch libre, y con casi nada
+    de margen puede pisar datos globales). Coste real medido (con los
+    puntos 16→24, más fiable que 0→1):
+    `(2727 − 623) / 8 ≈ 263 bytes/pulsador` — muy por encima del
+    tamaño de la clase `AceButton` en sí (~18-26 bytes, ver más abajo),
+    porque incluye también los `HADeviceTrigger`, el `HAButton` virtual
+    y los buffers de texto de cada pulsador.
+
+    Con `mega_pulsadores` (OneButton) el límite equivalente está entre
+    12 y 16 — `mega_pulsadores_low_ram` aguanta casi el doble.
 
 ## Por qué el límite es tan bajo
 
@@ -42,11 +63,11 @@ flowchart TD
     + N × HADeviceTrigger
     + buffer de ID`"]
 
-    Fixed -.->|"`no medido con precisión
-    todavía, ver 'Cómo medir'`"| Unknown1["?"]
-    PerButton -.->|"`~90-100 B/pulsador con OneButton
-    ~18-26 B/pulsador con AceButton
-    (7 triggers activos, teórico)`"| Unknown2["?"]
+    Fixed -.->|"`~1159 bytes medido
+    (mega_pulsadores_low_ram, 0 pulsadores)`"| Known1["1159 B"]
+    PerButton -.->|"`~263 B/pulsador medido
+    con AceButton (4 triggers +
+    HAButton virtual, firmware 1.8.0)`"| Known2["263 B"]
 ```
 
 - **Coste fijo** (Ethernet + PubSubClient + ArduinoHA): se paga una
@@ -61,14 +82,23 @@ flowchart TD
   desde la versión 1.8.0 se suma también un `HAButton` más por
   pulsador (el botón virtual).
 
-### OneButton vs. AceButton: el hallazgo clave
+### OneButton vs. AceButton
 
-Confirmado leyendo el código fuente de ambas librerías:
+**Tamaño de la clase en sí** (confirmado leyendo el código fuente de
+ambas librerías — no incluye `HADeviceTrigger`, `HAButton` ni buffers):
 
 | | `OneButton` | `AceButton` |
 |---|---|---|
 | RAM por instancia | **~90-100 bytes, fijo** — reserva sitio para las 8 callbacks posibles aunque no las uses | **~18-26 bytes** |
 | ¿Cambia si usas menos eventos? | **No** — `sizeof(OneButton)` es igual uses `attachClick()` solo o los 7 a la vez | La clase base ya es más compacta |
+
+**Coste real medido por pulsador** (con todo lo demás incluido —
+`HADeviceTrigger`, `HAButton` virtual, buffers de texto):
+
+| Firmware | Límite práctico probado | Coste medido/pulsador |
+|---|---|---|
+| `mega_pulsadores` (OneButton) | 12 estable, 16 falla | Mayor — no desglosado con la misma precisión, ver [Changelog](../reference/changelog.md) |
+| `mega_pulsadores_low_ram` (AceButton) | 24 estable, 25 inestable | ~263 bytes |
 
 Esto es lo que justifica la existencia de
 [`mega_pulsadores_low_ram`](../firmware/mega-pulsadores-low-ram.md)
@@ -89,6 +119,13 @@ el punto de mínima RAM libre del programa.
     configuraciones** y comparar las diferencias.
 
 ### Plan de medición (3-4 ciclos flash-y-lee)
+
+!!! tip "Ya ejecutado una vez para `mega_pulsadores_low_ram`"
+    Los datos de la tabla de arriba (0/1/16/24/25 pulsadores) salieron
+    de aplicar este mismo plan. Pendiente hacerlo también para
+    `mega_pulsadores` (OneButton) con el botón virtual incluido —
+    el dato "12 sí, 16 no" de la versión 1.7.1 es anterior a esa
+    entidad extra y probablemente ya no sea exacto.
 
 ```mermaid
 flowchart LR

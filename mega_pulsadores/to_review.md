@@ -89,11 +89,16 @@ comentados no pasa):
 
 ### Cuándo reconsiderar dejar de mantener las dos librerías
 
-- Si se confirma con datos reales (ver `instructions.md`, medición con
-  `freeMemory()`) que `OneButton` es efectivamente una parte
-  significativa del consumo total de RAM por pulsador — hoy no lo
-  sabemos, solo tenemos el desglose teórico de arriba, no una medida
-  en placa.
+- [x] **Confirmado con datos reales (2026-09-05)**: `mega_pulsadores_low_ram`
+      (AceButton, firmware 1.8.0 con botón virtual) aguanta 24
+      pulsadores estable (623 bytes libres) frente a 12-16 de
+      `mega_pulsadores` (OneButton) — casi el doble. `OneButton` sí es
+      una parte significativa del consumo por pulsador, tal como
+      sugería el desglose teórico. Detalle completo en "RAM / límite
+      de pulsadores" en `todo.md`. Pendiente: medir `mega_pulsadores`
+      (OneButton) con el mismo firmware 1.8.0 (con botón virtual) para
+      tener el punto de comparación equivalente — el dato "12 sí, 16
+      no" es de la versión 1.7.1, anterior a esa entidad extra.
 - Si se decide definitivamente que ninguna unidad necesitará nunca
   triple/cuádruple/quíntuple (`persiana_pulsador_completo.yaml` deja
   de usarse en cualquier pulsador de cualquier unidad), momento en el

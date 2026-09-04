@@ -73,8 +73,19 @@ hace con `button->getId()`, en vez del `void* param` que usa
 
 | | `OneButton` | `AceButton` |
 |---|---|---|
-| RAM por instancia (AVR) | ~90-100 bytes, **fijo** — reserva sitio para las 8 callbacks posibles aunque no las uses | ~18-26 bytes |
+| RAM por instancia (solo la clase, AVR) | ~90-100 bytes, **fijo** — reserva sitio para las 8 callbacks posibles aunque no las uses | ~18-26 bytes |
 | Motivo de la diferencia | Todas las variables miembro (8 punteros a función + parámetros) son incondicionales en la clase | Clase base más pequeña |
+| **Límite práctico probado en placa** (firmware 1.8.0, con botón virtual) | 12 estable, 16 falla | **24 estable** (623 bytes libres), 25 arranca pero MQTT inestable |
+| **Coste real medido por pulsador** | No desglosado con la misma precisión todavía | **~263 bytes** |
+
+!!! success "Confirmado en placa real (2026-09-05)"
+    | Pulsadores | RAM libre |
+    |---|---|
+    | 0 | 7033 bytes |
+    | 1 | 6693 bytes |
+    | 16 | 2727 bytes |
+    | 24 | 623 bytes (estable) |
+    | 25 | 361 bytes (MQTT inestable) |
 
 Ver [RAM y rendimiento](../reference/ram.md) para el desglose completo
 y cómo medir tu propia configuración en placa real.

@@ -23,8 +23,9 @@ entre sí.
   pines, MAC, IP fija y nombre HA de cada una de las 2 unidades físicas.
 - `mega_pulsadores_low_ram/mega_pulsadores_low_ram.ino` — **firmware
   alternativo** para el mismo rol, usando `AceButton` en vez de
-  `OneButton`: mucha menos RAM por pulsador (~18-26 bytes/instancia
-  frente a ~90-100 de OneButton), a cambio de perder soporte de
+  `OneButton`: mucha menos RAM por pulsador (probado en placa real:
+  24 pulsadores estable, frente a 12-16 de OneButton — ver "RAM y
+  rendimiento" en la documentación), a cambio de perder soporte de
   triple/cuádruple/quíntuple clic por completo — AceButton no tiene
   ningún mecanismo para contar 3+ pulsaciones seguidas, no es una
   opción desactivable. Solo cubre corta/doble/larga/fin de larga. Ver
@@ -101,7 +102,8 @@ funcionalidad:
 
 | | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |
 |---|---|---|
-| RAM por pulsador | ~90-100 bytes (fijo, uses las pulsaciones que uses) | ~18-26 bytes |
+| Límite práctico medido en placa real (firmware 1.8.0, con botón virtual) | 12 estable, 16 falla | 24 estable, 623 bytes libres; 25 arranca pero MQTT inestable |
+| Coste real por pulsador (medido) | Mayor — ver [RAM y rendimiento](docs/docs/reference/ram.md) | ~263 bytes/pulsador |
 | Pulsaciones soportadas | Las 7: corta, doble, triple, cuádruple, quíntuple, larga, fin de larga | Solo 4: corta, doble, larga, fin de larga — **sin mecanismo alguno** para triple/cuádruple/quíntuple, no es una opción desactivable |
 | Compatible con `persiana_pulsador_completo.yaml` | Sí (usa los 5 niveles) | **No** — ese blueprint necesita 5 niveles de clic distintos y AceButton solo ofrece 2 (single/double) |
 | Compatible con `luz_pulsador.yaml` | Sí | Sí — el blueprint usa corta/doble/larga (el triple original se remapeó a doble, ver su propio historial de cambios) |
@@ -163,8 +165,11 @@ librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
     de pulsación larga, con debounce incluido.
 - **[AceButton](https://github.com/bxparks/AceButton)** — usada solo en
   `mega_pulsadores_low_ram` (no en `mega_pulsadores`), como alternativa
-  a `OneButton` con mucha menos RAM por pulsador (~18-26 bytes/instancia
-  frente a ~90-100 de `OneButton`). Detecta corta/doble/larga/fin de
+  a `OneButton` con una clase mucho más ligera (~18-26 bytes/instancia
+  frente a ~90-100 de `OneButton`, solo el objeto en sí — el coste real
+  medido por pulsador, incluyendo `HADeviceTrigger`/`HAButton`/buffers,
+  es de ~263 bytes, ver "RAM y rendimiento" en la documentación).
+  Detecta corta/doble/larga/fin de
   larga (`kEventClicked`/`kEventDoubleClicked`/`kEventLongPressed`/
   `kEventLongReleased`) con debounce incluido, pero **no tiene ningún
   mecanismo** para triple/cuádruple/quíntuple clic — a diferencia de
