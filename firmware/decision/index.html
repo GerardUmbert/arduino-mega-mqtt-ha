@@ -1241,12 +1241,19 @@
     class Split split</code></pre>
 <h2 id="por-que-esta-es-la-regla">Por qué esta es la regla<a class="headerlink" href="#por-que-esta-es-la-regla" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><code>persiana_pulsador_completo.yaml</code> es el único caso sin remedio.</strong>
-  Usa los 5 niveles de clic (corta/doble/triple/cuádruple/quíntuple) a
-  la vez, y <code>AceButton</code> solo ofrece 2 slots (single/double) — no hay
-  forma de remapear 5 niveles en 2 huecos. Si una unidad va a correr
-  este blueprint en alguno de sus pulsadores, tiene que ser
-  <code>mega_pulsadores</code> (OneButton).</li>
+<li><strong><code>persiana_pulsador_completo.yaml</code> es el único caso con
+  funcionalidad reducida, no un fallo total.</strong> Usa 5 niveles de clic
+  (corta/doble/triple/cuádruple/quíntuple) + larga/fin de larga, y
+  <code>AceButton</code> solo cubre 4 de esos 7 eventos (corta, doble, larga,
+  fin de larga) — no hay forma de remapear triple/cuádruple/quíntuple
+  a ningún hueco libre, porque <code>AceButton</code> no tiene slots de clic
+  extra. En la práctica: si instalas este blueprint sobre un
+  pulsador de <code>mega_pulsadores_low_ram</code>, las pulsaciones 1, 2, larga
+  y fin de larga funcionan exactamente igual que con <code>OneButton</code> —
+  solo las pulsaciones 3 (50%), 4 (±5%) y 5 (toda la casa) dejan de
+  dispararse, sin error visible. Si necesitas los 5 niveles
+  completos en un pulsador, esa unidad tiene que ser <code>mega_pulsadores</code>
+  (OneButton).</li>
 <li><strong><code>OneButton</code> es la opción por defecto</strong> salvo que confirmes que
   necesitas más pulsadores de los que caben en RAM con esa librería.
   No lo asumas — mide primero, ver <a href="../../reference/ram/">RAM y rendimiento</a>.</li>
@@ -1272,23 +1279,23 @@
 <tbody>
 <tr>
 <td><a href="../../blueprints/persiana-pulsador/"><code>persiana_pulsador</code></a></td>
-<td style="text-align: center;">✅</td>
-<td style="text-align: center;">✅ (solo usa larga/fin de larga)</td>
+<td style="text-align: center;">✅ Completa</td>
+<td style="text-align: center;">✅ Completa (solo usa larga/fin de larga)</td>
 </tr>
 <tr>
 <td><a href="../../blueprints/persiana-pulsador-completo/"><code>persiana_pulsador_completo</code></a></td>
-<td style="text-align: center;">✅</td>
-<td style="text-align: center;">❌ <strong>Incompatible</strong></td>
+<td style="text-align: center;">✅ Completa</td>
+<td style="text-align: center;">⚠️ Parcial — pulsaciones 1/2/larga/fin de larga funcionan, 3/4/5 no se disparan</td>
 </tr>
 <tr>
 <td><a href="../../blueprints/luz-pulsador/"><code>luz_pulsador</code></a></td>
-<td style="text-align: center;">✅</td>
-<td style="text-align: center;">✅ (usa corta/doble/larga)</td>
+<td style="text-align: center;">✅ Completa</td>
+<td style="text-align: center;">✅ Completa (usa corta/doble/larga)</td>
 </tr>
 <tr>
 <td><a href="../../blueprints/luz-zigbee-respaldo/"><code>luz_zigbee_respaldo</code></a></td>
-<td style="text-align: center;">✅</td>
-<td style="text-align: center;">✅ (solo usa corta)</td>
+<td style="text-align: center;">✅ Completa</td>
+<td style="text-align: center;">✅ Completa (solo usa corta)</td>
 </tr>
 </tbody>
 </table>

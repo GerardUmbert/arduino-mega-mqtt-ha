@@ -1146,25 +1146,25 @@ Blueprints → Importar.</p>
 <td><a href="persiana-pulsador/"><code>persiana_pulsador</code></a></td>
 <td>Mantener pulsado sube/baja, soltar para</td>
 <td>larga, fin de larga</td>
-<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅ Completa</td>
 </tr>
 <tr>
 <td><a href="persiana-pulsador-completo/"><code>persiana_pulsador_completo</code></a></td>
 <td>5 niveles de clic = 5 posiciones/alcances distintos</td>
 <td>corta, doble, triple, cuádruple, quíntuple, larga, fin de larga</td>
-<td style="text-align: center;">❌</td>
+<td style="text-align: center;">⚠️ Parcial</td>
 </tr>
 <tr>
 <td><a href="luz-pulsador/"><code>luz_pulsador</code></a></td>
 <td>Toggle + apagado automático + toggle de Area</td>
 <td>corta, doble, larga</td>
-<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅ Completa</td>
 </tr>
 <tr>
 <td><a href="luz-zigbee-respaldo/"><code>luz_zigbee_respaldo</code></a></td>
 <td>Respaldo de relé para bombilla Zigbee regulable</td>
 <td>corta</td>
-<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅ Completa</td>
 </tr>
 <tr>
 <td><a href="adaptive-cover/">Adaptive Cover</a></td>
@@ -1174,6 +1174,14 @@ Blueprints → Importar.</p>
 </tr>
 </tbody>
 </table>
+<div class="admonition info">
+<p class="admonition-title"><code>persiana_pulsador_completo</code> en <code>mega_pulsadores_low_ram</code></p>
+<p>Las pulsaciones 1, 2, larga y fin de larga funcionan igual que en
+<code>mega_pulsadores</code> — solo las pulsaciones 3, 4 y 5 no se disparan
+(esos tres triggers no existen en <code>AceButton</code>). Detalle completo
+en <a href="../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>
+y en la <a href="../firmware/decision/">guía de decisión</a>.</p>
+</div>
 <h2 id="posicion-de-persianas-nativa-desde-firmware-160">Posición de persianas: nativa desde firmware 1.6.0+<a class="headerlink" href="#posicion-de-persianas-nativa-desde-firmware-160" title="Permanent link">&para;</a></h2>
 <p>Desde <code>mega_dispositivos</code> 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT
