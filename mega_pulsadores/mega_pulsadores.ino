@@ -20,7 +20,9 @@
 //   - Ethernet (incluida en el IDE si usas shield W5100/W5500)
 //
 // Para medir RAM real en placa (cuánto cuesta cada pulsador/trigger),
-// ver instructions.md en esta misma carpeta.
+// ver instructions.md en esta misma carpeta. Para una alternativa a
+// OneButton más ligera en RAM pero investigada y aparcada (pierde
+// soporte de triple/cuádruple/quíntuple clic), ver to_review.md.
 // ===========================================================
 
 #include <Ethernet.h>
