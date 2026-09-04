@@ -22,3 +22,6 @@ desktop.ini
 *.bak
 *.tmp
 *~
+
+# Documentación (MkDocs) — salida generada, se despliega vía GitHub Actions
+docs/site/

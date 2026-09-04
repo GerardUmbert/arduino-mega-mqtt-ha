@@ -1,0 +1,48 @@
+name: Deploy documentation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - "CHANGELOG.md"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: docs-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          key: mkdocs-${{ hashFiles('docs/requirements.txt') }}
+          path: ~/.cache/pip
+
+      - name: Install dependencies
+        run: pip install -r docs/requirements.txt
+
+      - name: Build site
+        run: mkdocs build --config-file docs/mkdocs.yml --strict
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/site

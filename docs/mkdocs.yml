@@ -1,0 +1,98 @@
+site_name: Domótica Arduino Mega + Home Assistant
+site_description: Documentación del sistema de domótica con Arduino Mega 2560 y Home Assistant vía MQTT
+site_dir: site
+repo_url: https://github.com/GerardUmbert/ruben_smart_home_arduino
+repo_name: ruben_smart_home_arduino
+edit_uri: edit/master/docs/docs/
+
+theme:
+  name: material
+  language: es
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Cambiar a modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Cambiar a modo claro
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets:
+      base_path:
+        - !relative $config_dir/..
+      check_paths: true
+  - tables
+  - toc:
+      permalink: true
+      title: En esta página
+  - attr_list
+  - md_in_html
+
+nav:
+  - Inicio: index.md
+  - Empezando:
+      - getting-started/index.md
+      - Hardware: getting-started/hardware.md
+      - Configuración (config.h): getting-started/config.md
+      - Identificación de unidades A/B: getting-started/unidades.md
+  - Firmware de pulsadores:
+      - firmware/index.md
+      - Guía de decisión (¿cuál flashear?): firmware/decision.md
+      - mega_pulsadores (OneButton): firmware/mega-pulsadores.md
+      - mega_pulsadores_low_ram (AceButton): firmware/mega-pulsadores-low-ram.md
+      - mega_dispositivos (relés): firmware/mega-dispositivos.md
+  - Blueprints de Home Assistant:
+      - blueprints/index.md
+      - persiana_pulsador: blueprints/persiana-pulsador.md
+      - persiana_pulsador_completo: blueprints/persiana-pulsador-completo.md
+      - luz_pulsador: blueprints/luz-pulsador.md
+      - luz_zigbee_respaldo: blueprints/luz-zigbee-respaldo.md
+      - Adaptive Cover (sol): blueprints/adaptive-cover.md
+  - RAM y rendimiento:
+      - reference/ram.md
+  - Referencia:
+      - reference/changelog.md
+      - Solución de problemas: reference/troubleshooting.md
+      - Glosario: reference/glosario.md
+
+plugins:
+  - search:
+      lang: es
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/GerardUmbert/ruben_smart_home_arduino
