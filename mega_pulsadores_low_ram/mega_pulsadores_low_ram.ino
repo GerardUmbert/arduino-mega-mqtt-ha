@@ -26,6 +26,13 @@
 //
 // No controla ningún relé. Solo ENVÍA información.
 //
+// Además, cada pulsador tiene un HAButton virtual (entidad real y
+// pulsable en la UI de HA) que simula un clic corto en ese pin al
+// pulsarlo desde HA — mismo mecanismo que en mega_pulsadores/, pero
+// aquí implementado sobreescribiendo ButtonConfig::readButton() en vez
+// de OneButton::tick(bool) (AceButton no tiene ese método). No simula
+// pulsación larga.
+//
 // Mismo patrón que mega_pulsadores/: identidad de la placa (pines,
 // MAC, IP, nombre) en TIEMPO DE COMPILACIÓN con PLACA_A/PLACA_B — no
 // hay jumper físico.
@@ -142,14 +149,53 @@ const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 #endif
 #define NUM_TRIGGERS_POR_PULSADOR _TRIGGERS_ACTIVOS_4
 
-// + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * NUM_TRIGGERS_POR_PULSADOR + 2);
+// + 1 por el HAButton virtual de cada pulsador, + margen
+HAMqtt mqtt(client, device, NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
 
 // Array estático de AceButton (constructor por defecto + init() para
 // configurar pin/id después, mismo patrón que OneButton en
 // mega_pulsadores/mega_pulsadores.ino) — confirmado en el ejemplo
 // oficial ArrayButtons.ino del propio repo de AceButton.
 AceButton botones[NUM_PULSADORES];
+
+// ===========================================================
+// BOTÓN VIRTUAL POR PULSADOR (simular pulsaciones desde HA)
+// Un HAButton por pulsador — a diferencia de HADeviceTrigger, este SÍ
+// es una entidad visible y pulsable en la UI de HA. AceButton no tiene
+// un tick(bool) como OneButton, pero sí un punto de inyección
+// equivalente y oficial: ButtonConfig::readButton(pin) es virtual y
+// está documentado como "Override to use something other than
+// digitalRead()" — así que se sobreescribe con una subclase que
+// devuelve un nivel simulado por pin cuando hay una simulación activa,
+// y digitalRead() normal en cualquier otro caso. check() (llamado en
+// loop()) usa esa función internamente sin saber que es distinta —
+// toda la lógica de debounce/multiclic de AceButton sigue intacta.
+//
+// Limitación deliberada: el pulso simulado es corto y fijo
+// (SIMULACION_PULSO_MS), pensado para corta/doble clic. No sirve para
+// simular una pulsación LARGA (necesita mantener el nivel activo un
+// tiempo variable) — eso queda fuera de esta primera versión.
+#define SIMULACION_PULSO_MS 90
+
+// Por pulsador: 0 = sin simulación en curso. Si no es 0, es el
+// millis() en el que hay que devolver HIGH (soltado) — ver
+// ButtonConfigConSimulacion::readButton() y loop().
+unsigned long simulacionSoltarEn[NUM_PULSADORES];
+
+class ButtonConfigConSimulacion : public ButtonConfig {
+public:
+    int readButton(uint8_t pin) override {
+        for (int i = 0; i < NUM_PULSADORES; i++) {
+            if (PINES_BOTONES[i] == pin && simulacionSoltarEn[i] != 0) {
+                return LOW; // "pulsado" simulado, sin tocar el pin real
+            }
+        }
+        return digitalRead(pin);
+    }
+};
+ButtonConfigConSimulacion configConSimulacion;
+
+HAButton* botonVirtual[NUM_PULSADORES];
 
 // Orden deliberado: corta -> doble -> larga/fin de larga aparte al
 // final, como caso especial (mismo criterio que mega_pulsadores/).
@@ -177,6 +223,10 @@ HADeviceTrigger* largaFin[NUM_PULSADORES];
 // no con una copia. Formato "pNN" — mismo formato que mega_pulsadores/
 // (ver ese CHANGELOG.md, entrada 1.7.1, para el porqué).
 char idBoton[NUM_PULSADORES][4];
+
+// unique_id del HAButton virtual de cada pulsador — "v" + idBoton[i]
+// (ej. "vp14"), igual que en mega_pulsadores/mega_pulsadores.ino.
+char idBotonVirtual[NUM_PULSADORES][5];
 
 void imprimirMac() {
     for (uint8_t i = 0; i < sizeof(mac); i++) {
@@ -250,6 +300,23 @@ void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
     }
 }
 
+// Al pulsar el HAButton virtual de un pulsador en HA: marca cuándo
+// debe volver a HIGH (soltado). Mientras esa marca esté activa,
+// ButtonConfigConSimulacion::readButton() devuelve LOW para ese pin en
+// vez de leer el pin real — así check() en loop() lo procesa como una
+// pulsación real más, sin tocar la lógica de AceButton para nada.
+void onBotonVirtual(HAButton* sender) {
+    for (int i = 0; i < NUM_PULSADORES; i++) {
+        if (botonVirtual[i] == sender) {
+            simulacionSoltarEn[i] = millis() + SIMULACION_PULSO_MS;
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[i]);
+            Serial.println(F(" -> pulsación simulada desde HA"));
+            break;
+        }
+    }
+}
+
 void setup() {
     Serial.begin(9600);
     Serial.println();
@@ -264,10 +331,13 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.7.1");
+    device.setSoftwareVersion("1.8.0");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
-    ButtonConfig* cfg = ButtonConfig::getSystemButtonConfig();
+    // configConSimulacion en vez de getSystemButtonConfig(): añade el
+    // punto de inyección para el botón virtual (ver su definición más
+    // arriba) sin cambiar nada más del comportamiento normal.
+    ButtonConfig* cfg = &configConSimulacion;
 #ifdef HABILITAR_CORTA
     cfg->setFeature(ButtonConfig::kFeatureClick);
 #endif
@@ -291,11 +361,16 @@ void setup() {
     // --- creamos cada pulsador (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
+        snprintf(idBotonVirtual[i], sizeof(idBotonVirtual[i]), "v%s", idBoton[i]);
 
         pinMode(PINES_BOTONES[i], INPUT_PULLUP);
         // HIGH = nivel en reposo (no pulsado) con INPUT_PULLUP y botón
         // a GND — id = i, para identificar el pulsador en handleEvent().
-        botones[i].init(PINES_BOTONES[i], HIGH, i);
+        // &configConSimulacion explícito: sin esto, AceButton usaría
+        // ButtonConfig::getSystemButtonConfig() por defecto (una
+        // instancia DISTINTA a la nuestra) y el botón virtual no
+        // tendría ningún efecto sobre la lectura real de este pulsador.
+        botones[i].init(&configConSimulacion, PINES_BOTONES[i], HIGH, i);
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
@@ -309,6 +384,12 @@ void setup() {
 #ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
 #endif
+
+        // Botón virtual: entidad real y pulsable en la UI de HA (a
+        // diferencia de los HADeviceTrigger de arriba).
+        botonVirtual[i] = new HAButton(idBotonVirtual[i]);
+        botonVirtual[i]->setName(idBoton[i]);
+        botonVirtual[i]->onCommand(onBotonVirtual);
     }
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
@@ -357,6 +438,16 @@ void setup() {
 
 void loop() {
     mqtt.loop();
+    // Caduca las simulaciones de botón virtual que ya cumplieron su
+    // tiempo — a partir de aquí, ButtonConfigConSimulacion::readButton()
+    // vuelve a devolver digitalRead() normal para ese pin.
+    unsigned long ahora = millis();
+    for (int i = 0; i < NUM_PULSADORES; i++) {
+        if (simulacionSoltarEn[i] != 0 && ahora >= simulacionSoltarEn[i]) {
+            simulacionSoltarEn[i] = 0;
+        }
+    }
+
     // check() hay que llamarlo a menudo (cada <5ms lo ideal) para que
     // el debounce por defecto de AceButton (20ms) funcione bien —
     // confirmado en el ejemplo oficial de la librería. mqtt.loop() no

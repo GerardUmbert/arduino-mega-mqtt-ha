@@ -23,6 +23,44 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.0] - 2026-09-05 (mega_pulsadores y mega_pulsadores_low_ram)
+
+Afecta a `mega_pulsadores` (1.7.1 → 1.8.0) y `mega_pulsadores_low_ram`
+(1.7.1 → 1.8.0) — mismo cambio implementado en ambos firmwares, con
+mecanismos distintos por librería.
+
+### Added
+- **Botón virtual por pulsador**: un `HAButton` nuevo por cada
+  pulsador, visible y pulsable en la UI de Home Assistant (Ajustes →
+  Entidades, o en cualquier tarjeta) — a diferencia de
+  `HADeviceTrigger`, que no tiene estado ni aparece en la UI. Al
+  pulsarlo desde HA, el firmware inyecta un clic corto (~90ms,
+  `SIMULACION_PULSO_MS`) directamente en la máquina de estados de
+  debounce/multiclic de ese pulsador, sin tocar el pin físico —
+  pulsar el botón de HA varias veces seguidas rápido se detecta como
+  doble/triple/cuádruple/quíntuple clic exactamente igual que con el
+  dedo, porque es la MISMA lógica de detección la que decide, no una
+  ruta paralela.
+  - En `mega_pulsadores` (OneButton): usa `OneButton::tick(bool)`,
+    método público documentado de la librería para alimentar el
+    estado sin leer el pin (`digitalRead`).
+  - En `mega_pulsadores_low_ram` (AceButton): usa una subclase de
+    `ButtonConfig` que sobreescribe `readButton(pin)` (punto de
+    inyección oficial de la librería, documentado como "Override to
+    use something other than digitalRead()") para devolver un nivel
+    simulado mientras haya una simulación activa para ese pin.
+  - unique_id del botón virtual: `"v" + pNN` (ej. `vp14`) — buffer
+    distinto de `idBoton` para no confundirlo con el subtype de los
+    `HADeviceTrigger`.
+  - **Limitación deliberada**: el pulso simulado es corto y fijo,
+    pensado para corta/doble/triple/cuádruple/quíntuple. No simula
+    pulsación larga (necesitaría mantener el nivel activo un tiempo
+    variable) — queda fuera de esta primera versión.
+  - Coste de RAM: una entidad `HAButton` más por pulsador (además de
+    los `HADeviceTrigger` ya existentes) — el tamaño de `HAMqtt` se
+    ajustó para reservar sitio para ella (`NUM_TRIGGERS_POR_PULSADOR + 1`
+    por pulsador en vez de `NUM_TRIGGERS_POR_PULSADOR`).
+
 Además de estos tags por componente, sigue existiendo un tag de
 proyecto entero (`vX.Y.0`, sin subcarpeta) para checkpoints generales
 del repositorio (el último es `v1.5.0`) — no sustituye a los tags por

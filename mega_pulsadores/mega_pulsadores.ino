@@ -10,6 +10,13 @@
 // cuádruple y quíntuple desactivados.
 // No controla ningún relé. Solo ENVÍA información.
 //
+// Además, cada pulsador tiene un HAButton virtual (entidad real y
+// pulsable en la UI de HA, a diferencia de los HADeviceTrigger) que
+// simula un clic corto en ese pin al pulsarlo desde HA — pulsarlo 3
+// veces seguidas rápido se detecta como triple clic igual que con el
+// dedo. No simula pulsación larga (ver comentario junto a
+// SIMULACION_PULSO_MS más abajo).
+//
 // Mismo firmware para las 2 unidades físicas (A y B): la identidad
 // (pines, MAC, IP, nombre) se decide en TIEMPO DE COMPILACIÓN con
 // PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
@@ -152,8 +159,8 @@ const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 #endif
 #define NUM_TRIGGERS_POR_PULSADOR _TRIGGERS_ACTIVOS_7
 
-// + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * NUM_TRIGGERS_POR_PULSADOR + 2);
+// + 1 por el HAButton virtual de cada pulsador, + margen
+HAMqtt mqtt(client, device, NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
 
 // Array estático (no punteros a objetos con new): OneButton tiene
 // constructor por defecto + setup() para configurar el pin después,
@@ -164,6 +171,34 @@ HAMqtt mqtt(client, device, NUM_PULSADORES * NUM_TRIGGERS_POR_PULSADOR + 2);
 // constructor por defecto), así que esos siguen con new/punteros más
 // abajo.
 OneButton botones[NUM_PULSADORES];
+
+// ===========================================================
+// BOTÓN VIRTUAL POR PULSADOR (simular pulsaciones desde HA)
+// Un HAButton por pulsador — a diferencia de HADeviceTrigger, este SÍ
+// es una entidad visible y pulsable en la UI de HA (aparece como un
+// botón normal en Ajustes → Entidades y en cualquier tarjeta). Al
+// pulsarlo en HA, el firmware inyecta UN clic corto en la máquina de
+// estados de OneButton de ese pulsador — usando OneButton::tick(bool),
+// que es el método oficial de la librería para alimentar el estado sin
+// leer el pin físico (documentado: "no digital input pin is checked
+// because the current level is given by the parameter"). Así, pulsar
+// el botón de HA 3 veces seguidas rápido se detecta como un TRIPLE
+// clic exactamente igual que 3 pulsaciones físicas reales — toda la
+// lógica de debounce/multiclic/temporización sigue siendo la misma,
+// no se duplica nada.
+//
+// Limitación deliberada: el pulso simulado es corto y fijo
+// (SIMULACION_PULSO_MS), pensado para corta/doble/triple/cuádruple/
+// quíntuple. No sirve para simular una pulsación LARGA (que necesita
+// mantener el pin activo un tiempo variable) — eso queda fuera de esta
+// primera versión.
+#define SIMULACION_PULSO_MS 90
+
+HAButton* botonVirtual[NUM_PULSADORES];
+
+// Por pulsador: 0 = sin simulación en curso. Si no es 0, es el
+// millis() en el que hay que soltar el pulso simulado (ver loop()).
+unsigned long simulacionSoltarEn[NUM_PULSADORES];
 
 // Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
 // (progresión 1-2-3-4-5 pulsaciones), y larga/fin de larga aparte, al
@@ -203,6 +238,12 @@ HADeviceTrigger* largaFin[NUM_PULSADORES];
 // ("boton_NN") hay que volver a seleccionarla desde la UI (el nuevo
 // subtype "pNN" no coincide con el guardado).
 char idBoton[NUM_PULSADORES][4];
+
+// unique_id del HAButton virtual de cada pulsador — "v" + idBoton[i]
+// (ej. "vp14"). Un buffer aparte de idBoton porque HADeviceTrigger y
+// HAButton son cosas distintas en ArduinoHA (trigger vs. entidad real)
+// y conviene que sus identificadores no se confundan a simple vista.
+char idBotonVirtual[NUM_PULSADORES][5];
 
 void imprimirMac() {
     for (uint8_t i = 0; i < sizeof(mac); i++) {
@@ -304,6 +345,23 @@ void onLongPressStop(void* param) {
 }
 #endif
 
+// Al pulsar el HAButton virtual de un pulsador en HA: inicia el pulso
+// simulado (press). El release se dispara solo, más tarde, desde
+// loop() (ver simulacionSoltarEn) — aquí solo se marca cuándo debe
+// soltarse.
+void onBotonVirtual(HAButton* sender) {
+    for (int i = 0; i < NUM_PULSADORES; i++) {
+        if (botonVirtual[i] == sender) {
+            botones[i].tick(false); // false = activo en LOW = "pulsado"
+            simulacionSoltarEn[i] = millis() + SIMULACION_PULSO_MS;
+            Serial.print(F("[boton] "));
+            Serial.print(idBoton[i]);
+            Serial.println(F(" -> pulsación simulada desde HA"));
+            break;
+        }
+    }
+}
+
 void setup() {
     Serial.begin(9600);
     Serial.println();
@@ -318,11 +376,12 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.7.1");
+    device.setSoftwareVersion("1.8.0");
 
     // --- creamos cada pulsador y sus triggers activos (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
+        snprintf(idBotonVirtual[i], sizeof(idBotonVirtual[i]), "v%s", idBoton[i]);
 
         botones[i].setup(PINES_BOTONES[i], INPUT_PULLUP, true); // true = activo en LOW
 
@@ -347,6 +406,14 @@ void setup() {
 #ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
 #endif
+
+        // Botón virtual: entidad real y pulsable en la UI de HA (a
+        // diferencia de los HADeviceTrigger de arriba). unique_id
+        // propio (idBotonVirtual[i], ej. "vp14") para no confundirlo
+        // con el subtype de los triggers.
+        botonVirtual[i] = new HAButton(idBotonVirtual[i]);
+        botonVirtual[i]->setName(idBoton[i]);
+        botonVirtual[i]->onCommand(onBotonVirtual);
 
         // void* que se le pasa de vuelta a cada callback (ver onClick() etc.
         // más arriba) para que sepa de qué pulsador se trata — no podemos
@@ -423,8 +490,23 @@ void setup() {
 
 void loop() {
     mqtt.loop();
+    unsigned long ahora = millis();
     for (int i = 0; i < NUM_PULSADORES; i++) {
-        botones[i].tick();
+        if (simulacionSoltarEn[i] != 0 && ahora >= simulacionSoltarEn[i]) {
+            // Toca soltar el pulso simulado — no leemos el pin real
+            // este ciclo, forzamos el "release" vía tick(bool) igual
+            // que se forzó el "press" en onBotonVirtual().
+            botones[i].tick(true); // true = inactivo (soltado)
+            simulacionSoltarEn[i] = 0;
+        } else if (simulacionSoltarEn[i] == 0) {
+            // Sin simulación en curso para este pulsador: lectura
+            // normal del pin físico.
+            botones[i].tick();
+        }
+        // Si hay una simulación en curso pero todavía no toca soltar,
+        // no se llama a tick() en absoluto este ciclo — el "press" ya
+        // se inyectó una vez en onBotonVirtual() y no hace falta
+        // repetirlo.
     }
 
     static unsigned long ultimoAviso = 0;
