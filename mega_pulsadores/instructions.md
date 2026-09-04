@@ -38,15 +38,16 @@ estaban activos/comentados en el `.ino`.
 
 ### 1. Coste base (Ethernet + MQTT + ArduinoHA, sin apenas pulsadores)
 
-- `board_config_a.h` → `PINES_BOTONES[] = { 2 };` (un solo pin, para
-  que el código siga siendo válido — no puede estar vacío, ver nota
-  al final).
+- `board_config_a.h` → `PINES_BOTONES[] = {};` (cero pulsadores — el
+  código lo soporta bien, `NUM_PULSADORES` acaba valiendo 0 y todos los
+  bucles/arrays se quedan vacíos sin dar error).
 - `mega_pulsadores.ino` → deja los `HABILITAR_*` por defecto (corta,
   doble, larga, largaFin activos; triple, cuádruple, quíntuple
-  comentados).
-- Flashea, lee `RAM libre`. Este número es aprox. el coste fijo de
-  Ethernet + PubSubClient + ArduinoHA + 1 pulsador — casi todo "coste
-  base", ya que solo hay un pulsador de por medio.
+  comentados) — con 0 pulsadores no importa cuáles estén activos, no
+  se crea ningún trigger igualmente.
+- Flashea, lee `RAM libre`. Este número es el coste fijo puro de
+  Ethernet + PubSubClient + ArduinoHA, sin ningún pulsador de por
+  medio — la base sobre la que se suma todo lo demás.
 
 ### 2. Coste por pulsador (misma config de triggers, más pines)
 
@@ -55,9 +56,9 @@ estaban activos/comentados en el `.ino`.
   `todo.md` → "RAM / límite de pulsadores").
 - Mismos `HABILITAR_*` que el paso 1 (no los toques).
 - Flashea, lee `RAM libre`.
-- **Cálculo**: `(RAM libre paso 1 − RAM libre paso 2) / (12 − 1)` =
-  bytes reales que cuesta cada pulsador adicional, con la config de
-  triggers por defecto.
+- **Cálculo**: `(RAM libre paso 1 − RAM libre paso 2) / 12` = bytes
+  reales que cuesta cada pulsador, con la config de triggers por
+  defecto.
 
 ### 3. Coste por tipo de trigger (mismo nº de pulsadores, más triggers)
 
@@ -92,13 +93,3 @@ Con los números reales:
   ya no hace falta seguir midiendo — o déjala si prevés volver a tocar
   la configuración de pulsadores/triggers en el futuro y te interesa
   poder remedir rápido.
-
-## Nota: `PINES_BOTONES[]` no puede estar vacío
-
-El firmware asume al menos 1 pulsador — `NUM_PULSADORES` se calcula de
-`sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0])`, y con el array
-vacío el compilador falla igual que pasaba con las persianas en
-`mega_dispositivos` (ver `CHANGELOG.md`, entrada 1.6.3 de
-`mega_dispositivos`) — ese fix era para arrays de tamaño 0 en otro
-sitio del código, pero `PINES_BOTONES[]` en sí mismo declarado vacío
-(`{}`) sigue sin ser válido. Usa como mínimo 1 pin para las pruebas.
