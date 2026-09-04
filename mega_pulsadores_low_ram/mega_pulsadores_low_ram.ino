@@ -200,8 +200,24 @@ unsigned long simulacionSoltarEn[NUM_PULSADORES];
 class ButtonConfigConSimulacion : public ButtonConfig {
 public:
     int readButton(uint8_t pin) override {
+        unsigned long ahora = millis();
         for (int i = 0; i < NUM_PULSADORES; i++) {
-            if (PINES_BOTONES[i] == pin && simulacionSoltarEn[i] != 0) {
+            // La comprobación de caducidad vive AQUÍ, no en loop() en un
+            // paso aparte antes de check() — así el nivel que devuelve
+            // esta función es siempre consistente en la MISMA llamada
+            // que AceButton usa para decidir press/release, sin ninguna
+            // ventana de carrera entre "caducar" y "leer". Antes, loop()
+            // caducaba simulacionSoltarEn[i] ANTES de llamar a check(),
+            // así que la llamada a check() justo en el instante de
+            // caducidad caía en el pin real (posiblemente flotante o con
+            // rebote) en vez de en un HIGH limpio — eso generaba
+            // transiciones Released→Pressed→Released espurias que
+            // corrompían el estado interno de AceButton (kFlagPressed se
+            // quedaba mal, provocando triple "larga (inicio)" y demás
+            // basura en el log, incluso para el pulsador físico real del
+            // mismo pin, que comparte instancia).
+            if (PINES_BOTONES[i] == pin && simulacionSoltarEn[i] != 0
+                    && ahora < simulacionSoltarEn[i]) {
                 return LOW; // "pulsado" simulado, sin tocar el pin real
             }
         }
@@ -346,7 +362,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.0");
+    device.setSoftwareVersion("1.8.1");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -453,22 +469,31 @@ void setup() {
 
 void loop() {
     mqtt.loop();
-    // Caduca las simulaciones de botón virtual que ya cumplieron su
-    // tiempo — a partir de aquí, ButtonConfigConSimulacion::readButton()
-    // vuelve a devolver digitalRead() normal para ese pin.
+
+    // check() hay que llamarlo a menudo (cada <5ms lo ideal) para que
+    // el debounce por defecto de AceButton (20ms) funcione bien —
+    // documentado explícitamente en AceButton.h: check() debe llamarse
+    // al menos 2-3 veces durante la ventana de debounce, como mínimo
+    // cada 5ms, o la detección de clics/pulsación larga puede fallar.
+    // ⚠️ Si mqtt.loop() llega a bloquear más de eso (reconexión TCP,
+    // DNS...), la cadencia de check() se resiente y pueden aparecer
+    // los mismos síntomas corruptos que el bug de la carrera de más
+    // arriba — no confirmado como problema real todavía, pero vigilar
+    // si vuelve a pasar algo raro con MQTT desconectado/reconectando.
+    for (int i = 0; i < NUM_PULSADORES; i++) {
+        botones[i].check();
+    }
+
+    // La caducidad de la simulación ya la decide readButton() en cada
+    // llamada (ver ButtonConfigConSimulacion más arriba) — esto de aquí
+    // es solo limpieza de la bandera una vez que ya no hace falta,
+    // puede pasar en cualquier momento después de check() sin afectar
+    // a la detección.
     unsigned long ahora = millis();
     for (int i = 0; i < NUM_PULSADORES; i++) {
         if (simulacionSoltarEn[i] != 0 && ahora >= simulacionSoltarEn[i]) {
             simulacionSoltarEn[i] = 0;
         }
-    }
-
-    // check() hay que llamarlo a menudo (cada <5ms lo ideal) para que
-    // el debounce por defecto de AceButton (20ms) funcione bien —
-    // confirmado en el ejemplo oficial de la librería. mqtt.loop() no
-    // debería bloquear lo suficiente como para ser un problema aquí.
-    for (int i = 0; i < NUM_PULSADORES; i++) {
-        botones[i].check();
     }
 
     static unsigned long ultimoAviso = 0;

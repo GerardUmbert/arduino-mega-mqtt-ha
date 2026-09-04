@@ -23,6 +23,30 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.1] - 2026-09-05 (mega_pulsadores_low_ram)
+
+### Fixed
+- **Bug real de carrera en el botón virtual**, detectado en placa real:
+  el pulsador físico se quedaba "atascado" detectando solo pulsación
+  larga (nunca corta), y el botón virtual generaba eventos corruptos
+  (varios `larga (inicio)` seguidos para un solo tap, "corta" disparado
+  aunque se pulsara varias veces rápido, sin release limpio detectado).
+  Causa: `loop()` caducaba la bandera de simulación (`simulacionSoltarEn[i] = 0`)
+  en un paso separado ANTES de llamar a `botones[i].check()` — así que
+  la llamada a `check()` justo en el instante de caducidad caía en
+  `digitalRead()` del pin real (potencialmente flotante o con rebote)
+  en vez de en un `HIGH` limpio, generando transiciones
+  Released→Pressed→Released espurias que corrompían el estado interno
+  de `AceButton` (`kFlagPressed` quedaba mal) — y como el pulsador
+  físico comparte la misma instancia `AceButton` que el botón virtual,
+  heredaba la corrupción.
+  Arreglo: la comprobación de caducidad se mueve dentro de
+  `ButtonConfigConSimulacion::readButton()`, en la misma llamada que
+  `AceButton` usa para decidir press/release — sin ninguna ventana de
+  carrera entre "caducar" y "leer". `loop()` ya no decide nada sobre el
+  nivel del pin, solo limpia la bandera como bookkeeping después de
+  `check()`.
+
 ## [1.8.0] - 2026-09-05 (mega_pulsadores y mega_pulsadores_low_ram)
 
 Afecta a `mega_pulsadores` (1.7.1 → 1.8.0) y `mega_pulsadores_low_ram`
