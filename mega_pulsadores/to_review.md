@@ -24,31 +24,33 @@ los 7 tipos de evento posibles.
 
 Repo: https://github.com/bxparks/AceButton
 
-**Cubre exactamente lo que usamos por defecto hoy:**
+### Comparativa de eventos: los 5 candidatos investigados
 
-| Evento que usamos | Equivalente en AceButton |
-|---|---|
-| corta | `kEventClicked` |
-| doble | `kEventDoubleClicked` |
-| larga (inicio) | `kEventLongPressed` — se dispara una vez, con el botón aún pulsado (no espera a soltar) |
-| largaFin (soltar tras larga) | `kEventLongReleased` — distinto del release normal, así que sí se puede diferenciar "solté tras pulsación larga" de "solté tras pulsación corta" sin lógica extra |
+Los 7 eventos son los que expone `mega_pulsadores.ino` hoy (ver
+`HABILITAR_*` en el `.ino`). ✅ = soportado de forma nativa, con
+evento/callback dedicado. ⚠️ = posible pero requiere lógica extra
+propia (la librería no lo da hecho). ❌ = no soportado, sin mecanismo
+alguno para conseguirlo.
 
-Duración de pulsación larga configurable vía
+| Evento | OneButton (actual) | AceButton | Button2 | Bounce2 | ezButton |
+|---|---|---|---|---|---|
+| Corta (1 clic) | ✅ `attachClick` | ✅ `kEventClicked` | ✅ `setTapHandler` | ❌ solo debounce | ⚠️ `isPressed()`, sin evento — hay que contarlo a mano |
+| Doble clic | ✅ `attachDoubleClick` | ✅ `kEventDoubleClicked` | ✅ `setDoubleClickHandler` | ❌ | ❌ |
+| Triple clic | ✅ `attachMultiClick` + `getNumberClicks()==3` | ❌ sin mecanismo para 3+ clics | ⚠️ `getNumberOfClicks()` sin tope, pero el enum de tipos solo nombra hasta `triple_click` | ❌ | ❌ |
+| Cuádruple clic | ✅ igual, `==4` | ❌ | ⚠️ igual que triple, sin nombre propio en el enum pero el contador no tiene tope | ❌ | ❌ |
+| Quíntuple clic | ✅ igual, `==5` | ❌ | ⚠️ igual | ❌ | ❌ |
+| Larga (inicio, con el botón aún pulsado) | ✅ `attachLongPressStart` | ✅ `kEventLongPressed` | ✅ `setLongClickHandler` | ❌ | ⚠️ `isPressed()` + medir tiempo a mano |
+| Larga (fin, al soltar tras larga) | ✅ `attachLongPressStop` | ✅ `kEventLongReleased` — distinto del release normal | ❌ solo hay un release genérico, no distingue si veía de una pulsación larga o corta | ❌ | ❌ |
+| **Identificación del pulsador sin lambda con captura** | ✅ `void* param` en cada `attachX(callback, param)` | ✅ `button->getId()` desde el puntero que recibe el callback | ✅ `btn.getContext()` desde la instancia | N/A (sin callbacks) | N/A (sin callbacks) |
+| **RAM aprox. por instancia (AVR)** | ~90-100 bytes, fijo, uses las callbacks que uses | ~18-26 bytes | ~68-76 bytes (similar a OneButton, no es un ahorro) | ~11 bytes (pero casi no hace nada) | sin datos publicados |
+
+Duración de pulsación larga en AceButton configurable vía
 `ButtonConfig::setLongPressDelay(ms)` (equivalente a
-`OneButton::setPressMs()`).
-
-**Identificación del pulsador sin lambdas con captura**: cada
-`AceButton` puede llevar un `id` (constructor opcional, `getId()`
-público) — el callback recibe un puntero al `AceButton` que disparó el
-evento y puede leer `button->getId()` para saber cuál es, sin
-necesitar `void* param` como hace OneButton ni lambdas con captura
-(que de todas formas no funcionan aquí, ver el fix de la versión
-1.6.3 en `CHANGELOG.md`).
-
-**RAM estimada**: ~18-26 bytes por instancia (frente a ~90-100 de
-OneButton) — la clase en sí es más pequeña, no un caso de "activa
-menos features y pesa menos" (AceButton también reserva su estado
-incondicionalmente, pero esa clase base ya es mucho más compacta).
+`OneButton::setPressMs()`). El `id` de AceButton se pasa en el
+constructor y se lee luego con `getId()` desde el puntero que recibe
+el callback (ver fila "Identificación del pulsador" arriba) — no hace
+falta `void* param` ni lambdas con captura (que de todas formas no
+funcionan aquí, ver el fix de la versión 1.6.3 en `CHANGELOG.md`).
 
 ### Por qué NO se ha cambiado todavía
 
