@@ -39,12 +39,19 @@ flowchart TD
 
 ## Por qué esta es la regla
 
-- **`persiana_pulsador_completo.yaml` es el único caso sin remedio.**
-  Usa los 5 niveles de clic (corta/doble/triple/cuádruple/quíntuple) a
-  la vez, y `AceButton` solo ofrece 2 slots (single/double) — no hay
-  forma de remapear 5 niveles en 2 huecos. Si una unidad va a correr
-  este blueprint en alguno de sus pulsadores, tiene que ser
-  `mega_pulsadores` (OneButton).
+- **`persiana_pulsador_completo.yaml` es el único caso con
+  funcionalidad reducida, no un fallo total.** Usa 5 niveles de clic
+  (corta/doble/triple/cuádruple/quíntuple) + larga/fin de larga, y
+  `AceButton` solo cubre 4 de esos 7 eventos (corta, doble, larga,
+  fin de larga) — no hay forma de remapear triple/cuádruple/quíntuple
+  a ningún hueco libre, porque `AceButton` no tiene slots de clic
+  extra. En la práctica: si instalas este blueprint sobre un
+  pulsador de `mega_pulsadores_low_ram`, las pulsaciones 1, 2, larga
+  y fin de larga funcionan exactamente igual que con `OneButton` —
+  solo las pulsaciones 3 (50%), 4 (±5%) y 5 (toda la casa) dejan de
+  dispararse, sin error visible. Si necesitas los 5 niveles
+  completos en un pulsador, esa unidad tiene que ser `mega_pulsadores`
+  (OneButton).
 - **`OneButton` es la opción por defecto** salvo que confirmes que
   necesitas más pulsadores de los que caben en RAM con esa librería.
   No lo asumas — mide primero, ver [RAM y rendimiento](../reference/ram.md).
@@ -62,10 +69,10 @@ flowchart TD
 
 | Blueprint | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |
 |---|:---:|:---:|
-| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ | ✅ (solo usa larga/fin de larga) |
-| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ✅ | ❌ **Incompatible** |
-| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ | ✅ (usa corta/doble/larga) |
-| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ | ✅ (solo usa corta) |
+| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ Completa | ✅ Completa (solo usa larga/fin de larga) |
+| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ✅ Completa | ⚠️ Parcial — pulsaciones 1/2/larga/fin de larga funcionan, 3/4/5 no se disparan |
+| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ Completa | ✅ Completa (usa corta/doble/larga) |
+| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ Completa | ✅ Completa (solo usa corta) |
 
 !!! info "El research completo"
     La comparativa evento por evento con otras librerías consideradas

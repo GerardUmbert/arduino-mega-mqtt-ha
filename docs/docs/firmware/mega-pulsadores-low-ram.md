@@ -83,10 +83,10 @@ y cómo medir tu propia configuración en placa real.
 
 | Blueprint | ¿Compatible? | Notas |
 |---|:---:|---|
-| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ | Solo usa larga/fin de larga |
-| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ❌ **Incompatible** | Necesita 5 niveles de clic simultáneos, AceButton solo ofrece 2 — no funciona ni parcialmente, las pulsaciones 3/4/5 nunca llegan a HA |
-| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ | Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares |
-| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ | Solo usa corta |
+| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ Completa | Solo usa larga/fin de larga |
+| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ⚠️ Parcial | Las pulsaciones 1 (100%/0%), 2 (Area) y larga/fin de larga (subir/bajar/parar) funcionan igual que en `mega_pulsadores`. Las pulsaciones 3 (50%), 4 (±5%) y 5 (toda la casa) **no se disparan nunca** — sus triggers (`button_triple_press`/`quadruple`/`quintuple`) no existen en este firmware, y no hay error visible, simplemente esos botones no hacen nada |
+| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ Completa | Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares |
+| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ Completa | Solo usa corta |
 
 ## Configuración de pines y config.h
 
