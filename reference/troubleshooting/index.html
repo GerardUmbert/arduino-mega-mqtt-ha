@@ -1288,9 +1288,14 @@ vuelve a flashear. Si arranca bien, era RAM — ver
 <a href="../ram/">RAM y rendimiento</a> para medir el límite real de tu
 configuración.</p>
 <pre class="mermaid"><code>flowchart TD
-    Symptom["Bucle de reinicio,&lt;br/&gt;se corta a mitad de setup()"] --&gt; Test{"¿Arranca bien con&lt;br/&gt;menos pulsadores?"}
-    Test -- Sí --&gt; RAM["Era RAM — ver&lt;br/&gt;'RAM y rendimiento'"]
-    Test -- No --&gt; Other["Otra causa — revisa&lt;br/&gt;alimentación del shield Ethernet&lt;br/&gt;o wiring"]</code></pre>
+    Symptom["`Bucle de reinicio,
+    se corta a mitad de setup()`"] --&gt; Test{"`¿Arranca bien con
+    menos pulsadores?`"}
+    Test -- Sí --&gt; RAM["`Era RAM — ver
+    'RAM y rendimiento'`"]
+    Test -- No --&gt; Other["`Otra causa — revisa
+    alimentación del shield Ethernet
+    o wiring`"]</code></pre>
 <p><strong>Otras causas posibles</strong> (menos frecuentes):</p>
 <ul>
 <li><strong>Brownout del shield Ethernet</strong>: si la placa está alimentada solo
@@ -1335,19 +1340,19 @@ específicos son:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>persiana_pulsador_completo.yaml</code></td>
+<td><code>persiana_pulsador_completo</code></td>
 <td>corta, doble, triple, cuádruple, quíntuple, larga, fin de larga (los 7)</td>
 </tr>
 <tr>
-<td><code>luz_pulsador.yaml</code></td>
+<td><code>luz_pulsador</code></td>
 <td>corta, doble, larga</td>
 </tr>
 <tr>
-<td><code>persiana_pulsador.yaml</code></td>
+<td><code>persiana_pulsador</code></td>
 <td>larga, fin de larga</td>
 </tr>
 <tr>
-<td><code>luz_zigbee_respaldo.yaml</code></td>
+<td><code>luz_zigbee_respaldo</code></td>
 <td>corta</td>
 </tr>
 </tbody>

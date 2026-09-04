@@ -541,6 +541,25 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#si-te-bajaste-el-proyecto-como-zip-sin-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      Si te bajaste el proyecto como ZIP (sin git)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#si-clonaste-el-repositorio-con-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      Si clonaste el repositorio con git
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Si clonaste el repositorio con git">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#mega_pulsadores-y-mega_dispositivos" class="md-nav__link">
     <span class="md-ellipsis">
       mega_pulsadores/ y mega_dispositivos/
@@ -548,13 +567,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#mega_pulsadores_low_ram-un-paso-extra" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#mega_pulsadores_low_ram-un-paso-extra-con-git" class="md-nav__link">
     <span class="md-ellipsis">
-      mega_pulsadores_low_ram/ — un paso extra
+      mega_pulsadores_low_ram/ — un paso extra con git
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1147,6 +1171,25 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#si-te-bajaste-el-proyecto-como-zip-sin-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      Si te bajaste el proyecto como ZIP (sin git)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#si-clonaste-el-repositorio-con-git" class="md-nav__link">
+    <span class="md-ellipsis">
+      Si clonaste el repositorio con git
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Si clonaste el repositorio con git">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#mega_pulsadores-y-mega_dispositivos" class="md-nav__link">
     <span class="md-ellipsis">
       mega_pulsadores/ y mega_dispositivos/
@@ -1154,13 +1197,18 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#mega_pulsadores_low_ram-un-paso-extra" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#mega_pulsadores_low_ram-un-paso-extra-con-git" class="md-nav__link">
     <span class="md-ellipsis">
-      mega_pulsadores_low_ram/ — un paso extra
+      mega_pulsadores_low_ram/ — un paso extra con git
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1191,43 +1239,82 @@
 <p><code>BROKER_ADDR</code>, <code>MQTT_USER</code> y <code>MQTT_PASS</code> <strong>nunca</strong> se escriben
 directamente en los <code>.ino</code> — viven en un fichero <code>config.h</code> que cada
 sketch incluye vía <code>#include "config.h"</code>.</p>
-<p>Hay <strong>tres</strong> carpetas de firmware, cada una con su propio <code>config.h</code>:</p>
+<div class="admonition question">
+<p class="admonition-title">¿Descargaste el ZIP o clonaste con git?</p>
+<p>Esta página tiene pasos distintos según cómo te bajaste el
+proyecto. Si no sabes qué es "clonar con git" o nunca has abierto
+una terminal para nada relacionado con git, <strong>es casi seguro que
+te bajaste el ZIP</strong> — ve directo a esa sección.</p>
+</div>
+<h2 id="si-te-bajaste-el-proyecto-como-zip-sin-git">Si te bajaste el proyecto como ZIP (sin git)<a class="headerlink" href="#si-te-bajaste-el-proyecto-como-zip-sin-git" title="Permanent link">&para;</a></h2>
+<p>Esto es lo normal si has descargado el código desde el botón verde
+<strong>"Code" → "Download ZIP"</strong> de GitHub, o alguien te ha pasado la
+carpeta ya descomprimida.</p>
+<p><strong>No tienes que preocuparte por git en absoluto</strong> — no hay ningún
+riesgo de subir tus credenciales por error, porque no tienes forma de
+"subir" nada a ningún sitio, solo tienes los ficheros en tu ordenador.</p>
+<p>Pasos:</p>
+<ol>
+<li>Ve a cada una de estas tres carpetas: <code>mega_pulsadores/</code>,
+   <code>mega_dispositivos/</code>, <code>mega_pulsadores_low_ram/</code>.</li>
+<li>En cada una, busca un fichero llamado <code>config.h</code>:</li>
+<li>Si ya existe (<code>mega_pulsadores/</code> y <code>mega_dispositivos/</code> lo
+     traen), ábrelo directamente.</li>
+<li>Si no existe (<code>mega_pulsadores_low_ram/</code>), busca
+     <code>config.h.example</code>, haz una copia en la misma carpeta y
+     renómbrala a <code>config.h</code>.</li>
+<li>Abre <code>config.h</code> con cualquier editor de texto (Bloc de notas
+   sirve) y rellena tus valores reales:</li>
+<li><code>BROKER_ADDR</code>: la IP de tu Home Assistant / servidor Mosquitto.</li>
+<li><code>MQTT_USER</code> / <code>MQTT_PASS</code>: usuario y contraseña del broker MQTT.</li>
+<li>Guarda el fichero. Ya está — no hay ningún paso más.</li>
+</ol>
+<div class="admonition warning">
+<p class="admonition-title">No compartas ese fichero ni la carpeta entera</p>
+<p>Una vez rellenado, <code>config.h</code> contiene tus credenciales reales de
+red. Si vas a compartir tu copia del proyecto con otra persona
+(por email, USB, etc.), asegúrate de no incluir ese fichero
+relleno — comparte <code>config.h.example</code> en su lugar, o borra el
+contenido real antes de enviarlo.</p>
+</div>
+<h2 id="si-clonaste-el-repositorio-con-git">Si clonaste el repositorio con git<a class="headerlink" href="#si-clonaste-el-repositorio-con-git" title="Permanent link">&para;</a></h2>
+<p>Como el repositorio es público, hay que evitar que tus credenciales
+reales queden grabadas en el historial de git (que cualquiera puede
+ver). Por eso el proyecto usa una protección de git llamada
+<code>skip-worktree</code>.</p>
+<p><strong>¿Qué hace <code>skip-worktree</code>?</strong> Le dice a git "deja de vigilar cambios
+en este fichero concreto, ignóralo siempre a partir de ahora, aunque
+lo edite". Así puedes rellenar tus credenciales reales sin que
+aparezcan nunca en <code>git status</code> ni se incluyan nunca en un commit,
+aunque más tarde hagas <code>git add -A</code> o similar sin fijarte.</p>
 <table>
 <thead>
 <tr>
 <th>Carpeta</th>
 <th>¿<code>config.h</code> ya existe en el repo?</th>
-<th>¿Protegido con <code>skip-worktree</code>?</th>
+<th>¿Ya tiene <code>skip-worktree</code> aplicado?</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>mega_pulsadores/</code></td>
 <td>✅ Sí, con placeholders vacíos</td>
-<td>✅ Sí</td>
+<td>✅ Sí, de fábrica</td>
 </tr>
 <tr>
 <td><code>mega_dispositivos/</code></td>
 <td>✅ Sí, con placeholders vacíos</td>
-<td>✅ Sí</td>
+<td>✅ Sí, de fábrica</td>
 </tr>
 <tr>
 <td><code>mega_pulsadores_low_ram/</code></td>
 <td>❌ No — solo <code>config.h.example</code></td>
-<td>⚠️ No puede estarlo hasta que exista</td>
+<td>⚠️ No puede estarlo hasta que exista (ver más abajo)</td>
 </tr>
 </tbody>
 </table>
-<h2 id="mega_pulsadores-y-mega_dispositivos"><code>mega_pulsadores/</code> y <code>mega_dispositivos/</code><a class="headerlink" href="#mega_pulsadores-y-mega_dispositivos" title="Permanent link">&para;</a></h2>
-<p><code>config.h</code> <strong>sí</strong> viene incluido en el repo (con los <code>#define</code>
-vacíos/de ejemplo) para que el proyecto compile nada más clonarlo, sin
-pasos adicionales.</p>
-<p>Para que tus credenciales reales no se suban por error, ambos
-<code>config.h</code> están marcados localmente con
-<code>git update-index --skip-worktree</code>: una vez rellenes tus datos reales,
-git deja de detectar cambios en ese fichero y nunca aparecerá en
-<code>git status</code> ni se subirá en un commit.</p>
-<p><strong>Pasos:</strong></p>
+<h3 id="mega_pulsadores-y-mega_dispositivos"><code>mega_pulsadores/</code> y <code>mega_dispositivos/</code><a class="headerlink" href="#mega_pulsadores-y-mega_dispositivos" title="Permanent link">&para;</a></h3>
+<p>Estas dos ya vienen listas — no hace falta ningún comando de git.</p>
 <ol>
 <li>Abre directamente <code>config.h</code> (ya existe, con placeholders vacíos).</li>
 <li>Rellena <code>BROKER_ADDR</code>, <code>MQTT_USER</code> y <code>MQTT_PASS</code> con tus valores
@@ -1238,28 +1325,25 @@ hace falta copiarla, <code>config.h</code> ya está listo para editar.</p>
 <p>Como las 2 unidades de cada rol (A y B) comparten el mismo broker
 MQTT, normalmente usarás el mismo <code>config.h</code> en ambas — solo cambia el
 <code>#define PLACA_A</code>/<code>PLACA_B</code> para diferenciarlas.</p>
-<h2 id="mega_pulsadores_low_ram-un-paso-extra"><code>mega_pulsadores_low_ram/</code> — un paso extra<a class="headerlink" href="#mega_pulsadores_low_ram-un-paso-extra" title="Permanent link">&para;</a></h2>
-<div class="admonition warning">
-<p class="admonition-title">Este <code>config.h</code> NO está protegido todavía</p>
-<p><code>git update-index --skip-worktree</code> solo se puede aplicar a un
-fichero que <strong>ya existe</strong> en el repo. Como
-<code>mega_pulsadores_low_ram/config.h</code> nunca se ha creado (a
-diferencia de los otros dos), hay que aplicar el flag <strong>tú
-mismo</strong>, en el orden correcto, o corres el riesgo de subir
-credenciales reales por error.</p>
-</div>
-<p><strong>Pasos, en este orden exacto:</strong></p>
+<h3 id="mega_pulsadores_low_ram-un-paso-extra-con-git"><code>mega_pulsadores_low_ram/</code> — un paso extra con git<a class="headerlink" href="#mega_pulsadores_low_ram-un-paso-extra-con-git" title="Permanent link">&para;</a></h3>
+<p>Como este <code>config.h</code> nunca se ha creado en el repo, <code>skip-worktree</code> no
+se le puede aplicar de antemano — solo funciona sobre ficheros que ya
+existen. Tienes que crearlo y protegerlo tú mismo, <strong>en este orden</strong>:</p>
 <pre class="mermaid"><code>flowchart TD
-    A["1. Copiar config.h.example&lt;br/&gt;como config.h"] --&gt; B["2. Aplicar skip-worktree&lt;br/&gt;ANTES de rellenar nada"]
-    B --&gt; C["3. Ahora sí, rellenar&lt;br/&gt;BROKER_ADDR / MQTT_USER / MQTT_PASS"]
-    C --&gt; D["git status ya no detecta&lt;br/&gt;cambios en ese fichero"]
+    A["`1. Copiar config.h.example
+    como config.h`"] --&gt; B["`2. Aplicar skip-worktree
+    ANTES de rellenar nada`"]
+    B --&gt; C["`3. Ahora sí, rellenar
+    BROKER_ADDR / MQTT_USER / MQTT_PASS`"]
+    C --&gt; D["`git status ya no detecta
+    cambios en ese fichero`"]
 
     style B fill:#b45309,color:#fff</code></pre>
 <ol>
 <li>Copia <code>config.h.example</code> como <code>config.h</code> en
    <code>mega_pulsadores_low_ram/</code>.</li>
-<li><strong>Antes de rellenar nada real</strong>, marca el fichero para que git
-   ignore futuros cambios:
+<li><strong>Antes de rellenar nada real</strong>, abre una terminal en la carpeta
+   del proyecto y ejecuta:
    <div class="highlight"><pre><span></span><code>git update-index --skip-worktree mega_pulsadores_low_ram/config.h
 </code></pre></div></li>
 <li>Ahora sí, rellena <code>BROKER_ADDR</code>/<code>MQTT_USER</code>/<code>MQTT_PASS</code> con tus
@@ -1267,7 +1351,7 @@ credenciales reales por error.</p>
 </ol>
 <div class="admonition danger">
 <p class="admonition-title">Si rellenaste credenciales reales antes del paso 2</p>
-<p>Revisa <code>git status</code> — si <code>mega_pulsadores_low_ram/config.h</code>
+<p>Ejecuta <code>git status</code> — si <code>mega_pulsadores_low_ram/config.h</code>
 aparece como modificado/nuevo, <strong>no hagas commit todavía</strong>. Aplica
 el <code>skip-worktree</code> del paso 2 primero.</p>
 </div>

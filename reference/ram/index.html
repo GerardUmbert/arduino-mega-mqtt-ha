@@ -1324,11 +1324,19 @@ la lección que costó ese error.</p>
 </div>
 <h2 id="por-que-el-limite-es-tan-bajo">Por qué el límite es tan bajo<a class="headerlink" href="#por-que-el-limite-es-tan-bajo" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
-    Total["8192 bytes SRAM total"] --&gt; Fixed["Coste fijo:&lt;br/&gt;Ethernet shield + PubSubClient&lt;br/&gt;+ ArduinoHA base"]
-    Total --&gt; PerButton["Coste por pulsador:&lt;br/&gt;objeto OneButton/AceButton&lt;br/&gt;+ N × HADeviceTrigger&lt;br/&gt;+ buffer de ID"]
+    Total["8192 bytes SRAM total"] --&gt; Fixed["`Coste fijo:
+    Ethernet shield + PubSubClient
+    + ArduinoHA base`"]
+    Total --&gt; PerButton["`Coste por pulsador:
+    objeto OneButton/AceButton
+    + N × HADeviceTrigger
+    + buffer de ID`"]
 
-    Fixed -.-&gt;|"no medido con precisión&lt;br/&gt;todavía, ver 'Cómo medir'"| Unknown1["?"]
-    PerButton -.-&gt;|"~90-100 B/pulsador con OneButton&lt;br/&gt;~18-26 B/pulsador con AceButton&lt;br/&gt;(7 triggers activos, teórico)"| Unknown2["?"]</code></pre>
+    Fixed -.-&gt;|"`no medido con precisión
+    todavía, ver 'Cómo medir'`"| Unknown1["?"]
+    PerButton -.-&gt;|"`~90-100 B/pulsador con OneButton
+    ~18-26 B/pulsador con AceButton
+    (7 triggers activos, teórico)`"| Unknown2["?"]</code></pre>
 <ul>
 <li><strong>Coste fijo</strong> (Ethernet + PubSubClient + ArduinoHA): se paga una
   sola vez por unidad, independiente de cuántos pulsadores tengas.
@@ -1381,9 +1389,15 @@ configuraciones</strong> y comparar las diferencias.</p>
 </div>
 <h3 id="plan-de-medicion-3-4-ciclos-flash-y-lee">Plan de medición (3-4 ciclos flash-y-lee)<a class="headerlink" href="#plan-de-medicion-3-4-ciclos-flash-y-lee" title="Permanent link">&para;</a></h3>
 <pre class="mermaid"><code>flowchart LR
-    S1["1. PINES_BOTONES = {}&lt;br/&gt;(0 pulsadores)"] --&gt;|"lee RAM libre"| R1["Coste fijo puro&lt;br/&gt;de Ethernet+MQTT"]
-    S2["2. PINES_BOTONES = 12 pines&lt;br/&gt;(mismos triggers)"] --&gt;|"lee RAM libre"| R2["(R1 − R2) / 12 =&lt;br/&gt;bytes por pulsador"]
-    S3["3. Mismos 12 pines +&lt;br/&gt;HABILITAR_TRIPLE/CUADRUPLE/QUINTUPLE"] --&gt;|"lee RAM libre"| R3["(R2 − R3) / 12 =&lt;br/&gt;coste de los 3 triggers extra"]
+    S1["`1. PINES_BOTONES = {}
+    (0 pulsadores)`"] --&gt;|"lee RAM libre"| R1["`Coste fijo puro
+    de Ethernet+MQTT`"]
+    S2["`2. PINES_BOTONES = 12 pines
+    (mismos triggers)`"] --&gt;|"lee RAM libre"| R2["`(R1 − R2) / 12 =
+    bytes por pulsador`"]
+    S3["`3. Mismos 12 pines +
+    HABILITAR_TRIPLE/CUADRUPLE/QUINTUPLE`"] --&gt;|"lee RAM libre"| R3["`(R2 − R3) / 12 =
+    coste de los 3 triggers extra`"]
 
     S1 --&gt; S2 --&gt; S3</code></pre>
 <ol>

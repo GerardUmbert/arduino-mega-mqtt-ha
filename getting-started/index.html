@@ -1130,18 +1130,24 @@ paso extra antes de todo esto: decidir qué firmware usar. Ver la
 <a href="../firmware/decision/">guía de decisión</a>.</p>
 <h2 id="resumen-del-flujo-de-trabajo">Resumen del flujo de trabajo<a class="headerlink" href="#resumen-del-flujo-de-trabajo" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
-    A[Clonar el repo] --&gt; B{"¿Qué unidad vas a flashear?"}
-    B -- "Pulsadores" --&gt; C["Guía de decisión:&lt;br/&gt;¿OneButton o AceButton?"]
+    A["`Descargar el proyecto
+    (ZIP o git clone)`"] --&gt; B{"¿Qué unidad vas a flashear?"}
+    B -- Pulsadores --&gt; C["`Guía de decisión:
+    ¿OneButton o AceButton?`"]
     B -- "Dispositivos (relés)" --&gt; D["mega_dispositivos/"]
     C --&gt; E["mega_pulsadores/"]
     C --&gt; F["mega_pulsadores_low_ram/"]
-    E --&gt; G["Rellenar config.h&lt;br/&gt;de esa carpeta"]
+    E --&gt; G["`Rellenar config.h
+    de esa carpeta`"]
     F --&gt; G
     D --&gt; G
-    G --&gt; H["Elegir PLACA_A o PLACA_B&lt;br/&gt;en el .ino"]
-    H --&gt; I["Editar board_config_X.h&lt;br/&gt;con los pines reales"]
+    G --&gt; H["`Elegir PLACA_A o PLACA_B
+    en el .ino`"]
+    H --&gt; I["`Editar board_config_X.h
+    con los pines reales`"]
     I --&gt; J["Compilar y subir"]
-    J --&gt; K["Verificar en HA:&lt;br/&gt;Ajustes → MQTT"]</code></pre>
+    J --&gt; K["`Verificar en HA:
+    Ajustes → MQTT`"]</code></pre>
 
 
 

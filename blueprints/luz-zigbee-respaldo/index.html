@@ -1237,17 +1237,23 @@ TRÅDFRI WW/CW regulable).</p>
 <p>Hace tres cosas independientes:</p>
 <pre class="mermaid"><code>flowchart TD
     subgraph Siempre["1. Pulsador físico (siempre activo)"]
-        Click["Pulsación corta"] --&gt; Toggle["Toggle bombilla Zigbee&lt;br/&gt;(encender/apagar normal)"]
-        Click --&gt; Force["Relé se fuerza a ON siempre&lt;br/&gt;(nunca hace toggle desde el pulsador)"]
+        Click["Pulsación corta"] --&gt; Toggle["`Toggle bombilla Zigbee
+        (encender/apagar normal)`"]
+        Click --&gt; Force["`Relé se fuerza a ON siempre
+        (nunca hace toggle desde el pulsador)`"]
     end
 
     subgraph Opcional1["2. Al volver a encenderse sola (opcional)"]
-        Recovers["Bombilla pasa a 'on'&lt;br/&gt;por su cuenta (tras un corte)"] --&gt; Apply["HA aplica brillo/temperatura&lt;br/&gt;por defecto"]
+        Recovers["`Bombilla pasa a 'on'
+        por su cuenta (tras un corte)`"] --&gt; Apply["`HA aplica brillo/temperatura
+        por defecto`"]
     end
 
     subgraph Opcional2["3. Temperatura por hora del día (opcional)"]
-        Timer["Cada 15 min"] --&gt; Sun["Calcula según sun.sun&lt;br/&gt;(cálida de noche, neutra a mediodía)"]
-        Sun --&gt; OnlyIfOn{"¿Bombilla&lt;br/&gt;encendida?"}
+        Timer["Cada 15 min"] --&gt; Sun["`Calcula según sun.sun
+        (cálida de noche, neutra a mediodía)`"]
+        Sun --&gt; OnlyIfOn{"`¿Bombilla
+        encendida?`"}
         OnlyIfOn -- Sí --&gt; ApplyTemp["Aplica temperatura"]
         OnlyIfOn -- No --&gt; Skip["No hace nada"]
     end</code></pre>

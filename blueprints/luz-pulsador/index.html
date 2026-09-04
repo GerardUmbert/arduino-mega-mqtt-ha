@@ -1246,10 +1246,15 @@ blueprint funcionara en ambos firmwares sin distinción — ver
 <pre class="mermaid"><code>flowchart TD
     P["Pulsación"] --&gt; T{"¿Qué tipo?"}
     T -- corta --&gt; C["Toggle SOLO esta luz"]
-    T -- doble --&gt; D["Enciende esta luz +&lt;br/&gt;temporizador de apagado (N min)"]
-    T -- larga --&gt; L{"¿Alguna luz de la&lt;br/&gt;Area está encendida?"}
-    L -- Sí --&gt; L1["Apaga TODAS las luces de la Area&lt;br/&gt;+ cierra persianas de la Area&lt;br/&gt;('buenas noches')"]
-    L -- No --&gt; L2["Enciende TODAS las luces de la Area&lt;br/&gt;(persianas NO se tocan)"]</code></pre>
+    T -- doble --&gt; D["`Enciende esta luz +
+    temporizador de apagado (N min)`"]
+    T -- larga --&gt; L{"`¿Alguna luz de la
+    Area está encendida?`"}
+    L -- Sí --&gt; L1["`Apaga TODAS las luces de la Area
+    + cierra persianas de la Area
+    ('buenas noches')`"]
+    L -- No --&gt; L2["`Enciende TODAS las luces de la Area
+    (persianas NO se tocan)`"]</code></pre>
 <div class="admonition info">
 <p class="admonition-title">Gesto 'buenas noches'</p>
 <p>La pulsación larga, <strong>solo en la rama de apagar</strong> (había alguna

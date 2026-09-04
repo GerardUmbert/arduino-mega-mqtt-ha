@@ -1294,18 +1294,26 @@ con un <code>#define</code> al principio del <code>.ino</code>:</p>
 </tbody>
 </table>
 <pre class="mermaid"><code>flowchart LR
-    Btn(["Pulsador físico&lt;br/&gt;(pin digital)"]) --&gt; OB["OneButton&lt;br/&gt;.tick()"]
+    Btn(["`Pulsador físico
+    (pin digital)`"]) --&gt; OB["`OneButton
+    .tick()`"]
     OB -- "attachClick" --&gt; C{"HABILITAR_CORTA?"}
     OB -- "attachDoubleClick" --&gt; D{"HABILITAR_DOBLE?"}
-    OB -- "attachMultiClick" --&gt; M{"triple/cuádruple/&lt;br/&gt;quíntuple activos?"}
+    OB -- "attachMultiClick" --&gt; M{"`triple/cuádruple/
+    quíntuple activos?`"}
     OB -- "attachLongPressStart" --&gt; L{"HABILITAR_LARGA?"}
     OB -- "attachLongPressStop" --&gt; LF{"HABILITAR_LARGA_FIN?"}
 
-    C -- Sí --&gt; T1["HADeviceTrigger&lt;br/&gt;ButtonShortPressType"]
-    D -- Sí --&gt; T2["HADeviceTrigger&lt;br/&gt;ButtonDoublePressType"]
-    M -- Sí --&gt; T3["HADeviceTrigger&lt;br/&gt;Triple/Cuádruple/Quíntuple"]
-    L -- Sí --&gt; T4["HADeviceTrigger&lt;br/&gt;ButtonLongPressType"]
-    LF -- Sí --&gt; T5["HADeviceTrigger&lt;br/&gt;ButtonLongReleaseType"]
+    C -- Sí --&gt; T1["`HADeviceTrigger
+    ButtonShortPressType`"]
+    D -- Sí --&gt; T2["`HADeviceTrigger
+    ButtonDoublePressType`"]
+    M -- Sí --&gt; T3["`HADeviceTrigger
+    Triple/Cuádruple/Quíntuple`"]
+    L -- Sí --&gt; T4["`HADeviceTrigger
+    ButtonLongPressType`"]
+    LF -- Sí --&gt; T5["`HADeviceTrigger
+    ButtonLongReleaseType`"]
 
     T1 &amp; T2 &amp; T3 &amp; T4 &amp; T5 --&gt; MQTT[("MQTT → Home Assistant")]</code></pre>
 <div class="admonition warning">

@@ -1208,21 +1208,37 @@
 <h1 id="guia-de-decision-que-firmware-de-pulsadores-flashear">Guía de decisión: ¿qué firmware de pulsadores flashear?<a class="headerlink" href="#guia-de-decision-que-firmware-de-pulsadores-flashear" title="Permanent link">&para;</a></h1>
 <h2 id="diagrama-de-decision">Diagrama de decisión<a class="headerlink" href="#diagrama-de-decision" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
-    Start(["¿Qué firmware flasheo&lt;br/&gt;en esta unidad?"]) --&gt; Q1{"¿Vas a instanciar&lt;br/&gt;persiana_pulsador_completo.yaml&lt;br/&gt;en algún pulsador de esta unidad?"}
+    Q1{"`¿Vas a instanciar
+    persiana_pulsador_completo.yaml
+    en algún pulsador de esta unidad?`"}
+    Q2{"`¿Necesitas más pulsadores
+    de los que caben con OneButton?
+    (confirmado con freeMemory,
+    no asumido)`"}
+    Q3{"`¿Alguno de esos pulsadores
+    extra necesita triple, cuádruple
+    o quíntuple clic?`"}
 
-    Q1 -- "Sí" --&gt; UseOne1["✅ mega_pulsadores&lt;br/&gt;(OneButton)"]
-    Q1 -- "No / no lo sé" --&gt; Q2{"¿Sabes ya que necesitas&lt;br/&gt;más pulsadores de los que&lt;br/&gt;caben con OneButton?"}
+    Q1 --&gt;|Sí| UseOne1["`mega_pulsadores
+    (OneButton)`"]
+    Q1 --&gt;|No o no lo sé| Q2
 
-    Q2 -- "No / no lo he medido" --&gt; UseOne2["✅ mega_pulsadores&lt;br/&gt;(OneButton) — opción por defecto"]
-    Q2 -- "Sí, confirmado con freeMemory()" --&gt; Q3{"¿Alguno de esos pulsadores&lt;br/&gt;extra necesita triple/cuádruple/&lt;br/&gt;quíntuple clic?"}
+    Q2 --&gt;|No| UseOne2["`mega_pulsadores
+    (OneButton) — opción por defecto`"]
+    Q2 --&gt;|Sí| Q3
 
-    Q3 -- "Sí" --&gt; Split["No cambies de librería —&lt;br/&gt;reparte pulsadores en una&lt;br/&gt;3ª unidad física (PLACA_C)"]
-    Q3 -- "No" --&gt; UseLow["✅ mega_pulsadores_low_ram&lt;br/&gt;(AceButton)"]
+    Q3 --&gt;|Sí| Split["`No cambies de librería:
+    reparte pulsadores en una
+    3ª unidad física PLACA_C`"]
+    Q3 --&gt;|No| UseLow["`mega_pulsadores_low_ram
+    (AceButton)`"]
 
-    style UseOne1 fill:#00695c,color:#fff
-    style UseOne2 fill:#00695c,color:#fff
-    style UseLow fill:#0277bd,color:#fff
-    style Split fill:#7b1fa2,color:#fff</code></pre>
+    classDef oneButton fill:#00695c,color:#fff,stroke:#004d40
+    classDef lowRam fill:#0277bd,color:#fff,stroke:#01579b
+    classDef split fill:#7b1fa2,color:#fff,stroke:#4a148c
+    class UseOne1,UseOne2 oneButton
+    class UseLow lowRam
+    class Split split</code></pre>
 <h2 id="por-que-esta-es-la-regla">Por qué esta es la regla<a class="headerlink" href="#por-que-esta-es-la-regla" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong><code>persiana_pulsador_completo.yaml</code> es el único caso sin remedio.</strong>
@@ -1255,22 +1271,22 @@
 </thead>
 <tbody>
 <tr>
-<td><a href="../../blueprints/persiana-pulsador/"><code>persiana_pulsador.yaml</code></a></td>
+<td><a href="../../blueprints/persiana-pulsador/"><code>persiana_pulsador</code></a></td>
 <td style="text-align: center;">✅</td>
 <td style="text-align: center;">✅ (solo usa larga/fin de larga)</td>
 </tr>
 <tr>
-<td><a href="../../blueprints/persiana-pulsador-completo/"><code>persiana_pulsador_completo.yaml</code></a></td>
+<td><a href="../../blueprints/persiana-pulsador-completo/"><code>persiana_pulsador_completo</code></a></td>
 <td style="text-align: center;">✅</td>
-<td style="text-align: center;">❌ <strong>incompatible</strong></td>
+<td style="text-align: center;">❌ <strong>Incompatible</strong></td>
 </tr>
 <tr>
-<td><a href="../../blueprints/luz-pulsador/"><code>luz_pulsador.yaml</code></a></td>
+<td><a href="../../blueprints/luz-pulsador/"><code>luz_pulsador</code></a></td>
 <td style="text-align: center;">✅</td>
 <td style="text-align: center;">✅ (usa corta/doble/larga)</td>
 </tr>
 <tr>
-<td><a href="../../blueprints/luz-zigbee-respaldo/"><code>luz_zigbee_respaldo.yaml</code></a></td>
+<td><a href="../../blueprints/luz-zigbee-respaldo/"><code>luz_zigbee_respaldo</code></a></td>
 <td style="text-align: center;">✅</td>
 <td style="text-align: center;">✅ (solo usa corta)</td>
 </tr>

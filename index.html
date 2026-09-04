@@ -1193,13 +1193,15 @@ directamente entre sí.</strong></p>
         PA["Mega Pulsadores A"]
         PB["Mega Pulsadores B"]
     end
-    HA(("Home Assistant&lt;br/&gt;+ Mosquitto MQTT"))
+    HA(("`Home Assistant
+    + Mosquitto MQTT`"))
     subgraph D["Relés"]
         DA["Mega Dispositivos A"]
         DB["Mega Dispositivos B"]
     end
 
-    PA -- "device triggers&lt;br/&gt;(corta/doble/larga...)" --&gt; HA
+    PA -- "`device triggers
+    (corta/doble/larga...)`" --&gt; HA
     PB -- "device triggers" --&gt; HA
     HA -- "automatizaciones" --&gt; HA
     HA -- "cover.*, switch.*" --&gt; DA

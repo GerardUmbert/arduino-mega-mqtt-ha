@@ -1317,18 +1317,25 @@ librería solo distingue click simple y doble click.</p>
 </tbody>
 </table>
 <pre class="mermaid"><code>flowchart LR
-    Btn(["Pulsador físico&lt;br/&gt;(pin digital)"]) --&gt; AB["AceButton&lt;br/&gt;.check()"]
-    AB --&gt; Handler["handleEvent()&lt;br/&gt;(1 solo handler global)"]
+    Btn(["`Pulsador físico
+    (pin digital)`"]) --&gt; AB["`AceButton
+    .check()`"]
+    AB --&gt; Handler["`handleEvent()
+    (1 solo handler global)`"]
 
     Handler -- "kEventClicked" --&gt; C{"HABILITAR_CORTA?"}
     Handler -- "kEventDoubleClicked" --&gt; D{"HABILITAR_DOBLE?"}
     Handler -- "kEventLongPressed" --&gt; L{"HABILITAR_LARGA?"}
     Handler -- "kEventLongReleased" --&gt; LF{"HABILITAR_LARGA_FIN?"}
 
-    C -- Sí --&gt; T1["HADeviceTrigger&lt;br/&gt;ButtonShortPressType"]
-    D -- Sí --&gt; T2["HADeviceTrigger&lt;br/&gt;ButtonDoublePressType"]
-    L -- Sí --&gt; T3["HADeviceTrigger&lt;br/&gt;ButtonLongPressType"]
-    LF -- Sí --&gt; T4["HADeviceTrigger&lt;br/&gt;ButtonLongReleaseType"]
+    C -- Sí --&gt; T1["`HADeviceTrigger
+    ButtonShortPressType`"]
+    D -- Sí --&gt; T2["`HADeviceTrigger
+    ButtonDoublePressType`"]
+    L -- Sí --&gt; T3["`HADeviceTrigger
+    ButtonLongPressType`"]
+    LF -- Sí --&gt; T4["`HADeviceTrigger
+    ButtonLongReleaseType`"]
 
     T1 &amp; T2 &amp; T3 &amp; T4 --&gt; MQTT[("MQTT → Home Assistant")]</code></pre>
 <h2 id="diferencia-clave-con-onebutton-en-el-codigo">Diferencia clave con OneButton en el código<a class="headerlink" href="#diferencia-clave-con-onebutton-en-el-codigo" title="Permanent link">&para;</a></h2>
@@ -1373,22 +1380,22 @@ y cómo medir tu propia configuración en placa real.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="../../blueprints/persiana-pulsador/"><code>persiana_pulsador.yaml</code></a></td>
+<td><a href="../../blueprints/persiana-pulsador/"><code>persiana_pulsador</code></a></td>
 <td style="text-align: center;">✅</td>
 <td>Solo usa larga/fin de larga</td>
 </tr>
 <tr>
-<td><a href="../../blueprints/persiana-pulsador-completo/"><code>persiana_pulsador_completo.yaml</code></a></td>
-<td style="text-align: center;">❌</td>
-<td><strong>Incompatible sin remedio</strong> — necesita 5 niveles de clic simultáneos, AceButton solo ofrece 2</td>
+<td><a href="../../blueprints/persiana-pulsador-completo/"><code>persiana_pulsador_completo</code></a></td>
+<td style="text-align: center;">❌ <strong>Incompatible</strong></td>
+<td>Necesita 5 niveles de clic simultáneos, AceButton solo ofrece 2 — no funciona ni parcialmente, las pulsaciones 3/4/5 nunca llegan a HA</td>
 </tr>
 <tr>
-<td><a href="../../blueprints/luz-pulsador/"><code>luz_pulsador.yaml</code></a></td>
+<td><a href="../../blueprints/luz-pulsador/"><code>luz_pulsador</code></a></td>
 <td style="text-align: center;">✅</td>
 <td>Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares</td>
 </tr>
 <tr>
-<td><a href="../../blueprints/luz-zigbee-respaldo/"><code>luz_zigbee_respaldo.yaml</code></a></td>
+<td><a href="../../blueprints/luz-zigbee-respaldo/"><code>luz_zigbee_respaldo</code></a></td>
 <td style="text-align: center;">✅</td>
 <td>Solo usa corta</td>
 </tr>
@@ -1404,7 +1411,7 @@ carpeta que el <code>.ino</code>):</p>
   compartidas. Si cambias pines/MAC/IP en una carpeta, revisa si el
   mismo cambio aplica también en la otra.</li>
 <li><code>mega_pulsadores_low_ram/config.h</code> — necesita un paso extra al
-  crearlo, ver <a href="../../getting-started/config/#mega_pulsadores_low_ram-un-paso-extra">Configuración (config.h)</a>.</li>
+  crearlo, ver <a href="../../getting-started/config/#mega_pulsadores_low_ram-un-paso-extra-con-git">Configuración (config.h)</a>.</li>
 </ul>
 
 
