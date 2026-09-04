@@ -37,18 +37,25 @@ librería solo distingue click simple y doble click.
 
 ```mermaid
 flowchart LR
-    Btn(["Pulsador físico<br/>(pin digital)"]) --> AB["AceButton<br/>.check()"]
-    AB --> Handler["handleEvent()<br/>(1 solo handler global)"]
+    Btn(["`Pulsador físico
+    (pin digital)`"]) --> AB["`AceButton
+    .check()`"]
+    AB --> Handler["`handleEvent()
+    (1 solo handler global)`"]
 
     Handler -- "kEventClicked" --> C{"HABILITAR_CORTA?"}
     Handler -- "kEventDoubleClicked" --> D{"HABILITAR_DOBLE?"}
     Handler -- "kEventLongPressed" --> L{"HABILITAR_LARGA?"}
     Handler -- "kEventLongReleased" --> LF{"HABILITAR_LARGA_FIN?"}
 
-    C -- Sí --> T1["HADeviceTrigger<br/>ButtonShortPressType"]
-    D -- Sí --> T2["HADeviceTrigger<br/>ButtonDoublePressType"]
-    L -- Sí --> T3["HADeviceTrigger<br/>ButtonLongPressType"]
-    LF -- Sí --> T4["HADeviceTrigger<br/>ButtonLongReleaseType"]
+    C -- Sí --> T1["`HADeviceTrigger
+    ButtonShortPressType`"]
+    D -- Sí --> T2["`HADeviceTrigger
+    ButtonDoublePressType`"]
+    L -- Sí --> T3["`HADeviceTrigger
+    ButtonLongPressType`"]
+    LF -- Sí --> T4["`HADeviceTrigger
+    ButtonLongReleaseType`"]
 
     T1 & T2 & T3 & T4 --> MQTT[("MQTT → Home Assistant")]
 ```
@@ -76,10 +83,10 @@ y cómo medir tu propia configuración en placa real.
 
 | Blueprint | ¿Compatible? | Notas |
 |---|:---:|---|
-| [`persiana_pulsador.yaml`](../blueprints/persiana-pulsador.md) | ✅ | Solo usa larga/fin de larga |
-| [`persiana_pulsador_completo.yaml`](../blueprints/persiana-pulsador-completo.md) | ❌ | **Incompatible sin remedio** — necesita 5 niveles de clic simultáneos, AceButton solo ofrece 2 |
-| [`luz_pulsador.yaml`](../blueprints/luz-pulsador.md) | ✅ | Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares |
-| [`luz_zigbee_respaldo.yaml`](../blueprints/luz-zigbee-respaldo.md) | ✅ | Solo usa corta |
+| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ | Solo usa larga/fin de larga |
+| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ❌ **Incompatible** | Necesita 5 niveles de clic simultáneos, AceButton solo ofrece 2 — no funciona ni parcialmente, las pulsaciones 3/4/5 nunca llegan a HA |
+| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ | Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares |
+| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ | Solo usa corta |
 
 ## Configuración de pines y config.h
 
@@ -92,4 +99,4 @@ carpeta que el `.ino`):
   compartidas. Si cambias pines/MAC/IP en una carpeta, revisa si el
   mismo cambio aplica también en la otra.
 - `mega_pulsadores_low_ram/config.h` — necesita un paso extra al
-  crearlo, ver [Configuración (config.h)](../getting-started/config.md#mega_pulsadores_low_ram-un-paso-extra).
+  crearlo, ver [Configuración (config.h)](../getting-started/config.md#mega_pulsadores_low_ram-un-paso-extra-con-git).

@@ -36,9 +36,14 @@ configuración.
 
 ```mermaid
 flowchart TD
-    Symptom["Bucle de reinicio,<br/>se corta a mitad de setup()"] --> Test{"¿Arranca bien con<br/>menos pulsadores?"}
-    Test -- Sí --> RAM["Era RAM — ver<br/>'RAM y rendimiento'"]
-    Test -- No --> Other["Otra causa — revisa<br/>alimentación del shield Ethernet<br/>o wiring"]
+    Symptom["`Bucle de reinicio,
+    se corta a mitad de setup()`"] --> Test{"`¿Arranca bien con
+    menos pulsadores?`"}
+    Test -- Sí --> RAM["`Era RAM — ver
+    'RAM y rendimiento'`"]
+    Test -- No --> Other["`Otra causa — revisa
+    alimentación del shield Ethernet
+    o wiring`"]
 ```
 
 **Otras causas posibles** (menos frecuentes):
@@ -87,10 +92,10 @@ específicos son:
 
 | Blueprint | Eventos que necesita |
 |---|---|
-| `persiana_pulsador_completo.yaml` | corta, doble, triple, cuádruple, quíntuple, larga, fin de larga (los 7) |
-| `luz_pulsador.yaml` | corta, doble, larga |
-| `persiana_pulsador.yaml` | larga, fin de larga |
-| `luz_zigbee_respaldo.yaml` | corta |
+| `persiana_pulsador_completo` | corta, doble, triple, cuádruple, quíntuple, larga, fin de larga (los 7) |
+| `luz_pulsador` | corta, doble, larga |
+| `persiana_pulsador` | larga, fin de larga |
+| `luz_zigbee_respaldo` | corta |
 
 Revisa la tabla de compatibilidad completa en la
 [guía de decisión](../firmware/decision.md).

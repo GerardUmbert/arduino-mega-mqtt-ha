@@ -27,10 +27,15 @@ las luces actuales no tienen control de brillo).
 flowchart TD
     P["Pulsación"] --> T{"¿Qué tipo?"}
     T -- corta --> C["Toggle SOLO esta luz"]
-    T -- doble --> D["Enciende esta luz +<br/>temporizador de apagado (N min)"]
-    T -- larga --> L{"¿Alguna luz de la<br/>Area está encendida?"}
-    L -- Sí --> L1["Apaga TODAS las luces de la Area<br/>+ cierra persianas de la Area<br/>('buenas noches')"]
-    L -- No --> L2["Enciende TODAS las luces de la Area<br/>(persianas NO se tocan)"]
+    T -- doble --> D["`Enciende esta luz +
+    temporizador de apagado (N min)`"]
+    T -- larga --> L{"`¿Alguna luz de la
+    Area está encendida?`"}
+    L -- Sí --> L1["`Apaga TODAS las luces de la Area
+    + cierra persianas de la Area
+    ('buenas noches')`"]
+    L -- No --> L2["`Enciende TODAS las luces de la Area
+    (persianas NO se tocan)`"]
 ```
 
 !!! info "Gesto 'buenas noches'"

@@ -15,13 +15,15 @@ flowchart LR
         PA["Mega Pulsadores A"]
         PB["Mega Pulsadores B"]
     end
-    HA(("Home Assistant<br/>+ Mosquitto MQTT"))
+    HA(("`Home Assistant
+    + Mosquitto MQTT`"))
     subgraph D["Relés"]
         DA["Mega Dispositivos A"]
         DB["Mega Dispositivos B"]
     end
 
-    PA -- "device triggers<br/>(corta/doble/larga...)" --> HA
+    PA -- "`device triggers
+    (corta/doble/larga...)`" --> HA
     PB -- "device triggers" --> HA
     HA -- "automatizaciones" --> HA
     HA -- "cover.*, switch.*" --> DA

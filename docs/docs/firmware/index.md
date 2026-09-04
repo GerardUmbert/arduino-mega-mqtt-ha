@@ -9,7 +9,7 @@ internamente:
 |---|---|---|
 | Librería de botones | `OneButton` | `AceButton` |
 | RAM por pulsador | ~90-100 bytes (fijo) | ~18-26 bytes |
-| Pulsaciones soportadas | Las 7 | Solo 4: corta, doble, larga, fin de larga |
+| Pulsaciones soportadas | Las 7: corta, doble, triple, cuádruple, quíntuple, larga, fin de larga | Solo 4: corta, doble, larga, fin de larga |
 
 **No sabes cuál usar?** → [Guía de decisión](decision.md)
 

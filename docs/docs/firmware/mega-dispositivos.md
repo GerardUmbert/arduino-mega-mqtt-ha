@@ -7,9 +7,12 @@ Firmware para las unidades que controlan relés de luces y persianas.
 
 ```mermaid
 flowchart LR
-    HA(("Home Assistant")) -- "switch.turn_on/off" --> SW["HASwitch<br/>(luces)"]
-    HA -- "cover.open/close/stop_cover" --> COV["HACover<br/>(persianas)"]
-    SW --> RelayL["Relé de luz<br/>(digitalWrite)"]
+    HA(("Home Assistant")) -- "switch.turn_on/off" --> SW["`HASwitch
+    (luces)`"]
+    HA -- "cover.open/close/stop_cover" --> COV["`HACover
+    (persianas)`"]
+    SW --> RelayL["`Relé de luz
+    (digitalWrite)`"]
     COV --> RelaySub["Relé subir"]
     COV --> RelayBaj["Relé bajar"]
 ```

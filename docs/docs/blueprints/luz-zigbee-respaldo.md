@@ -16,17 +16,23 @@ Hace tres cosas independientes:
 ```mermaid
 flowchart TD
     subgraph Siempre["1. Pulsador físico (siempre activo)"]
-        Click["Pulsación corta"] --> Toggle["Toggle bombilla Zigbee<br/>(encender/apagar normal)"]
-        Click --> Force["Relé se fuerza a ON siempre<br/>(nunca hace toggle desde el pulsador)"]
+        Click["Pulsación corta"] --> Toggle["`Toggle bombilla Zigbee
+        (encender/apagar normal)`"]
+        Click --> Force["`Relé se fuerza a ON siempre
+        (nunca hace toggle desde el pulsador)`"]
     end
 
     subgraph Opcional1["2. Al volver a encenderse sola (opcional)"]
-        Recovers["Bombilla pasa a 'on'<br/>por su cuenta (tras un corte)"] --> Apply["HA aplica brillo/temperatura<br/>por defecto"]
+        Recovers["`Bombilla pasa a 'on'
+        por su cuenta (tras un corte)`"] --> Apply["`HA aplica brillo/temperatura
+        por defecto`"]
     end
 
     subgraph Opcional2["3. Temperatura por hora del día (opcional)"]
-        Timer["Cada 15 min"] --> Sun["Calcula según sun.sun<br/>(cálida de noche, neutra a mediodía)"]
-        Sun --> OnlyIfOn{"¿Bombilla<br/>encendida?"}
+        Timer["Cada 15 min"] --> Sun["`Calcula según sun.sun
+        (cálida de noche, neutra a mediodía)`"]
+        Sun --> OnlyIfOn{"`¿Bombilla
+        encendida?`"}
         OnlyIfOn -- Sí --> ApplyTemp["Aplica temperatura"]
         OnlyIfOn -- No --> Skip["No hace nada"]
     end

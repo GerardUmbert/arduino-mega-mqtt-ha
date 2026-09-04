@@ -14,16 +14,22 @@ paso extra antes de todo esto: decidir qué firmware usar. Ver la
 
 ```mermaid
 flowchart TD
-    A[Clonar el repo] --> B{"¿Qué unidad vas a flashear?"}
-    B -- "Pulsadores" --> C["Guía de decisión:<br/>¿OneButton o AceButton?"]
+    A["`Descargar el proyecto
+    (ZIP o git clone)`"] --> B{"¿Qué unidad vas a flashear?"}
+    B -- Pulsadores --> C["`Guía de decisión:
+    ¿OneButton o AceButton?`"]
     B -- "Dispositivos (relés)" --> D["mega_dispositivos/"]
     C --> E["mega_pulsadores/"]
     C --> F["mega_pulsadores_low_ram/"]
-    E --> G["Rellenar config.h<br/>de esa carpeta"]
+    E --> G["`Rellenar config.h
+    de esa carpeta`"]
     F --> G
     D --> G
-    G --> H["Elegir PLACA_A o PLACA_B<br/>en el .ino"]
-    H --> I["Editar board_config_X.h<br/>con los pines reales"]
+    G --> H["`Elegir PLACA_A o PLACA_B
+    en el .ino`"]
+    H --> I["`Editar board_config_X.h
+    con los pines reales`"]
     I --> J["Compilar y subir"]
-    J --> K["Verificar en HA:<br/>Ajustes → MQTT"]
+    J --> K["`Verificar en HA:
+    Ajustes → MQTT`"]
 ```

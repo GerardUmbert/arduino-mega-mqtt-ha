@@ -4,21 +4,37 @@
 
 ```mermaid
 flowchart TD
-    Start(["¿Qué firmware flasheo<br/>en esta unidad?"]) --> Q1{"¿Vas a instanciar<br/>persiana_pulsador_completo.yaml<br/>en algún pulsador de esta unidad?"}
+    Q1{"`¿Vas a instanciar
+    persiana_pulsador_completo.yaml
+    en algún pulsador de esta unidad?`"}
+    Q2{"`¿Necesitas más pulsadores
+    de los que caben con OneButton?
+    (confirmado con freeMemory,
+    no asumido)`"}
+    Q3{"`¿Alguno de esos pulsadores
+    extra necesita triple, cuádruple
+    o quíntuple clic?`"}
 
-    Q1 -- "Sí" --> UseOne1["✅ mega_pulsadores<br/>(OneButton)"]
-    Q1 -- "No / no lo sé" --> Q2{"¿Sabes ya que necesitas<br/>más pulsadores de los que<br/>caben con OneButton?"}
+    Q1 -->|Sí| UseOne1["`mega_pulsadores
+    (OneButton)`"]
+    Q1 -->|No o no lo sé| Q2
 
-    Q2 -- "No / no lo he medido" --> UseOne2["✅ mega_pulsadores<br/>(OneButton) — opción por defecto"]
-    Q2 -- "Sí, confirmado con freeMemory()" --> Q3{"¿Alguno de esos pulsadores<br/>extra necesita triple/cuádruple/<br/>quíntuple clic?"}
+    Q2 -->|No| UseOne2["`mega_pulsadores
+    (OneButton) — opción por defecto`"]
+    Q2 -->|Sí| Q3
 
-    Q3 -- "Sí" --> Split["No cambies de librería —<br/>reparte pulsadores en una<br/>3ª unidad física (PLACA_C)"]
-    Q3 -- "No" --> UseLow["✅ mega_pulsadores_low_ram<br/>(AceButton)"]
+    Q3 -->|Sí| Split["`No cambies de librería:
+    reparte pulsadores en una
+    3ª unidad física PLACA_C`"]
+    Q3 -->|No| UseLow["`mega_pulsadores_low_ram
+    (AceButton)`"]
 
-    style UseOne1 fill:#00695c,color:#fff
-    style UseOne2 fill:#00695c,color:#fff
-    style UseLow fill:#0277bd,color:#fff
-    style Split fill:#7b1fa2,color:#fff
+    classDef oneButton fill:#00695c,color:#fff,stroke:#004d40
+    classDef lowRam fill:#0277bd,color:#fff,stroke:#01579b
+    classDef split fill:#7b1fa2,color:#fff,stroke:#4a148c
+    class UseOne1,UseOne2 oneButton
+    class UseLow lowRam
+    class Split split
 ```
 
 ## Por qué esta es la regla
@@ -46,10 +62,10 @@ flowchart TD
 
 | Blueprint | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |
 |---|:---:|:---:|
-| [`persiana_pulsador.yaml`](../blueprints/persiana-pulsador.md) | ✅ | ✅ (solo usa larga/fin de larga) |
-| [`persiana_pulsador_completo.yaml`](../blueprints/persiana-pulsador-completo.md) | ✅ | ❌ **incompatible** |
-| [`luz_pulsador.yaml`](../blueprints/luz-pulsador.md) | ✅ | ✅ (usa corta/doble/larga) |
-| [`luz_zigbee_respaldo.yaml`](../blueprints/luz-zigbee-respaldo.md) | ✅ | ✅ (solo usa corta) |
+| [`persiana_pulsador`](../blueprints/persiana-pulsador.md) | ✅ | ✅ (solo usa larga/fin de larga) |
+| [`persiana_pulsador_completo`](../blueprints/persiana-pulsador-completo.md) | ✅ | ❌ **Incompatible** |
+| [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ | ✅ (usa corta/doble/larga) |
+| [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ | ✅ (solo usa corta) |
 
 !!! info "El research completo"
     La comparativa evento por evento con otras librerías consideradas

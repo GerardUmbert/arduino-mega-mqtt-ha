@@ -25,11 +25,19 @@ límite de pines relevante (el Mega tiene 54 pines digitales).
 
 ```mermaid
 flowchart TD
-    Total["8192 bytes SRAM total"] --> Fixed["Coste fijo:<br/>Ethernet shield + PubSubClient<br/>+ ArduinoHA base"]
-    Total --> PerButton["Coste por pulsador:<br/>objeto OneButton/AceButton<br/>+ N × HADeviceTrigger<br/>+ buffer de ID"]
+    Total["8192 bytes SRAM total"] --> Fixed["`Coste fijo:
+    Ethernet shield + PubSubClient
+    + ArduinoHA base`"]
+    Total --> PerButton["`Coste por pulsador:
+    objeto OneButton/AceButton
+    + N × HADeviceTrigger
+    + buffer de ID`"]
 
-    Fixed -.->|"no medido con precisión<br/>todavía, ver 'Cómo medir'"| Unknown1["?"]
-    PerButton -.->|"~90-100 B/pulsador con OneButton<br/>~18-26 B/pulsador con AceButton<br/>(7 triggers activos, teórico)"| Unknown2["?"]
+    Fixed -.->|"`no medido con precisión
+    todavía, ver 'Cómo medir'`"| Unknown1["?"]
+    PerButton -.->|"`~90-100 B/pulsador con OneButton
+    ~18-26 B/pulsador con AceButton
+    (7 triggers activos, teórico)`"| Unknown2["?"]
 ```
 
 - **Coste fijo** (Ethernet + PubSubClient + ArduinoHA): se paga una
@@ -73,9 +81,15 @@ el punto de mínima RAM libre del programa.
 
 ```mermaid
 flowchart LR
-    S1["1. PINES_BOTONES = {}<br/>(0 pulsadores)"] -->|"lee RAM libre"| R1["Coste fijo puro<br/>de Ethernet+MQTT"]
-    S2["2. PINES_BOTONES = 12 pines<br/>(mismos triggers)"] -->|"lee RAM libre"| R2["(R1 − R2) / 12 =<br/>bytes por pulsador"]
-    S3["3. Mismos 12 pines +<br/>HABILITAR_TRIPLE/CUADRUPLE/QUINTUPLE"] -->|"lee RAM libre"| R3["(R2 − R3) / 12 =<br/>coste de los 3 triggers extra"]
+    S1["`1. PINES_BOTONES = {}
+    (0 pulsadores)`"] -->|"lee RAM libre"| R1["`Coste fijo puro
+    de Ethernet+MQTT`"]
+    S2["`2. PINES_BOTONES = 12 pines
+    (mismos triggers)`"] -->|"lee RAM libre"| R2["`(R1 − R2) / 12 =
+    bytes por pulsador`"]
+    S3["`3. Mismos 12 pines +
+    HABILITAR_TRIPLE/CUADRUPLE/QUINTUPLE`"] -->|"lee RAM libre"| R3["`(R2 − R3) / 12 =
+    coste de los 3 triggers extra`"]
 
     S1 --> S2 --> S3
 ```
