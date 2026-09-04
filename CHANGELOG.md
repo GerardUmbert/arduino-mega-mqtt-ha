@@ -1,9 +1,51 @@
 # Changelog
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
-La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
-ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
-de cada dispositivo.
+La versión de cada entrada debe coincidir con
+`device.setSoftwareVersion(...)` en el `.ino` correspondiente
+(`mega_pulsadores`, `mega_pulsadores_low_ram` o `mega_dispositivos`) —
+es lo que Home Assistant muestra como versión de firmware de cada
+dispositivo. Los tres `.ino` versionan de forma independiente.
+
+## [1.0.0] - 2026-09-04 (mega_pulsadores_low_ram)
+
+Firmware nuevo — primera versión de `mega_pulsadores_low_ram`.
+
+### Added
+- Firmware alternativo a `mega_pulsadores` para el mismo rol (leer
+  pulsadores físicos y enviar device triggers MQTT a HA), usando
+  `AceButton` en vez de `OneButton`: ~18-26 bytes de SRAM por
+  pulsador, frente a ~90-100 bytes fijos de `OneButton` (confirmado
+  leyendo el código fuente de ambas librerías — no es una diferencia
+  de configuración, es el tamaño real de cada clase). A cambio, **no
+  soporta triple/cuádruple/quíntuple clic en absoluto** — `AceButton`
+  no tiene ningún mecanismo para contar 3+ pulsaciones seguidas, a
+  diferencia de `HABILITAR_TRIPLE` etc. en `mega_pulsadores`, que sí
+  se pueden activar si hace falta.
+- Cubre los mismos 4 eventos que `mega_pulsadores` tiene activados por
+  defecto: corta, doble, larga y fin de larga
+  (`HABILITAR_CORTA`/`HABILITAR_DOBLE`/`HABILITAR_LARGA`/
+  `HABILITAR_LARGA_FIN`, mismo patrón de `#define` que en
+  `mega_pulsadores.ino`), mismo formato de subtype `pNN`.
+- No sustituye a `mega_pulsadores`: existen como firmwares paralelos,
+  cada unidad física se flashea con el que le convenga. Motivo
+  (research completo en `mega_pulsadores/to_review.md`):
+  `persiana_pulsador_completo.yaml` necesita los 5 niveles de clic a
+  la vez, y `AceButton` solo ofrece 2 (single/double) — sustituir
+  `OneButton` directamente habría sido una decisión prácticamente
+  irreversible para ese blueprint.
+- `board_config_a.h`, `board_config_b.h` y `config.h.example` son
+  copias independientes de las de `mega_pulsadores/` (Arduino exige
+  que los `.h` vivan en la misma carpeta que el `.ino`), no
+  compartidas — ver README principal para el aviso de sincronización
+  manual.
+- ⚠️ **`config.h` de esta carpeta NO está protegido con
+  `git update-index --skip-worktree`** como los de `mega_pulsadores/`
+  y `mega_dispositivos/`, porque ese comando solo se puede aplicar a
+  un fichero que ya exista en el repo y este `config.h` en concreto
+  nunca se ha creado. Ver README principal, sección "IP y credenciales
+  MQTT", para los pasos exactos antes de rellenar credenciales reales
+  aquí.
 
 ## [1.7.1] - 2026-09-04 (mega_pulsadores)
 

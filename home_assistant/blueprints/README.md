@@ -101,8 +101,15 @@ luces actuales no tienen control de brillo, ver `luces_notas.md`):
 | Pulsación | Efecto |
 |---|---|
 | corta | toggle on/off de esta luz (`light_entity`) |
-| triple | enciende esta luz y programa apagado automático a los N minutos (configurable, 5 por defecto); volver a pulsar triple antes de que expire reinicia el temporizador |
+| doble | enciende esta luz y programa apagado automático a los N minutos (configurable, 5 por defecto); volver a pulsar doble antes de que expire reinicia el temporizador |
 | larga | toggle de TODAS las luces del Area de este pulsador (no solo `light_entity`): si alguna está encendida las apaga todas, si están todas apagadas las enciende todas; además, solo al apagar, cierra también todas las persianas de esa Area ("buenas noches") — al encender, las persianas no se tocan |
+
+Usa solo corta/doble/larga (ni triple, ni cuádruple, ni quíntuple, ni
+fin de larga) — funciona igual tanto si el pulsador está en una unidad
+`mega_pulsadores` (OneButton) como `mega_pulsadores_low_ram` (AceButton,
+ver README principal del repo): el doble clic original era triple, se
+cambió precisamente para que este blueprint funcionara en ambos
+firmwares sin distinción.
 
 La pulsación larga requiere que el device del pulsador y las luces/persianas
 de esa habitación compartan Area en HA; si el pulsador no tiene Area
@@ -121,8 +128,9 @@ Una instancia por cada luz que quieras controlar así:
 4. **Minutos hasta el apagado automático**: ajusta si 5 minutos no es lo
    que quieres para esa luz en concreto.
 
-Ver `luces_notas.md` para más ideas de automatización (doble, cuádruple,
-quíntuple, larga).
+Ver `luces_notas.md` para más ideas de automatización (cuádruple,
+quíntuple — no disponibles si el pulsador está en una unidad
+`mega_pulsadores_low_ram`).
 
 ## `luz_zigbee_respaldo.yaml`
 

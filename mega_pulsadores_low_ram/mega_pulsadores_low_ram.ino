@@ -89,9 +89,10 @@ using namespace ace_button;
 // unidad — un blueprint que espera un trigger que ya no existe
 // simplemente deja de dispararse, sin error visible:
 //   - persiana_pulsador.yaml usa solo larga/largaFin — compatible.
-//   - luz_pulsador.yaml usa corta/triple/larga — el TRIPLE no existe
-//     aquí, remapea ese blueprint a doble clic si lo usas en esta
-//     unidad (ver mega_pulsadores/to_review.md).
+//   - luz_pulsador.yaml usa corta/doble/larga (el pulsación triple
+//     original se remapeó a doble en la propia definición del
+//     blueprint, ver su CHANGELOG.md — ya funciona en ambos firmwares
+//     sin tocar nada) — compatible.
 //   - persiana_pulsador_completo.yaml usa las 5 pulsaciones —
 //     INCOMPATIBLE con esta unidad, no lo instancies aquí.
 // Por defecto: los 4 activos (mismo comportamiento por defecto que

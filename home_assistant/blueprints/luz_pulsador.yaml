@@ -1,16 +1,18 @@
 blueprint:
-  name: Luz controlada por pulsador físico (corta = toggle, triple = auto-apagado, larga = toggle Area)
+  name: Luz controlada por pulsador físico (corta = toggle, doble = auto-apagado, larga = toggle Area)
   description: >
-    Conecta un pulsador físico de `mega_pulsadores` con una luz de
-    `mega_dispositivos` (`HASwitch`, on/off simple, sin brillo/temperatura
-    de color — ver README principal del repo).
+    Conecta un pulsador físico de `mega_pulsadores` (o
+    `mega_pulsadores_low_ram`, ver README principal — ambos firmwares
+    envían corta/doble/larga) con una luz de `mega_dispositivos`
+    (`HASwitch`, on/off simple, sin brillo/temperatura de color — ver
+    README principal del repo).
 
     - Pulsación corta: apaga/enciende (toggle) SOLO esta luz.
-    - Pulsación triple: enciende esta luz y programa apagado automático a
+    - Pulsación doble: enciende esta luz y programa apagado automático a
       los N minutos (por defecto 5). Si la luz se apaga manualmente antes
       de que pase ese tiempo, el apagado programado no hace nada raro
       (vuelve a apagar una luz ya apagada, sin efecto visible). Si se
-      vuelve a pulsar triple antes de que expire, el temporizador se
+      vuelve a pulsar doble antes de que expire, el temporizador se
       reinicia desde cero (gracias a `mode: restart`).
     - Pulsación larga: TODAS las luces del Area de este pulsador (no la
       del `light_entity` — la del propio dispositivo del pulsador en HA).
@@ -51,7 +53,7 @@ blueprint:
         entity:
           domain: switch
     auto_apagado_minutos:
-      name: Minutos hasta el apagado automático (pulsación triple)
+      name: Minutos hasta el apagado automático (pulsación doble)
       default: 5
       selector:
         number:
@@ -71,9 +73,9 @@ trigger:
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
-    type: button_triple_press
+    type: button_double_press
     subtype: !input boton_subtype
-    id: triple
+    id: doble
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
@@ -100,7 +102,7 @@ action:
               entity_id: !input light_entity
       - conditions:
           - condition: trigger
-            id: triple
+            id: doble
         sequence:
           - service: switch.turn_on
             target:

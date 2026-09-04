@@ -32,3 +32,17 @@
   descriptivos); `config.h` es el fichero real que se rellena y del que
   git ignora los cambios. No confundir ambos ni copiar datos reales de
   uno a otro.
+- `mega_pulsadores_low_ram/` (firmware alternativo con AceButton, ver
+  README) también tiene su propio `config.h.example`, pero a día de
+  hoy **NO tiene un `config.h` trackeado** como los otros dos — nunca
+  se ha creado, así que `git update-index --skip-worktree` no se le
+  puede aplicar de antemano (ese comando solo funciona sobre ficheros
+  que ya existen en el repo). Si el usuario crea
+  `mega_pulsadores_low_ram/config.h` (copiando el `.example`), el
+  fichero NO estará protegido automáticamente — antes de que se rellene
+  con datos reales, hay que aplicar
+  `git update-index --skip-worktree mega_pulsadores_low_ram/config.h`
+  primero (ver pasos exactos en el README, sección "IP y credenciales
+  MQTT"). Hasta que eso pase, trátalo con la misma cautela que
+  cualquier fichero no protegido: revisa `git status` antes de
+  cualquier `git add`/commit que pueda tocar esa carpeta.

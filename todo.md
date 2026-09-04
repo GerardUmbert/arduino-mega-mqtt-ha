@@ -84,21 +84,28 @@
       vieja estimación de ~250 bytes/pulsador se queda corta: el coste
       real por pulsador (objeto `OneButton` + 7 `HADeviceTrigger` +
       punteros + buffer de ID) es mayor de lo que asumía ese cálculo.
-- [ ] No se ha acotado más fino que "12 sí, 16 no" — no merece la pena
-      seguir bisecando a mano en placa real. Si se necesita un número
-      exacto (p. ej. porque el límite real de pulsadores deseados cae
-      justo en esa franja 12-16): añadir temporalmente al `setup()` de
-      `mega_pulsadores.ino` una comprobación de memoria libre (técnica
-      estándar en AVR — función tipo `freeMemory()` que resta el final
-      del heap del inicio del stack) que imprima el resultado por
-      Serial, y medir con distintos tamaños de `PINES_BOTONES`.
+- [x] No se ha acotado más fino que "12 sí, 16 no" — no merecía la pena
+      seguir bisecando a mano en placa real sin más datos. Ya está
+      añadida al `setup()` de `mega_pulsadores.ino` una sonda temporal
+      de memoria libre (`freeMemory()`, marcada `⚠️ TEMPORAL` en el
+      código — técnica estándar en AVR) que imprime el resultado por
+      Serial. Falta todavía USARLA en placa real con distintos tamaños
+      de `PINES_BOTONES` — ver el procedimiento completo paso a paso en
+      `mega_pulsadores/instructions.md`.
 - [ ] Si el número real de pulsadores deseados se acerca al límite
-      medido: revisar si compensa (a) recortar a 5 triggers por botón
-      (quitar `ButtonQuadruplePressType`/`ButtonQuintuplePressType`, sin
-      caso de uso confirmado todavía — ver "Lógica de automatizaciones"
-      más abajo), o (b) añadir una tercera unidad `mega_pulsadores`
-      (arquitectura ya lo permite: añadir `PLACA_C`, `board_config_c.h` y
-      un tercer byte de MAC, mismo patrón que A/B).
+      medido: revisar si compensa (a) recortar triggers por botón con
+      `HABILITAR_TRIPLE`/`HABILITAR_CUADRUPLE`/`HABILITAR_QUINTUPLE`
+      (ya desactivados por defecto — sin caso de uso confirmado salvo
+      `persiana_pulsador_completo.yaml`, ver "Lógica de
+      automatizaciones" más abajo), (b) usar
+      `mega_pulsadores_low_ram/` (AceButton en vez de OneButton, mucha
+      menos RAM por pulsador pero sin soporte de
+      triple/cuádruple/quíntuple en absoluto — ver README principal,
+      sección "¿mega_pulsadores o mega_pulsadores_low_ram?", antes de
+      elegir esta opción), o (c) añadir una tercera unidad
+      `mega_pulsadores` (arquitectura ya lo permite: añadir `PLACA_C`,
+      `board_config_c.h` y un tercer byte de MAC, mismo patrón que
+      A/B).
 - [ ] `mega_dispositivos` no se ha medido — su coste por dispositivo es
       menor (`HASwitch`/`HACover` sin `OneButton` de por medio), pero no
       hay número real todavía tampoco.

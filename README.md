@@ -14,10 +14,28 @@ entre sí.
 
 ## Estructura del repo
 
-- `mega_pulsadores/mega_pulsadores.ino` — firmware para las 2 unidades que
-  leen pulsadores físicos. No controla nada, solo envía eventos.
+- `mega_pulsadores/mega_pulsadores.ino` — firmware para las unidades que
+  leen pulsadores físicos, usando la librería `OneButton`. No controla
+  nada, solo envía eventos. Soporta los 7 tipos de pulsación (corta,
+  doble, triple, cuádruple, quíntuple, larga, fin de larga), cada uno
+  activable/desactivable por separado.
 - `mega_pulsadores/board_config_a.h`, `mega_pulsadores/board_config_b.h` —
   pines, MAC, IP fija y nombre HA de cada una de las 2 unidades físicas.
+- `mega_pulsadores_low_ram/mega_pulsadores_low_ram.ino` — **firmware
+  alternativo** para el mismo rol, usando `AceButton` en vez de
+  `OneButton`: mucha menos RAM por pulsador (~18-26 bytes/instancia
+  frente a ~90-100 de OneButton), a cambio de perder soporte de
+  triple/cuádruple/quíntuple clic por completo — AceButton no tiene
+  ningún mecanismo para contar 3+ pulsaciones seguidas, no es una
+  opción desactivable. Solo cubre corta/doble/larga/fin de larga. Ver
+  "¿`mega_pulsadores` o `mega_pulsadores_low_ram`?" más abajo antes de
+  elegir cuál flashear en una unidad concreta.
+- `mega_pulsadores_low_ram/board_config_a.h`,
+  `mega_pulsadores_low_ram/board_config_b.h` — **copias independientes**
+  de las de `mega_pulsadores/`, no compartidas (Arduino exige que los
+  `.h` vivan en la misma carpeta que el `.ino` que los usa). Si cambias
+  pines/MAC/IP/nombre en una carpeta, revisa si el mismo cambio aplica
+  también en la otra — no se sincronizan solas.
 - `mega_dispositivos/mega_dispositivos.ino` — firmware para las 2 unidades
   que controlan relés de luces y persianas. No lee pulsadores, solo recibe
   órdenes.
@@ -26,7 +44,8 @@ entre sí.
 - `todo.md` — lista de tareas pendientes antes de dar el proyecto por
   terminado (IPs, credenciales, pines reales, automatizaciones...).
 - `CHANGELOG.md` — historial de cambios del proyecto, versionado igual
-  que `device.setSoftwareVersion(...)` en ambos `.ino`.
+  que `device.setSoftwareVersion(...)` en cada `.ino` (los tres
+  versionan de forma independiente).
 
 ## Hardware
 
@@ -71,6 +90,45 @@ MAC de fábrica (primer byte `0x02` = "administrada localmente"). El byte
 `[3]` distingue familia (`0x01` = mega_pulsadores, `0x02` =
 mega_dispositivos) para que nunca choquen en la red.
 
+## ¿`mega_pulsadores` o `mega_pulsadores_low_ram`?
+
+Las dos carpetas hacen lo mismo desde el punto de vista de Home
+Assistant (envían device triggers MQTT por cada pulsación), pero usan
+librerías distintas para leer el botón físico, con un compromiso RAM ↔
+funcionalidad:
+
+| | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |
+|---|---|---|
+| RAM por pulsador | ~90-100 bytes (fijo, uses las pulsaciones que uses) | ~18-26 bytes |
+| Pulsaciones soportadas | Las 7: corta, doble, triple, cuádruple, quíntuple, larga, fin de larga | Solo 4: corta, doble, larga, fin de larga — **sin mecanismo alguno** para triple/cuádruple/quíntuple, no es una opción desactivable |
+| Compatible con `persiana_pulsador_completo.yaml` | Sí (usa los 5 niveles) | **No** — ese blueprint necesita 5 niveles de clic distintos y AceButton solo ofrece 2 (single/double) |
+| Compatible con `luz_pulsador.yaml` | Sí | Sí — el blueprint usa corta/doble/larga (el triple original se remapeó a doble, ver su propio historial de cambios) |
+| Compatible con `persiana_pulsador.yaml` | Sí | Sí — solo usa larga/fin de larga |
+
+**Cuándo usar cuál:**
+
+- **Por defecto, usa `mega_pulsadores/` (OneButton).** Es el firmware
+  con más funcionalidad, y en la mayoría de unidades caben de sobra los
+  pulsadores que tengas cableados sin acercarte al límite de RAM (ver
+  "RAM / límite de pulsadores" en `todo.md`: 12 pulsadores con los 7
+  triggers activos arrancan bien en placa real).
+- **Usa `mega_pulsadores_low_ram/` (AceButton) SOLO si** necesitas
+  cablear más pulsadores en una unidad de los que caben con OneButton
+  Y confirmas que ninguno de esos pulsadores necesita
+  `persiana_pulsador_completo.yaml` (triple/cuádruple/quíntuple). Mide
+  RAM real antes de decidir — no asumas el límite, ver
+  `mega_pulsadores/instructions.md`.
+- Si una unidad concreta necesita más pulsadores que OneButton permite
+  Y alguno de ellos SÍ necesita triple/cuádruple/quíntuple, la solución
+  no es cambiar de librería en esa unidad — es repartir los pulsadores
+  entre más unidades físicas (arquitectura ya lo permite: `PLACA_C`,
+  `board_config_c.h`, tercer byte de MAC, mismo patrón que A/B — ver
+  `todo.md`).
+
+El análisis completo (comparativa evento por evento con otras
+librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
+`mega_pulsadores/to_review.md`.
+
 ## Librerías usadas y por qué
 
 - **[ArduinoHA](https://github.com/dawidchyrzynski/arduino-home-assistant)**
@@ -101,6 +159,16 @@ mega_dispositivos) para que nunca choquen en la red.
     pulsación, se sustituyó `JC_Button` por `OneButton`, que sí detecta
     multi-click (con `attachMultiClick` + conteo exacto de clics) además
     de pulsación larga, con debounce incluido.
+- **[AceButton](https://github.com/bxparks/AceButton)** — usada solo en
+  `mega_pulsadores_low_ram` (no en `mega_pulsadores`), como alternativa
+  a `OneButton` con mucha menos RAM por pulsador (~18-26 bytes/instancia
+  frente a ~90-100 de `OneButton`). Detecta corta/doble/larga/fin de
+  larga (`kEventClicked`/`kEventDoubleClicked`/`kEventLongPressed`/
+  `kEventLongReleased`) con debounce incluido, pero **no tiene ningún
+  mecanismo** para triple/cuádruple/quíntuple clic — a diferencia de
+  `OneButton`, no es algo que se pueda activar, la librería solo
+  distingue single vs. double click. Ver "¿`mega_pulsadores` o
+  `mega_pulsadores_low_ram`?" más arriba antes de elegir cuál usar.
 - **Ethernet** — incluida en el IDE de Arduino, para el shield W5100/W5500.
 
 ## Arquitectura de entidades en Home Assistant
@@ -120,6 +188,12 @@ mega_dispositivos) para que nunca choquen en la red.
   quíntuple desactivados — ahorra RAM, ver "RAM / límite de pulsadores"
   en `todo.md`). También existe en el enum de ArduinoHA (aunque este
   proyecto no lo usa): `ButtonShortReleaseType`.
+- **mega_pulsadores_low_ram (A y B)**: igual que `mega_pulsadores`, pero
+  solo 4 triggers posibles por pulsador: `ButtonShortPressType`,
+  `ButtonDoublePressType`, `ButtonLongPressType` y
+  `ButtonLongReleaseType` — sin triple/cuádruple/quíntuple, AceButton no
+  los soporta (ver "¿`mega_pulsadores` o `mega_pulsadores_low_ram`?"
+  más arriba).
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_22`, `luz_30`... nombre = número de pin) —
     on/off.
@@ -139,7 +213,8 @@ los `.ino` — viven en un fichero `config.h` que cada `.ino` incluye con
 `config.h` SÍ viene incluido en el repo (con los valores vacíos/de
 ejemplo) para que el proyecto compile nada más clonarlo, sin pasos
 adicionales. Para que tus credenciales reales no se suban por error, el
-repo tiene marcados ambos `config.h` con
+repo tiene marcados ambos `config.h` (`mega_pulsadores/config.h` y
+`mega_dispositivos/config.h`) con
 `git update-index --skip-worktree`: una vez rellenes tus datos reales,
 git deja de detectar cambios en ese fichero y nunca aparecerá en
 `git status` ni se subirá en un commit.
@@ -155,6 +230,25 @@ no hace falta copiarla, `config.h` ya está listo para editar.)
 Como las 2 unidades de cada rol (A y B) comparten el mismo broker MQTT,
 normalmente usarás el mismo `config.h` en ambas — solo cambia el
 `#define PLACA_A`/`PLACA_B` para diferenciarlas.
+
+⚠️ **`mega_pulsadores_low_ram/` es distinto: NO trae `config.h`
+todavía, solo `config.h.example`** — no está `skip-worktree`d porque
+ese comando solo puede aplicarse a un fichero que ya existe en el
+repo, y este `config.h` en concreto no se ha creado nunca (a
+diferencia de los otros dos, que sí vienen con placeholders vacíos
+trackeados). Si vas a usar este firmware, sigue estos pasos EN ORDEN
+antes de rellenar credenciales reales:
+
+1. Copia `config.h.example` como `config.h` en `mega_pulsadores_low_ram/`.
+2. **Antes de rellenar nada real**, marca el fichero para que git
+   ignore futuros cambios:
+   `git update-index --skip-worktree mega_pulsadores_low_ram/config.h`
+3. Ahora sí, rellena `BROKER_ADDR`/`MQTT_USER`/`MQTT_PASS` con tus
+   valores reales — git ya no detectará ese cambio.
+
+Si rellenas credenciales reales ANTES del paso 2, revisa `git status`
+— si `mega_pulsadores_low_ram/config.h` aparece como modificado/nuevo,
+NO hagas commit todavía: aplica el `skip-worktree` del paso 2 primero.
 
 ### Pines, IP fija y demás identidad por unidad (`board_config_a.h` / `board_config_b.h`)
 

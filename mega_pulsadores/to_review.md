@@ -1,8 +1,15 @@
 # Cosas pendientes de revisar — mega_pulsadores
 
-## Cambiar OneButton por AceButton (ahorro de RAM real, pero pierde 3/4/5 clics)
+## OneButton vs. AceButton (ahorro de RAM real, pero pierde 3/4/5 clics)
 
-Investigado el 2026-09-04, sin implementar todavía — decisión pendiente.
+Investigado el 2026-09-04. **Decisión tomada: no sustituir OneButton en
+`mega_pulsadores/`, sino mantener las dos librerías como firmwares
+paralelos** — ver `mega_pulsadores_low_ram/mega_pulsadores_low_ram.ino`
+(usa AceButton, mismo `HABILITAR_*`/formato `pNN` que aquí, pero solo
+corta/doble/larga/largaFin). Cada unidad física se flashea con el
+firmware que le convenga sin comprometer el proyecto entero a una sola
+librería. El análisis de abajo sigue siendo la referencia de por qué se
+decidió así.
 
 ### El problema que resolvería
 
@@ -72,44 +79,27 @@ comentados no pasa):
   hay hueco donde remapear los otros 3, perdería el ajuste fino ±5%,
   el "todas las persianas de la Area" y el "todas las persianas de la
   casa" sin remedio.
-- **`luz_pulsador.yaml`** — **sí se podría salvar remapeando.** Solo
-  usa corta + triple + larga (ni doble, ni cuádruple, ni quíntuple, ni
-  largaFin — comprobado en el propio blueprint). El triple clic
-  (apagado automático a los N minutos) podría remapearse a doble clic
-  antes de dejar OneButton, ya que AceButton sí soporta
-  `kEventDoubleClicked` y ese blueprint no usa el doble para nada más.
-  Cambio de un renglón en el blueprint (`type: button_triple_press` →
-  `button_double_press`), no una pérdida de función.
+- **`luz_pulsador.yaml`** — **ya remapeado.** Solo usaba corta + triple
+  + larga (ni doble, ni cuádruple, ni quíntuple, ni largaFin —
+  comprobado en el propio blueprint), así que el triple clic (apagado
+  automático a los N minutos) se remapeó a doble clic directamente en
+  la definición del blueprint (`type: button_triple_press` →
+  `button_double_press`, ver su propio CHANGELOG.md) — funciona igual
+  en ambos firmwares, sin distinguir cuál lo dispara.
 
-Aun así, cambiar a AceButton seguiría siendo una decisión
-**prácticamente permanente para `persiana_pulsador_completo.yaml`**:
-para volver a tener 3/4/5 clics ahí habría que deshacer el cambio y
-volver a OneButton (no es un simple `#define` como con
-`HABILITAR_TRIPLE` ahora mismo).
-
-### Cuándo reconsiderar esto
+### Cuándo reconsiderar dejar de mantener las dos librerías
 
 - Si se confirma con datos reales (ver `instructions.md`, medición con
   `freeMemory()`) que `OneButton` es efectivamente una parte
   significativa del consumo total de RAM por pulsador — hoy no lo
   sabemos, solo tenemos el desglose teórico de arriba, no una medida
   en placa.
-- Si se decide definitivamente que triple/cuádruple/quíntuple no se
-  van a usar nunca en ningún pulsador de ninguna unidad (hoy están
-  desactivados por defecto pero siguen siendo una opción con un
-  `#define`).
-- Si se necesitan más pulsadores por unidad de los que caben con
-  `OneButton` y bajar RAM sí es el cuello de botella real (otra vez:
-  confirmar con medición antes de asumirlo).
-
-Si se decide seguir adelante, sería una migración con dos añadidos que
-otras librerías no tienen ambos a la vez, así que no es un simple
-find-and-replace: cambiar el patrón de callbacks (AceButton pasa el
-puntero al `AceButton` que disparó el evento a un único
-`handleEvent(AceButton*, uint8_t eventType, uint8_t buttonState)`, en
-vez de una función distinta por tipo de evento como hace OneButton) y
-quitar toda la lógica de multi-clic (`onMultiClick`,
-`getNumberClicks()`, los `case 3/4/5` del switch).
+- Si se decide definitivamente que ninguna unidad necesitará nunca
+  triple/cuádruple/quíntuple (`persiana_pulsador_completo.yaml` deja
+  de usarse en cualquier pulsador de cualquier unidad), momento en el
+  que `mega_pulsadores/` (OneButton) dejaría de aportar nada frente a
+  `mega_pulsadores_low_ram/` y podría retirarse en vez de mantener las
+  dos.
 
 ## Otras alternativas descartadas (mismo research, 2026-09-04)
 

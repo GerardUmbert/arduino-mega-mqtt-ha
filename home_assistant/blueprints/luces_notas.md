@@ -3,32 +3,42 @@
 ## Lo que ya existe: `luz_pulsador.yaml`
 
 - **Corta**: toggle on/off.
-- **Triple**: enciende y apaga sola a los N minutos (configurable,
-  por defecto 5). Reinicia el temporizador si se vuelve a pulsar triple
+- **Doble**: enciende y apaga sola a los N minutos (configurable,
+  por defecto 5). Reinicia el temporizador si se vuelve a pulsar doble
   antes de que expire.
+- **Larga**: toggle de todas las luces del Area de este pulsador
+  (además cierra persianas al apagar). Ver tabla completa en el README
+  de blueprints.
 
-Quedan libres de la agrupación de 7 triggers por botón: doble,
-cuádruple, quíntuple, larga y larga_fin. Ideas para ellos, sin
-implementar todavía — ninguna requiere cambios de hardware:
+Este blueprint solo usa corta/doble/larga a propósito, para que
+funcione igual tanto en `mega_pulsadores` (OneButton) como en
+`mega_pulsadores_low_ram` (AceButton) — este segundo firmware no
+soporta triple/cuádruple/quíntuple en absoluto (ver README principal
+del repo). El apagado automático usaba originalmente pulsación triple;
+se cambió a doble por ese motivo, no por preferencia de UX.
+
+Quedan libres de la agrupación de 7 triggers por botón:
+cuádruple, quíntuple y larga_fin (larga sí se usa, larga_fin no). Ideas
+para ellos, sin implementar todavía — ninguna requiere cambios de
+hardware, pero cuádruple/quíntuple **solo están disponibles en
+unidades `mega_pulsadores` (OneButton), no en `mega_pulsadores_low_ram`**:
 
 ## Otras ideas dentro de on/off (funcionan con el hardware actual)
 
-- **Doble pulsación = "todas las luces de la habitación off"**: útil en
-  habitaciones con varias luces controladas por el mismo pulsador o
-  agrupación — automatización que llama a `switch.turn_off` sobre una
-  lista de entidades en vez de una sola. Encaja con la mención en
-  `todo.md` de "escena / modo todas las luces off" como uso posible de
-  cuádruple/quíntuple, aunque aquí se sugiere doble por ser más rápida de
-  alcanzar (no necesita mantener el ritmo de 4-5 clics).
 - **Cuádruple/quíntuple = escena fija**: p. ej. quíntuple activa una
   `scene.buenas_noches` que apaga todo el piso y cierra persianas. Sin
   caso de uso confirmado en `todo.md` todavía — pendiente de decidir con
-  casos reales de uso antes de automatizar.
-- **Larga + larga_fin = "luz de cortesía" temporizada por duración de
+  casos reales de uso antes de automatizar. Requiere que ese pulsador
+  esté en una unidad `mega_pulsadores` (OneButton), no
+  `mega_pulsadores_low_ram`.
+- **Larga_fin = "luz de cortesía" temporizada por duración de
   pulsación**: mantener pulsado enciende la luz solo mientras se
   mantiene (por ejemplo, para pasillos de noche) — al soltar (`larga_fin`)
-  se apaga. Alternativa a la temporización fija de la pulsación triple
-  cuando quieres control manual de cuánto dura.
+  se apaga. Alternativa al apagado a tiempo fijo de la pulsación doble
+  cuando quieres control manual de cuánto dura. Disponible en ambos
+  firmwares (`larga_fin` sí lo soporta `AceButton`), pero
+  `luz_pulsador.yaml` no lo implementa todavía — habría que añadirlo al
+  blueprint.
 
 ## Brillo vía bombilla Zigbee (no vía relé/firmware): `luz_zigbee_respaldo.yaml`
 

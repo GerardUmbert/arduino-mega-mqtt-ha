@@ -112,6 +112,28 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
   - Por eso se sustituyó `JC_Button` por `OneButton`: sí detecta
     multi-click (vía `attachMultiClick` + conteo exacto de clics) además
     de pulsación larga, con debounce incluido.
+- **AceButton** — alternativa a `OneButton` usada SOLO en
+  `mega_pulsadores_low_ram` (no en `mega_pulsadores`). Repo:
+  https://github.com/bxparks/AceButton
+  - Mucho menos RAM por pulsador (~18-26 bytes/instancia frente a
+    ~90-100 de `OneButton`, confirmado leyendo el código fuente de
+    ambas librerías) — pero **sin ningún mecanismo** para
+    triple/cuádruple/quíntuple clic, no es una opción desactivable
+    como en `OneButton`, la librería solo distingue single vs. double
+    click.
+  - Existe como carpeta/firmware aparte en vez de sustituir a
+    `OneButton` porque `persiana_pulsador_completo.yaml` necesita los
+    5 niveles de clic a la vez — cambiar de librería en
+    `mega_pulsadores` habría sido una decisión prácticamente
+    irreversible para ese blueprint. Detalle completo del research
+    (comparativa con Bounce2/ezButton/Button2 también) en
+    `mega_pulsadores/to_review.md`.
+  - `mega_pulsadores_low_ram/board_config_a.h`,
+    `board_config_b.h` y `config.h.example` son COPIAS
+    independientes de las de `mega_pulsadores/` (Arduino exige que
+    los `.h` vivan en la misma carpeta que el `.ino`) — no se
+    sincronizan solas, avisa si cambias pines/MAC/IP en una carpeta
+    por si aplica también en la otra.
 
 ## Arquitectura de entidades en Home Assistant
 
@@ -135,6 +157,11 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
     desactivados — ahorra RAM, ver "RAM / límite de pulsadores" en
     `todo.md`). El enum de ArduinoHA también define
     `ButtonShortReleaseType`, que este proyecto no usa.
+- **mega_pulsadores_low_ram (A y B)**: igual que `mega_pulsadores`,
+  pero solo 4 triggers posibles por pulsador (`ButtonShortPressType`,
+  `ButtonDoublePressType`, `ButtonLongPressType`,
+  `ButtonLongReleaseType`) — sin triple/cuádruple/quíntuple, `AceButton`
+  no los soporta.
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_22`, `luz_30`, ... nombre = número de pin) —
     on/off.
@@ -149,6 +176,9 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
 - [x] Arquitectura general definida (2 roles x 2 unidades, sin MCP23017).
 - [x] Sketch base de `mega_pulsadores` con 7 tipos de pulsación (corta,
       doble, triple, cuádruple, quíntuple, larga, fin de larga).
+- [x] `mega_pulsadores_low_ram` como firmware alternativo (AceButton,
+      RAM mucho más baja por pulsador, solo 4 de los 7 tipos de
+      pulsación — ver "Librerías" más arriba).
 - [x] Sketch base de `mega_dispositivos` con luces + persianas + stop.
 - [x] Mosquitto ya instalado y funcionando en Home Assistant.
 
