@@ -88,6 +88,47 @@ y cómo medir tu propia configuración en placa real.
 | [`luz_pulsador`](../blueprints/luz-pulsador.md) | ✅ Completa | Usa corta/doble/larga — el apagado automático se remapeó de triple a doble precisamente para que funcionara en ambos firmwares |
 | [`luz_zigbee_respaldo`](../blueprints/luz-zigbee-respaldo.md) | ✅ Completa | Solo usa corta |
 
+## Botón virtual: simular pulsaciones desde HA
+
+!!! success "Desde la versión 1.8.0"
+    Igual que en `mega_pulsadores`: cada pulsador tiene un `HAButton`
+    virtual, entidad real y pulsable en la UI de HA, con `unique_id`
+    `"v" + pNN` (ej. `vp14`).
+
+El mecanismo de inyección es distinto al de `OneButton` porque
+`AceButton` no tiene un método equivalente a `tick(bool)`. En su lugar
+se usa el punto de extensión oficial de la librería: una subclase de
+`ButtonConfig` que sobreescribe `readButton(pin)` (documentado en el
+propio código fuente de AceButton como "Override to use something
+other than digitalRead()") — mientras hay una simulación activa para
+un pin, esa función devuelve `LOW` en vez de leer el pin real.
+`check()` (llamado en `loop()`) usa esa función sin saber que es
+distinta, así que toda la lógica de debounce/multiclic de `AceButton`
+sigue intacta.
+
+```mermaid
+flowchart TD
+    HA["`Pulsas el HAButton
+    virtual en HA`"] --> MQTT1["`MQTT: comando
+    al firmware`"]
+    MQTT1 --> Mark["`Se marca ese pin
+    como 'simulación activa'`"]
+    Mark --> Read["`ButtonConfigConSimulacion
+    ::readButton(pin) → LOW`"]
+    Read --> Check["`check() detecta el
+    'pulsado' simulado`"]
+    Check --> Wait["`~90ms después`"]
+    Wait --> Unmark["`Se quita la marca`"]
+    Unmark --> ReadNormal["`readButton(pin) vuelve
+    a digitalRead() normal`"]
+
+    Physical["`Dedo pulsa el pin
+    físico real`"] --> ReadNormal
+```
+
+Misma limitación que en `mega_pulsadores`: el pulso simulado es corto
+y fijo, sirve para corta/doble clic, no para simular pulsación larga.
+
 ## Configuración de pines y config.h
 
 Igual que `mega_pulsadores`, pero con ficheros de configuración

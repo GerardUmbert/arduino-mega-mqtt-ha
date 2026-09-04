@@ -137,31 +137,42 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
 
 ## Arquitectura de entidades en Home Assistant
 
-- **mega_pulsadores (A y B)**: no crean entidades de estado, solo
-  `HADeviceTrigger` (device triggers) — aparecen en HA como "Device" en
-  el trigger de una automatización, no como entidad con estado.
-  - Por cada pulsador (`p14`, `p27`, ... el nombre lleva el
-    número de pin, no la posición en el array) hay hasta 7 triggers
-    posibles: `ButtonShortPressType`, `ButtonDoublePressType`,
-    `ButtonTriplePressType`, `ButtonQuadruplePressType`,
-    `ButtonQuintuplePressType`, `ButtonLongPressType`,
-    `ButtonLongReleaseType` (en ese orden en el código: 1-2-3-4-5
-    pulsaciones primero, larga/fin de larga aparte al final).
-    `ButtonLongReleaseType` se dispara al soltar una pulsación larga —
-    pensado para automatizaciones "mantener pulsado para mover / soltar
-    para parar" (p. ej. persianas controladas desde un pulsador físico
-    normal vía automatización en HA, no cableado directo). Cada uno de
-    los 7 se activa/desactiva por separado con `HABILITAR_CORTA`/
-    `HABILITAR_DOBLE`/etc. en `mega_pulsadores.ino` (por defecto:
-    corta/doble/larga/largaFin activos, triple/cuádruple/quíntuple
-    desactivados — ahorra RAM, ver "RAM / límite de pulsadores" en
-    `todo.md`). El enum de ArduinoHA también define
+- **mega_pulsadores (A y B)**: por cada pulsador crea dos cosas
+  distintas:
+  - `HADeviceTrigger` (device triggers, sin estado) — aparecen en HA
+    como "Device" en el trigger de una automatización, no como entidad
+    en Ajustes → Entidades. Por cada pulsador (`p14`, `p27`, ... el
+    nombre lleva el número de pin, no la posición en el array) hay
+    hasta 7 triggers posibles: `ButtonShortPressType`,
+    `ButtonDoublePressType`, `ButtonTriplePressType`,
+    `ButtonQuadruplePressType`, `ButtonQuintuplePressType`,
+    `ButtonLongPressType`, `ButtonLongReleaseType` (en ese orden en el
+    código: 1-2-3-4-5 pulsaciones primero, larga/fin de larga aparte al
+    final). `ButtonLongReleaseType` se dispara al soltar una pulsación
+    larga — pensado para automatizaciones "mantener pulsado para mover
+    / soltar para parar" (p. ej. persianas controladas desde un
+    pulsador físico normal vía automatización en HA, no cableado
+    directo). Cada uno de los 7 se activa/desactiva por separado con
+    `HABILITAR_CORTA`/`HABILITAR_DOBLE`/etc. en `mega_pulsadores.ino`
+    (por defecto: corta/doble/larga/largaFin activos, triple/cuádruple/
+    quíntuple desactivados — ahorra RAM, ver "RAM / límite de
+    pulsadores" en `todo.md`). El enum de ArduinoHA también define
     `ButtonShortReleaseType`, que este proyecto no usa.
-- **mega_pulsadores_low_ram (A y B)**: igual que `mega_pulsadores`,
-  pero solo 4 triggers posibles por pulsador (`ButtonShortPressType`,
-  `ButtonDoublePressType`, `ButtonLongPressType`,
-  `ButtonLongReleaseType`) — sin triple/cuádruple/quíntuple, `AceButton`
-  no los soporta.
+  - `HAButton` virtual (desde 1.8.0) — entidad real, con `unique_id`
+    propio (`"v" + pNN`, ej. `vp14`), visible/pulsable en la UI de HA a
+    diferencia del `HADeviceTrigger`. Al pulsarla, inyecta un clic
+    corto (~90ms) en la misma máquina de estados de `OneButton` que
+    procesa las pulsaciones físicas (`OneButton::tick(bool)`, sin tocar
+    el pin) — pulsarla varias veces seguidas rápido se detecta como
+    doble/triple/etc. igual que con el dedo. No simula pulsación larga.
+- **mega_pulsadores_low_ram (A y B)**: igual que `mega_pulsadores`
+  (`HADeviceTrigger` + `HAButton` virtual), pero solo 4 triggers
+  posibles por pulsador (`ButtonShortPressType`, `ButtonDoublePressType`,
+  `ButtonLongPressType`, `ButtonLongReleaseType`) — sin
+  triple/cuádruple/quíntuple, `AceButton` no los soporta. El botón
+  virtual usa una subclase de `ButtonConfig` (sobreescribe
+  `readButton()`) en vez de `tick(bool)`, ya que `AceButton` no tiene
+  ese método — mismo comportamiento visible en HA.
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_22`, `luz_30`, ... nombre = número de pin) —
     on/off.
@@ -179,6 +190,10 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
 - [x] `mega_pulsadores_low_ram` como firmware alternativo (AceButton,
       RAM mucho más baja por pulsador, solo 4 de los 7 tipos de
       pulsación — ver "Librerías" más arriba).
+- [x] Botón virtual (`HAButton`) por pulsador en ambos firmwares de
+      pulsadores (1.8.0) — simula un clic corto desde la UI de HA,
+      inyectado en la misma lógica de debounce/multiclic que procesa
+      las pulsaciones físicas reales. No simula pulsación larga.
 - [x] Sketch base de `mega_dispositivos` con luces + persianas + stop.
 - [x] Mosquitto ya instalado y funcionando en Home Assistant.
 

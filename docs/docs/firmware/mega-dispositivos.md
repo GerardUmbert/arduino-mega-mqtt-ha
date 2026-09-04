@@ -19,9 +19,11 @@ flowchart LR
 
 ## Entidades que crea
 
-A diferencia de `mega_pulsadores`/`mega_pulsadores_low_ram` (que solo
-envían triggers sin estado), `mega_dispositivos` crea **entidades
-reales** en HA:
+A diferencia de los `HADeviceTrigger` de
+`mega_pulsadores`/`mega_pulsadores_low_ram` (sin estado, solo
+disparadores), `mega_dispositivos` crea entidades **con estado
+persistente** que refleja el mundo físico (encendido/apagado,
+posición):
 
 | Entidad | Nombre (`unique_id`) | Soporta |
 |---|---|---|

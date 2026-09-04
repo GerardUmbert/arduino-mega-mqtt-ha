@@ -103,8 +103,55 @@ número de **pin**, no de su posición en esta lista — puedes reordenar,
 insertar o borrar pines libremente sin que ningún trigger ya
 renombrado en HA cambie de identidad.
 
+## Botón virtual: simular pulsaciones desde HA
+
+!!! success "Desde la versión 1.8.0"
+    Cada pulsador tiene, además de sus `HADeviceTrigger`, un
+    **`HAButton` virtual** — a diferencia del trigger (sin estado, solo
+    visible como opción de disparador), este SÍ es una entidad real:
+    aparece en Ajustes → Entidades y se puede poner en cualquier
+    tarjeta de Lovelace, con el nombre del pulsador (`pNN`).
+
+Al pulsar ese botón en HA, el firmware inyecta un clic corto (~90ms)
+directamente en la misma máquina de estados de `OneButton` que procesa
+las pulsaciones físicas — usando `OneButton::tick(bool)`, el método
+público de la librería para alimentar el estado sin leer el pin. **No
+es una ruta paralela**: es la misma lógica de debounce/multiclic la
+que decide si es corta, doble, triple, etc., tanto si el pulso viene
+del dedo como del botón de HA.
+
+```mermaid
+flowchart TD
+    HA["`Pulsas el HAButton
+    virtual en HA`"] --> MQTT1["`MQTT: comando
+    al firmware`"]
+    MQTT1 --> Inject["`OneButton::tick(false)
+    (simula 'pulsado')`"]
+    Inject --> Wait["`~90ms después`"]
+    Wait --> Release["`OneButton::tick(true)
+    (simula 'soltado')`"]
+    Release --> FSM["`Misma máquina de estados
+    de debounce/multiclic`"]
+
+    Physical["`Dedo pulsa el pin
+    físico real`"] --> FSM
+
+    FSM --> Result["`Detecta corta/doble/
+    triple/etc. — dispara el
+    HADeviceTrigger que toque`"]
+```
+
+**Limitación deliberada**: el pulso simulado es corto y fijo, pensado
+para corta/doble/triple/cuádruple/quíntuple. No sirve para simular una
+pulsación **larga** (necesitaría mantener el pin activo un tiempo
+variable) — queda fuera de esta primera versión.
+
+`unique_id` del botón virtual: `"v" + pNN` (ej. `vp14`) — distinto del
+subtype de los `HADeviceTrigger`, para no confundirlos.
+
 ## RAM
 
 Ver [RAM y rendimiento](../reference/ram.md) para los datos medidos en
 placa real (12 pulsadores con los 7 triggers arrancan bien, 16 ya
-falla) y cómo medir tu propia configuración.
+falla) y cómo medir tu propia configuración. El botón virtual añade una
+entidad `HAButton` más por pulsador, sobre lo ya medido.

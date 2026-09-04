@@ -21,6 +21,15 @@ límite de pines relevante (el Mega tiene 54 pines digitales).
     pulsadores caben" sin haberla probado en placa real** — esta es
     la lección que costó ese error.
 
+!!! warning "Estos números son de la versión 1.7.1, sin el botón virtual"
+    Desde la versión 1.8.0, cada pulsador añade también un `HAButton`
+    virtual (ver [`mega_pulsadores`](../firmware/mega-pulsadores.md#boton-virtual-simular-pulsaciones-desde-ha)),
+    una entidad más de coste. El límite "12 sí, 16 no" de arriba fue
+    medido ANTES de esa entidad extra — probablemente el límite real
+    con 1.8.0 sea algo menor. No des por buena la cifra de 12 sin
+    remedir con la versión actual — ver "Cómo medir tu propia
+    configuración" más abajo.
+
 ## Por qué el límite es tan bajo
 
 ```mermaid
@@ -47,8 +56,10 @@ flowchart TD
   — no se ha tocado todavía porque reducirlo demasiado puede truncar
   mensajes de discovery en silencio.
 - **Coste por pulsador**: cada `HADeviceTrigger` que creas ocupa
-  memoria en el heap (`new HADeviceTrigger(...)`), y el objeto
-  `OneButton`/`AceButton` en sí tiene un tamaño fijo por instancia.
+  memoria en el heap (`new HADeviceTrigger(...)`), el objeto
+  `OneButton`/`AceButton` en sí tiene un tamaño fijo por instancia, y
+  desde la versión 1.8.0 se suma también un `HAButton` más por
+  pulsador (el botón virtual).
 
 ### OneButton vs. AceButton: el hallazgo clave
 

@@ -19,6 +19,15 @@
     de evento concreto (p. ej. `HABILITAR_TRIPLE`). Comentar la línea
     lo desactiva; ahorra RAM al no crear ese `HADeviceTrigger`.
 
+`HAButton`
+:   Clase de ArduinoHA para crear un botón **con entidad real**, a
+    diferencia de `HADeviceTrigger` — visible en Ajustes → Entidades y
+    pulsable desde cualquier tarjeta de Lovelace. Usado desde la
+    versión 1.8.0 para el "botón virtual" de cada pulsador: al pulsarlo
+    en HA, simula un clic corto inyectado en la misma lógica de
+    debounce/multiclic que procesa las pulsaciones físicas. Ver
+    [`mega_pulsadores`](../firmware/mega-pulsadores.md#boton-virtual-simular-pulsaciones-desde-ha).
+
 `HADeviceTrigger`
 :   Clase de ArduinoHA para crear un device trigger. Cada instancia
     representa un tipo de pulsación concreto (`ButtonShortPressType`,
