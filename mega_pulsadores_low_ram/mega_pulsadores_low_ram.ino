@@ -375,17 +375,40 @@ void setup() {
 #ifdef HABILITAR_DOBLE
     cfg->setFeature(ButtonConfig::kFeatureDoubleClick);
 #endif
-#if defined(HABILITAR_LARGA) || defined(HABILITAR_LARGA_FIN)
-    // Un solo feature flag activa tanto el evento de inicio
-    // (kEventLongPressed) como el de fin (kEventLongReleased) —
-    // AceButton no los separa en dos flags distintos.
+#ifdef HABILITAR_LARGA
     cfg->setFeature(ButtonConfig::kFeatureLongPress);
 #endif
+#ifdef HABILITAR_LARGA_FIN
+    // ⚠️ kEventLongReleased NO se activa solo con kFeatureLongPress —
+    // confirmado leyendo el código fuente de AceButton
+    // (AceButton::checkReleased()): sin kFeatureSuppressAfterLongPress,
+    // el release tras una pulsación larga siempre se despacha como
+    // kEventReleased genérico (que este firmware ni siquiera gestiona
+    // en el switch de handleEvent()), nunca como kEventLongReleased.
+    // Bug real confirmado en placa (2026-09-05): "larga (inicio)" salía
+    // siempre correctamente, "larga (fin)" nunca — ni una sola vez,
+    // por más que se soltara el pulsador tras la pulsación larga. El
+    // comentario que había aquí antes ("un solo flag activa los dos
+    // eventos") era incorrecto, sin haberlo verificado bien contra el
+    // código fuente real de la librería.
+    cfg->setFeature(ButtonConfig::kFeatureLongPress);
+    cfg->setFeature(ButtonConfig::kFeatureSuppressAfterLongPress);
+#endif
     cfg->setEventHandler(handleEvent);
-    // Ajustes opcionales de temporización (descomenta y ajusta si los
-    // pulsadores van demasiado rápido/lentos para tu gusto):
+
+    // ⚠️ setClickDelay subido de 200ms (por defecto) a 400ms — bug real
+    // confirmado en placa (2026-09-05): con pulsaciones de dedo
+    // normales (~220-290ms, medidas con digitalRead directo, sin
+    // rebote), AceButton::checkClicked() descarta el evento EN
+    // SILENCIO en cuanto elapsedTime >= getClickDelay() — con el
+    // valor por defecto de 200ms, cualquier pulsación de dedo normal
+    // ya caía por encima del umbral y nunca disparaba ni corta ni
+    // doble. 400ms da margen real de sobra para un toque de dedo
+    // normal sin acercarse al umbral de pulsación larga (1000ms).
+    cfg->setClickDelay(400);
+    // Resto de ajustes opcionales de temporización (descomenta y
+    // ajusta si los pulsadores van demasiado rápido/lentos):
     // cfg->setDebounceDelay(20);
-    // cfg->setClickDelay(200);
     // cfg->setDoubleClickDelay(400);   // ventana para detectar el doble clic
     // cfg->setLongPressDelay(1000);    // tiempo para considerar "larga"
 
