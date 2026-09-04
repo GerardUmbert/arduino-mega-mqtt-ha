@@ -58,7 +58,7 @@ blueprint:
     boton_subtype:
       name: Subtype del botón
       description: >
-        P. ej. "boton_22". Cópialo desde la UI al añadir el disparador
+        P. ej. "p22". Cópialo desde la UI al añadir el disparador
         Device para evitar errores de tecleo.
       selector:
         text: {}

@@ -5,6 +5,37 @@ La versión aquí debe coincidir con `device.setSoftwareVersion(...)` en
 ambos `.ino` — es lo que Home Assistant muestra como versión de firmware
 de cada dispositivo.
 
+## [1.7.1] - 2026-09-04 (mega_pulsadores)
+
+Solo afecta a `mega_pulsadores` (versión de firmware 1.7.1).
+
+### Changed
+- ⚠️ **Cambio de comportamiento**: el subtype de cada pulsador pasa de
+  `"boton_NN"` a `"pNN"` (p. ej. `boton_14` → `p14`), donde NN es el
+  número de pin. Motivo: ahorra RAM en `idBoton[NUM_PULSADORES][N]`
+  (de 10 a 4 bytes por pulsador — pequeño pero gratis, ver "RAM /
+  límite de pulsadores" en `todo.md`). **Cualquier automatización ya
+  instanciada desde un blueprint (persiana_pulsador.yaml,
+  persiana_pulsador_completo.yaml, luz_pulsador.yaml,
+  luz_zigbee_respaldo.yaml) que use el "Subtype del botón" antiguo
+  deja de dispararse tras flashear esta versión — hay que volver a
+  seleccionar el trigger desde la UI (el subtype guardado ya no
+  coincide con el que envía el firmware).** Actualizada toda la
+  documentación (`README.md`, `context.md`, `todo.md`, blueprints y su
+  README) para reflejar el nuevo formato.
+- Los objetos `OneButton` (uno por pulsador) pasan de reservarse en el
+  heap (`OneButton* botones[N]; ... new OneButton(pin, true)`) a un
+  array estático (`OneButton botones[N];`, configurado después con
+  `.setup(pin, INPUT_PULLUP, true)`). Confirmado en el código fuente de
+  la librería que `OneButton` tiene constructor por defecto + `setup()`
+  para configurar el pin más tarde, así que no hace falta el heap.
+  Ahorra el overhead de `malloc` por pulsador (unos pocos bytes cada
+  uno, se nota a partir de una docena). Sin cambio de comportamiento —
+  es un cambio interno, no afecta a ninguna automatización ni HA.
+  `HADeviceTrigger` sigue con `new`/punteros: sus constructores exigen
+  tipo+subtype al crearse (sin constructor por defecto ni setter
+  posterior), así que un array estático no es viable ahí.
+
 ## [1.7.0] - 2026-09-04 (mega_pulsadores)
 
 Solo afecta a `mega_pulsadores` (versión de firmware 1.7.0).

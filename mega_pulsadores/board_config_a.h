@@ -11,7 +11,7 @@
 //   CS del chip Ethernet: normalmente el pin 10
 //
 // El unique_id de cada pulsador se genera a partir de su número de
-// PIN (p. ej. pin 14 → "boton_14"), no de la posición en esta lista:
+// PIN (p. ej. pin 14 → "p14"), no de la posición en esta lista:
 // puedes reordenar, insertar o borrar pines libremente sin que ningún
 // device trigger ya renombrado en Home Assistant cambie de identidad.
 // ===========================================================

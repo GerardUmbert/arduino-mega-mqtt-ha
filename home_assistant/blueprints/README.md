@@ -41,7 +41,7 @@ Por cada botón de la agrupación que vaya a mover esta persiana (normalmente
 2. **Pulsador (device)**: elige el device MQTT correspondiente ("Mega
    Pulsadores A" o "B", según en cuál esté cableado el botón físico).
 3. **Subtype del botón**: el `object_id` del botón tal cual lo genera el
-   firmware, con el número de pin — p. ej. `boton_14` (ver
+   firmware, con el número de pin — p. ej. `p14` (ver
    `mega_pulsadores.ino`, el nombre sale de `PINES_BOTONES`). Para verlo
    exacto, es más fiable elegir el trigger desde la UI de "Añadir
    disparador" → Device → seleccionar el device y el evento
@@ -116,7 +116,7 @@ Una instancia por cada luz que quieras controlar así:
    `luz_pulsador.yaml` → Crear automatización.
 2. **Pulsador (device)** y **Subtype del botón**: igual que en
    `persiana_pulsador.yaml` — elige el device MQTT del pulsador y copia
-   el subtype (p. ej. `boton_22`) desde la UI al añadir el disparador.
+   el subtype (p. ej. `p22`) desde la UI al añadir el disparador.
 3. **Luz**: la entidad `switch` a controlar (p. ej. `switch.luz_22`).
 4. **Minutos hasta el apagado automático**: ajusta si 5 minutos no es lo
    que quieres para esa luz en concreto.
@@ -167,7 +167,7 @@ Una instancia por cada luz Zigbee con relé de respaldo:
 4. **Pulsador (device) — toggle bombilla + fuerza relé a ON** y
    **Subtype del botón**: el pulsador físico de esta luz — igual que
    en `luz_pulsador.yaml`, elige el device MQTT y copia el subtype
-   (p. ej. `boton_22`) desde la UI al añadir el disparador.
+   (p. ej. `p22`) desde la UI al añadir el disparador.
 5. **Adaptar brillo/temperatura cuando la bombilla vuelve a encenderse
    sola**: opcional, ver `luces_notas.md`.
 6. **Ajustar temperatura de color según la hora del día**: opcional,

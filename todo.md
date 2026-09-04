@@ -108,9 +108,11 @@
 - [ ] Confirmar en Ajustes → Dispositivos y servicios → MQTT que las 4 unidades
       aparecen diferenciadas correctamente (Mega Pulsadores A/B, Mega
       Dispositivos A/B) sin IDs duplicados.
-- [ ] Confirmar que cada pulsador (`boton_14`, `boton_27`... nombrado por
-      pin) aparece con sus 7 triggers (corta/doble/triple/cuádruple/
-      quíntuple/larga/fin de larga) y que cada luz/persiana aparece como
+- [ ] Confirmar que cada pulsador (`p14`, `p27`... nombrado por
+      pin) aparece con los triggers que tenga activos (ver
+      `HABILITAR_CORTA`/`HABILITAR_DOBLE`/etc. en `mega_pulsadores.ino`
+      — por defecto corta/doble/larga/fin de larga; triple/cuádruple/
+      quíntuple desactivados) y que cada luz/persiana aparece como
       entidad controlable.
 
 ## Lógica de automatizaciones
@@ -126,7 +128,7 @@
 - [ ] Persianas controladas desde un pulsador físico normal (agrupación de
       4 en una habitación, no cableado directo a mega_dispositivos): crear
       automatización en HA que, al recibir `larga` (long-press-start) de un
-      `boton_XX` concreto, llame a `cover.open_cover` (o `close_cover`,
+      `pXX` concreto, llame a `cover.open_cover` (o `close_cover`,
       según el botón) sobre la persiana correspondiente, y al recibir
       `larga_fin` (long-press-release) de ese mismo botón, llame a
       `cover.stop_cover`. Decidir qué pulsador de cada agrupación de 4 se

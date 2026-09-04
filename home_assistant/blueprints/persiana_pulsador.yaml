@@ -24,7 +24,7 @@ blueprint:
       name: Subtype del botón
       description: >
         Identificador del botón concreto dentro del device trigger, tal
-        cual aparece en HA al elegir el trigger (p. ej. "boton_14" — el
+        cual aparece en HA al elegir el trigger (p. ej. "p14" — el
         nombre lleva el número de pin, ver README principal del repo).
       selector:
         text: {}

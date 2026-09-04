@@ -46,7 +46,7 @@ nombre en HA) se decide en **tiempo de compilación**, no con jumper:
   `.ino` falla la compilación con `#error` en vez de subir un firmware con
   identidad ambigua.
 - Se usa `device.enableExtendedUniqueIds()` para que HA no confunda
-  entidades con el mismo ID (p. ej. `boton_14`) entre la unidad A y la B
+  entidades con el mismo ID (p. ej. `p14`) entre la unidad A y la B
   del mismo rol.
 
 Motivo del cambio (antes había un jumper físico en pin 40 leído en
@@ -118,17 +118,22 @@ persianas mezcladas) — sin que eso rompa nada del resto del código.
 - **mega_pulsadores (A y B)**: no crean entidades de estado, solo
   `HADeviceTrigger` (device triggers) — aparecen en HA como "Device" en
   el trigger de una automatización, no como entidad con estado.
-  - Por cada pulsador (`boton_14`, `boton_27`, ... el nombre lleva el
-    número de pin, no la posición en el array) hay 7 triggers:
-    `ButtonShortPressType`, `ButtonDoublePressType`, `ButtonTriplePressType`,
-    `ButtonQuadruplePressType`, `ButtonQuintuplePressType`,
-    `ButtonLongPressType`, `ButtonLongReleaseType` (en ese orden en el
-    código: 1-2-3-4-5 pulsaciones primero, larga/fin de larga aparte al
-    final). `ButtonLongReleaseType` se dispara al soltar una pulsación
-    larga — pensado para automatizaciones "mantener pulsado para mover
-    / soltar para parar" (p. ej. persianas controladas desde un
-    pulsador físico normal vía automatización en HA, no cableado
-    directo). El enum de ArduinoHA también define
+  - Por cada pulsador (`p14`, `p27`, ... el nombre lleva el
+    número de pin, no la posición en el array) hay hasta 7 triggers
+    posibles: `ButtonShortPressType`, `ButtonDoublePressType`,
+    `ButtonTriplePressType`, `ButtonQuadruplePressType`,
+    `ButtonQuintuplePressType`, `ButtonLongPressType`,
+    `ButtonLongReleaseType` (en ese orden en el código: 1-2-3-4-5
+    pulsaciones primero, larga/fin de larga aparte al final).
+    `ButtonLongReleaseType` se dispara al soltar una pulsación larga —
+    pensado para automatizaciones "mantener pulsado para mover / soltar
+    para parar" (p. ej. persianas controladas desde un pulsador físico
+    normal vía automatización en HA, no cableado directo). Cada uno de
+    los 7 se activa/desactiva por separado con `HABILITAR_CORTA`/
+    `HABILITAR_DOBLE`/etc. en `mega_pulsadores.ino` (por defecto:
+    corta/doble/larga/largaFin activos, triple/cuádruple/quíntuple
+    desactivados — ahorra RAM, ver "RAM / límite de pulsadores" en
+    `todo.md`). El enum de ArduinoHA también define
     `ButtonShortReleaseType`, que este proyecto no usa.
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_22`, `luz_30`, ... nombre = número de pin) —

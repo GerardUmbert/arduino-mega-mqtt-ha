@@ -40,7 +40,7 @@ blueprint:
     boton_subtype:
       name: Subtype del botón
       description: >
-        Identificador del botón, p. ej. "boton_14" (número de pin — ver
+        Identificador del botón, p. ej. "p14" (número de pin — ver
         README principal). Más fiable copiarlo desde la UI al añadir el
         disparador Device en vez de escribirlo a mano.
       selector:

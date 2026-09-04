@@ -64,7 +64,7 @@ vez, el propio `.ino` falla la compilación con un `#error` explícito en
 vez de subir un firmware con identidad ambigua.
 
 Se usa `device.enableExtendedUniqueIds()` para que HA no confunda entidades
-con el mismo ID (p. ej. `boton_14`) entre la unidad A y la B del mismo rol.
+con el mismo ID (p. ej. `p14`) entre la unidad A y la B del mismo rol.
 
 Las MACs se inventan localmente porque el Mega + shield Ethernet no trae
 MAC de fábrica (primer byte `0x02` = "administrada localmente"). El byte
@@ -108,14 +108,18 @@ mega_dispositivos) para que nunca choquen en la red.
 - **mega_pulsadores (A y B)**: no crean entidades de estado, solo
   `HADeviceTrigger` — aparecen en HA como "Device" en el trigger de una
   automatización, no como entidad con estado. Por cada pulsador
-  (`boton_14`, `boton_27`... el nombre lleva el número de pin) hay 7
-  triggers: `ButtonShortPressType`, `ButtonDoublePressType`,
+  (`p14`, `p27`... el nombre lleva el número de pin) hay hasta 7
+  triggers posibles: `ButtonShortPressType`, `ButtonDoublePressType`,
   `ButtonTriplePressType`, `ButtonQuadruplePressType`,
   `ButtonQuintuplePressType`, `ButtonLongPressType` y
   `ButtonLongReleaseType` (se dispara al soltar una pulsación larga —
   útil para automatizaciones "mantener pulsado para mover / soltar para
-  parar", p. ej. persianas). También existe en el enum de ArduinoHA
-  (aunque este proyecto no lo usa): `ButtonShortReleaseType`.
+  parar", p. ej. persianas). Cada uno se activa/desactiva por separado
+  con `HABILITAR_CORTA`/`HABILITAR_DOBLE`/etc. en `mega_pulsadores.ino`
+  (por defecto: corta/doble/larga/largaFin activos, triple/cuádruple/
+  quíntuple desactivados — ahorra RAM, ver "RAM / límite de pulsadores"
+  en `todo.md`). También existe en el enum de ArduinoHA (aunque este
+  proyecto no lo usa): `ButtonShortReleaseType`.
 - **mega_dispositivos (A y B)**: crean entidades reales:
   - `HASwitch` por luz (`luz_22`, `luz_30`... nombre = número de pin) —
     on/off.
@@ -168,7 +172,7 @@ normalmente usarás el mismo `config.h` en ambas — solo cambia el
   fuera del rango DHCP de tu router (o reservada para su MAC) y ser
   distinta entre A y B para no colisionar.
 
-El `unique_id` de cada entidad (`boton_14`, `luz_22`,
+El `unique_id` de cada entidad (`p14`, `luz_22`,
 `persiana_38_39`...) se genera a partir del **número de pin**, no de la
 posición en el array. Puedes reordenar, insertar o borrar pines libremente en
 cualquier momento sin que ninguna entidad ya renombrada en Home

@@ -18,6 +18,9 @@
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
 //   - OneButton        https://github.com/mathertel/OneButton
 //   - Ethernet (incluida en el IDE si usas shield W5100/W5500)
+//
+// Para medir RAM real en placa (cuánto cuesta cada pulsador/trigger),
+// ver instructions.md en esta misma carpeta.
 // ===========================================================
 
 #include <Ethernet.h>
@@ -150,7 +153,15 @@ const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 // + margen
 HAMqtt mqtt(client, device, NUM_PULSADORES * NUM_TRIGGERS_POR_PULSADOR + 2);
 
-OneButton* botones[NUM_PULSADORES];
+// Array estático (no punteros a objetos con new): OneButton tiene
+// constructor por defecto + setup() para configurar el pin después,
+// así que no hace falta reservar cada uno en el heap — ahorra el
+// overhead de malloc por pulsador (unos pocos bytes cada uno, se nota
+// a partir de una docena). HADeviceTrigger no puede hacer lo mismo
+// (sus constructores exigen tipo+subtype al crearse, no tiene
+// constructor por defecto), así que esos siguen con new/punteros más
+// abajo.
+OneButton botones[NUM_PULSADORES];
 
 // Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
 // (progresión 1-2-3-4-5 pulsaciones), y larga/fin de larga aparte, al
@@ -182,8 +193,14 @@ HADeviceTrigger* largaFin[NUM_PULSADORES];
 
 // Buffers de texto para los IDs. Deben ser globales (viven todo el
 // programa) porque HADeviceTrigger se queda con el puntero al texto,
-// no con una copia.
-char idBoton[NUM_PULSADORES][10];
+// no con una copia. Formato "pNN" (antes "boton_NN") — más corto,
+// ahorra RAM; el pin es uint8_t (máx. 2 dígitos en un Mega), así que
+// "p" + 2 dígitos + '\0' caben en 4 bytes.
+// ⚠️ Cambia el subtype que ve HA: cualquier automatización ya
+// instanciada desde un blueprint con el "Subtype del botón" antiguo
+// ("boton_NN") hay que volver a seleccionarla desde la UI (el nuevo
+// subtype "pNN" no coincide con el guardado).
+char idBoton[NUM_PULSADORES][4];
 
 void imprimirMac() {
     for (uint8_t i = 0; i < sizeof(mac); i++) {
@@ -207,6 +224,10 @@ void onMqttDisconnected() {
 // tocado) y la dirección actual del stack pointer. Se llama una vez al
 // final de setup(), cuando ya está todo creado (pulsadores, triggers,
 // Ethernet, MQTT) — el punto de mínima RAM libre del programa.
+// Ver instructions.md (misma carpeta) para el procedimiento completo
+// de medición — una sola lectura no basta para saber qué se come la
+// RAM (coste fijo de Ethernet/MQTT vs. coste por pulsador vs. coste
+// por tipo de trigger), hacen falta varias lecturas comparadas.
 extern char* __brkval;
 extern char __bss_end;
 int freeMemory() {
@@ -242,7 +263,7 @@ void onDoubleClick(void* param) {
 #if defined(HABILITAR_TRIPLE) || defined(HABILITAR_CUADRUPLE) || defined(HABILITAR_QUINTUPLE)
 void onMultiClick(void* param) {
     int idx = reinterpret_cast<int>(param);
-    int clics = botones[idx]->getNumberClicks();
+    int clics = botones[idx].getNumberClicks();
     switch (clics) {
 #ifdef HABILITAR_TRIPLE
         case 3: triple[idx]->trigger();    break;
@@ -295,13 +316,13 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.7.0");
+    device.setSoftwareVersion("1.7.1");
 
     // --- creamos cada pulsador y sus triggers activos (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
-        snprintf(idBoton[i], sizeof(idBoton[i]), "boton_%d", PINES_BOTONES[i]);
+        snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
 
-        botones[i] = new OneButton(PINES_BOTONES[i], true); // true = INPUT_PULLUP, activo en LOW
+        botones[i].setup(PINES_BOTONES[i], INPUT_PULLUP, true); // true = activo en LOW
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
@@ -332,26 +353,26 @@ void setup() {
         void* idxParam = reinterpret_cast<void*>(i);
 
 #ifdef HABILITAR_CORTA
-        botones[i]->attachClick(onClick, idxParam);
+        botones[i].attachClick(onClick, idxParam);
 #endif
 #ifdef HABILITAR_DOBLE
-        botones[i]->attachDoubleClick(onDoubleClick, idxParam);
+        botones[i].attachDoubleClick(onDoubleClick, idxParam);
 #endif
 #if defined(HABILITAR_TRIPLE) || defined(HABILITAR_CUADRUPLE) || defined(HABILITAR_QUINTUPLE)
-        botones[i]->attachMultiClick(onMultiClick, idxParam);
+        botones[i].attachMultiClick(onMultiClick, idxParam);
 #endif
 #ifdef HABILITAR_LARGA
-        botones[i]->attachLongPressStart(onLongPressStart, idxParam);
+        botones[i].attachLongPressStart(onLongPressStart, idxParam);
 #endif
 #ifdef HABILITAR_LARGA_FIN
-        botones[i]->attachLongPressStop(onLongPressStop, idxParam);
+        botones[i].attachLongPressStop(onLongPressStop, idxParam);
 #endif
 
         // Ajustes opcionales de temporización (descomenta y ajusta si
         // los pulsadores van demasiado rápido/lentos para tu gusto):
-        // botones[i]->setDebounceMs(50);
-        // botones[i]->setClickMs(400);   // ventana para detectar doble/triple
-        // botones[i]->setPressMs(1000);  // tiempo para considerar "larga"
+        // botones[i].setDebounceMs(50);
+        // botones[i].setClickMs(400);   // ventana para detectar doble/triple
+        // botones[i].setPressMs(1000);  // tiempo para considerar "larga"
     }
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
@@ -401,7 +422,7 @@ void setup() {
 void loop() {
     mqtt.loop();
     for (int i = 0; i < NUM_PULSADORES; i++) {
-        botones[i]->tick();
+        botones[i].tick();
     }
 
     static unsigned long ultimoAviso = 0;
