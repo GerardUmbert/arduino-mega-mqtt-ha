@@ -5,7 +5,21 @@ La versión de cada entrada debe coincidir con
 `device.setSoftwareVersion(...)` en el `.ino` correspondiente
 (`mega_pulsadores`, `mega_pulsadores_low_ram` o `mega_dispositivos`) —
 es lo que Home Assistant muestra como versión de firmware de cada
-dispositivo. Los tres `.ino` versionan de forma independiente.
+dispositivo.
+
+Desde el **2026-09-04**, los tres `.ino` comparten un único número de
+versión (antes versionaban de forma independiente): cualquier cambio
+en cualquiera de los tres implica subir la misma versión en los tres
+ficheros a la vez, aunque el cambio en concreto solo afecte a uno.
+
+## [1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)
+
+### Changed
+- Unificado el número de versión de los tres `.ino` a `1.7.1` (antes:
+  `mega_pulsadores` 1.7.1, `mega_pulsadores_low_ram` 1.0.0-low-ram,
+  `mega_dispositivos` 1.6.3, cada uno con su propio historial). Sin
+  cambios de comportamiento en ningún firmware — solo el número que
+  reporta cada uno a Home Assistant.
 
 ## [1.0.0] - 2026-09-04 (mega_pulsadores_low_ram)
 

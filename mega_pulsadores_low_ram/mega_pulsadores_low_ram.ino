@@ -264,7 +264,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.0.0-low-ram");
+    device.setSoftwareVersion("1.7.1");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     ButtonConfig* cfg = ButtonConfig::getSystemButtonConfig();

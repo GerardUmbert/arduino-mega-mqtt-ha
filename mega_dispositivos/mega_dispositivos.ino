@@ -237,7 +237,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.6.3");
+    device.setSoftwareVersion("1.7.1");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {

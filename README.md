@@ -45,7 +45,8 @@ entre sí.
   terminado (IPs, credenciales, pines reales, automatizaciones...).
 - `CHANGELOG.md` — historial de cambios del proyecto, versionado igual
   que `device.setSoftwareVersion(...)` en cada `.ino` (los tres
-  versionan de forma independiente).
+  comparten un único número de versión desde el 2026-09-04, ver
+  Changelog).
 
 ## Hardware
 
