@@ -1137,6 +1137,21 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   primera vez que se tageé cada blueprint.</li>
 </ul>
 <h2 id="183-2026-09-05-mega_pulsadores_low_ram">[1.8.3] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#183-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Los <code>HADeviceTrigger</code> (corta/doble/larga/largaFin) nunca aparecían
+  en Home Assistant como trigger de tipo "Dispositivo"</strong> — solo se veía
+  el botón virtual (<code>HAButton</code>) como entidad. Confirmado leyendo el
+  código fuente de ArduinoHA (<code>HABaseDeviceType::publishConfig()</code>):
+  publica el discovery con <code>mqtt()-&gt;beginPublish(topic, dataLength, true)</code>,
+  que devuelve <code>false</code> EN SILENCIO (sin ningún error en Serial) si
+  <code>dataLength</code> no cabe en el buffer de <code>PubSubClient</code> — 256 bytes por
+  defecto, insuficiente para el payload de un <code>device_automation</code>
+  (incluye el bloque <code>device</code> completo, más grande aún con
+  <code>enableExtendedUniqueIds()</code> activo). El botón virtual sí se veía
+  porque su payload de discovery es más pequeño y cabía igualmente en
+  256 bytes. Arreglo: <code>mqtt.setBufferSize(1024)</code> antes de <code>mqtt.begin(...)</code>.</li>
+</ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ajustes de temporización de <code>AceButton</code> explicitados y a gusto del
@@ -1153,7 +1168,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
     directo, sin librerías, del bug de la versión 1.8.2).</li>
 </ul>
 <h2 id="182-2026-09-05-mega_pulsadores_low_ram">[1.8.2] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#182-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>larga (fin)</code> nunca se disparaba</strong> al soltar tras una pulsación
   larga, confirmado en placa real: <code>AceButton::checkReleased()</code> solo
@@ -1186,7 +1201,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   posible segundo toque.</li>
 </ul>
 <h2 id="181-2026-09-05-mega_pulsadores_low_ram">[1.8.1] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#181-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Bug real de carrera en el botón virtual</strong>, detectado en placa real:
   el pulsador físico se quedaba "atascado" detectando solo pulsación
@@ -1378,7 +1393,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="163-2026-09-04-mega_pulsadores">[1.6.3] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#163-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.6.3).</p>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>setup()</code> adjuntaba los callbacks de <code>OneButton</code> (<code>attachClick</code>,
   <code>attachDoubleClick</code>, <code>attachMultiClick</code>, <code>attachLongPressStart</code>,
@@ -1394,7 +1409,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="163-2026-09-04-mega_dispositivos">[1.6.3] - 2026-09-04 (mega_dispositivos)<a class="headerlink" href="#163-2026-09-04-mega_dispositivos" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.3).</p>
-<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Los arrays globales <code>inicioMovimiento</code>, <code>subiendo</code> y
   <code>ultimaPublicacionPosicion</code> (tamaño <code>NUM_PERSIANAS</code>) llevaban un
@@ -1421,7 +1436,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="161-2026-09-02">[1.6.1] - 2026-09-02<a class="headerlink" href="#161-2026-09-02" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.1).</p>
-<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>El auto-stop al llegar a un extremo (añadido en 1.6.0) comprobaba
   <code>posicion &lt;= 0 || posicion &gt;= 100</code> sin mirar hacia qué lado se estaba
@@ -1453,7 +1468,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   lleva ese tiempo en movimiento sin llegar a un extremo ni recibir
   STOP, se para sola para no forzar el motor.</li>
 </ul>
-<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Sin <code>HACover::PositionFeature</code>, Home Assistant no tiene un estado real
   de "parada a medias": al recibir <code>stopped</code> sin posición conocida,
@@ -1486,7 +1501,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   fallando siempre).</li>
 </ul>
 <h2 id="150-2026-09-02">[1.5.0] - 2026-09-02<a class="headerlink" href="#150-2026-09-02" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_7">Fixed<a class="headerlink" href="#fixed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>Ethernet.begin(mac, IP_ESTATICA)</code> en ambos <code>.ino</code> solo fijaba la IP:
   la librería Ethernet asumía un gateway por defecto que no coincidía
