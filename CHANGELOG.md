@@ -23,6 +23,22 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.3] - 2026-09-05 (mega_pulsadores_low_ram)
+
+### Changed
+- Ajustes de temporización de `AceButton` explicitados y a gusto del
+  usuario tras pruebas en placa real (antes quedaban comentados con el
+  valor por defecto implícito):
+  - `setDoubleClickDelay(450)` — ventana entre soltar el 1er toque y
+    presionar el 2º para contar como doble clic (antes: 400ms por
+    defecto, sin declarar).
+  - `setLongPressDelay(800)` — tiempo sujetando el botón para que
+    cuente como pulsación larga (antes: 1000ms por defecto, sin
+    declarar).
+  - `setDebounceDelay` se deja comentada, sin cambios — no hay
+    evidencia de rebote real en placa (ver el test con `digitalRead`
+    directo, sin librerías, del bug de la versión 1.8.2).
+
 ## [1.8.2] - 2026-09-05 (mega_pulsadores_low_ram)
 
 ### Fixed

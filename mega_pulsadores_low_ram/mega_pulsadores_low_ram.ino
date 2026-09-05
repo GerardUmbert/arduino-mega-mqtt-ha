@@ -362,7 +362,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.2");
+    device.setSoftwareVersion("1.8.3");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -417,11 +417,18 @@ void setup() {
     // doble. 400ms da margen real de sobra para un toque de dedo
     // normal sin acercarse al umbral de pulsación larga (1000ms).
     cfg->setClickDelay(400);
-    // Resto de ajustes opcionales de temporización (descomenta y
-    // ajusta si los pulsadores van demasiado rápido/lentos):
+    // Ventana entre soltar el 1er toque y presionar el 2º para que
+    // cuente como doble clic (checkDoubleClicked(): now - mLastClickTime).
+    // 450ms, explícito en vez de dejar el default (400ms) implícito.
+    cfg->setDoubleClickDelay(450);
+    // Tiempo sujetando el botón para que cuente como pulsación larga.
+    // 800ms (bajado del default de AceButton, 1000ms) a gusto del
+    // usuario tras probar en placa real.
+    cfg->setLongPressDelay(800);
+    // Filtra el rebote eléctrico del contacto mecánico del pulsador —
+    // no confirmado como problema real en placa (el test con
+    // digitalRead directo no mostró rebote), se deja en el default.
     // cfg->setDebounceDelay(20);
-    // cfg->setDoubleClickDelay(400);   // ventana para detectar el doble clic
-    // cfg->setLongPressDelay(1000);    // tiempo para considerar "larga"
 
     // --- creamos cada pulsador (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
