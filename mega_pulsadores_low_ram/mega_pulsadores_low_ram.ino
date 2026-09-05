@@ -362,7 +362,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.1");
+    device.setSoftwareVersion("1.8.2");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -373,7 +373,18 @@ void setup() {
     cfg->setFeature(ButtonConfig::kFeatureClick);
 #endif
 #ifdef HABILITAR_DOBLE
+    // ⚠️ Sin kFeatureSuppressClickBeforeDoubleClick, AceButton despacha
+    // el "corta" del primer toque AL INSTANTE (ver AceButton::checkClicked(),
+    // que llama a handleEvent(kEventClicked) enseguida salvo que este
+    // flag esté activo) y SOLO DESPUÉS, si llega un segundo toque a
+    // tiempo, añade el "doble" — nunca sustituye al primer evento. Bug
+    // real confirmado en placa (2026-09-05): cualquier doble clic salía
+    // siempre como "corta" seguido de "doble", por rápido que se hiciera.
+    // Con este flag, el primer clic se pospone (kFlagClickPostponed) y
+    // si llega el segundo a tiempo se descarta del todo, dejando pasar
+    // solo el doble — ver AceButton::checkDoubleClicked().
     cfg->setFeature(ButtonConfig::kFeatureDoubleClick);
+    cfg->setFeature(ButtonConfig::kFeatureSuppressClickBeforeDoubleClick);
 #endif
 #ifdef HABILITAR_LARGA
     cfg->setFeature(ButtonConfig::kFeatureLongPress);

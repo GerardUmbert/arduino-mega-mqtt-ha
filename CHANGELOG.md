@@ -23,6 +23,39 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.2] - 2026-09-05 (mega_pulsadores_low_ram)
+
+### Fixed
+- **`larga (fin)` nunca se disparaba** al soltar tras una pulsación
+  larga, confirmado en placa real: `AceButton::checkReleased()` solo
+  despacha `kEventLongReleased` si además de `kFeatureLongPress` está
+  activo `kFeatureSuppressAfterLongPress` (confirmado leyendo el código
+  fuente) — sin ese flag, el release tras una pulsación larga se
+  despacha como `kEventReleased` genérico, que este firmware no
+  gestiona. Arreglo: se separó el `#ifdef HABILITAR_LARGA_FIN` de
+  `HABILITAR_LARGA` y se añadió el flag que faltaba.
+- **Corta y doble nunca se detectaban con pulsaciones de dedo
+  normales**, confirmado en placa real con medición directa de
+  `digitalRead()` (pulsaciones reales de ~220-290ms): el `kClickDelay`
+  por defecto de AceButton es 200ms, y `AceButton::checkClicked()`
+  descarta el evento EN SILENCIO en cuanto `elapsedTime >= getClickDelay()`
+  — cualquier pulsación de dedo normal ya caía por encima del umbral.
+  Arreglo: `cfg->setClickDelay(400)`, con margen de sobra frente al
+  umbral de pulsación larga (1000ms).
+- **Doble clic salía siempre como "corta" seguido de "doble"**, nunca
+  solo "doble", por rápido que se hiciera el doble toque: sin
+  `kFeatureSuppressClickBeforeDoubleClick`, `AceButton::checkClicked()`
+  despacha el `kEventClicked` del primer toque de inmediato y solo
+  añade el `kEventDoubleClicked` después si llega un segundo toque a
+  tiempo — nunca sustituye al primero (confirmado leyendo el código
+  fuente, `AceButton.cpp`). Arreglo: se activa ese flag junto con
+  `kFeatureDoubleClick`, que pospone el "corta" hasta confirmar que no
+  hay doble, y lo suprime del todo si lo hay. Efecto secundario
+  esperado y documentado por la propia librería: el "corta" ahora
+  tarda ~`getClickDelay() + getDoubleClickDelay()` (≈800ms con la
+  config actual) en aparecer tras soltar, para poder esperar un
+  posible segundo toque.
+
 ## [1.8.1] - 2026-09-05 (mega_pulsadores_low_ram)
 
 ### Fixed
