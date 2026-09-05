@@ -25,6 +25,20 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
 
 ## [1.8.3] - 2026-09-05 (mega_pulsadores_low_ram)
 
+### Fixed
+- **Los `HADeviceTrigger` (corta/doble/larga/largaFin) nunca aparecían
+  en Home Assistant como trigger de tipo "Dispositivo"** — solo se veía
+  el botón virtual (`HAButton`) como entidad. Confirmado leyendo el
+  código fuente de ArduinoHA (`HABaseDeviceType::publishConfig()`):
+  publica el discovery con `mqtt()->beginPublish(topic, dataLength, true)`,
+  que devuelve `false` EN SILENCIO (sin ningún error en Serial) si
+  `dataLength` no cabe en el buffer de `PubSubClient` — 256 bytes por
+  defecto, insuficiente para el payload de un `device_automation`
+  (incluye el bloque `device` completo, más grande aún con
+  `enableExtendedUniqueIds()` activo). El botón virtual sí se veía
+  porque su payload de discovery es más pequeño y cabía igualmente en
+  256 bytes. Arreglo: `mqtt.setBufferSize(1024)` antes de `mqtt.begin(...)`.
+
 ### Changed
 - Ajustes de temporización de `AceButton` explicitados y a gusto del
   usuario tras pruebas en placa real (antes quedaban comentados con el

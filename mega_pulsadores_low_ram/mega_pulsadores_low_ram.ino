@@ -496,6 +496,19 @@ void setup() {
     mqtt.onConnected(onMqttConnected);
     mqtt.onDisconnected(onMqttDisconnected);
 
+    // ⚠️ Bug real confirmado (2026-09-05): los HADeviceTrigger (corta/
+    // doble/larga/largaFin) nunca aparecían en HA como trigger de tipo
+    // "Dispositivo" — solo se veía la entidad del botón virtual. Causa:
+    // el buffer de PubSubClient por defecto (256 bytes) es insuficiente
+    // para el payload de discovery de un device_automation (incluye el
+    // bloque "device" completo repetido en cada trigger, más grande con
+    // enableExtendedUniqueIds() activo) — HABaseDeviceType::publishConfig()
+    // llama a mqtt()->beginPublish(topic, dataLength, true), que
+    // devuelve false EN SILENCIO si dataLength no cabe en el buffer, sin
+    // ningún error visible en Serial. El botón virtual (HAButton) tiene
+    // un payload de discovery más pequeño, por eso ese sí se veía.
+    mqtt.setBufferSize(1024);
+
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
 
