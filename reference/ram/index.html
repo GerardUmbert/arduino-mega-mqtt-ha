@@ -1485,9 +1485,14 @@ pulsadores.</p>
   A cambio, esos 512 bytes salen de la SRAM disponible y bajan el límite
   de pulsadores respecto a las mediciones de la 1.8.0.</li>
 <li><strong>Sockets de Ethernet</strong>: la librería reserva <code>MAX_SOCK_NUM</code> sockets
-  (4 por defecto), y este firmware solo abre una conexión (la de MQTT).
-  Desde la 1.8.8 se limita a 1 — ver la nota de verificación en
-  <a href="../../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>.</li>
+  (8 en este shield) y este firmware solo abre una conexión, así que
+  parecería una bolsa de RAM aprovechable. <strong>No lo es, en la práctica</strong>:
+  probado y revertido en la 1.8.9. El <code>#define MAX_SOCK_NUM 1</code> antes del
+  include no surte efecto (<code>Ethernet.h</code> lo define sin guarda <code>#ifndef</code>,
+  manda el valor de la librería: ahorro cero, medido), y
+  <code>Ethernet.init(1)</code> no limita sockets sino que cambia el <strong>pin de
+  chip-select</strong> — deja la placa sin ver el shield. Descartado salvo
+  editando la librería.</li>
 <li><strong>Coste por pulsador</strong>: cada <code>HADeviceTrigger</code> que creas ocupa
   memoria en el heap (<code>new HADeviceTrigger(...)</code>), el objeto
   <code>OneButton</code>/<code>AceButton</code> en sí tiene un tamaño fijo por instancia, y

@@ -1136,6 +1136,42 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   (p. ej. <code>blueprints/luz_pulsador/v1.1.0</code>) — empieza en <code>v1.0.0</code> la
   primera vez que se tageé cada blueprint.</li>
 </ul>
+<h2 id="189-2026-09-17-mega_pulsadores_low_ram">[1.8.9] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#189-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
+<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>
+<p><strong>Revertido por completo el cambio de sockets de la 1.8.8</strong>, que no
+  ahorraba nada y ademas dejaba la placa sin red. Medido en placa:</p>
+</li>
+<li>
+<p><code>#define MAX_SOCK_NUM 1</code> antes del include <strong>no surte ningun
+    efecto</strong>: <code>Ethernet.h</code> lo define sin guarda <code>#ifndef</code>, asi que
+    manda el valor de la libreria. El debug lo confirmo:
+    <code>[debug] sockets Ethernet: 8</code> (no 1, y son 8 por defecto en este
+    shield, no 4 como se supuso). RAM libre identica, 373 bytes:
+    <strong>ahorro cero</strong>.</p>
+</li>
+<li><code>Ethernet.init(1)</code> <strong>rompia la red</strong>. En la libreria Ethernet ese
+    metodo cambia el <strong>pin de chip-select</strong>, no el numero de sockets —
+    pasarle 1 movia el CS al pin 1 y la placa dejaba de ver el shield:
+    <code>ERROR: no se detecta el shield Ethernet</code>, IP 0.0.0.0, TCP FALLO y
+    MQTT sin conectar.</li>
+</ul>
+<p>Leccion: la 1.8.8 se subio con una API no verificada contra la
+  libreria instalada (no esta en el equipo donde se edita el repo). El
+  <code>[debug] sockets Ethernet</code> que se anadio para comprobarlo hizo su
+  trabajo y delato las dos cosas — pero el cambio no deberia haberse
+  subido antes de tener esa confirmacion.</p>
+<h3 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Sigue pendiente encontrar RAM para las 28 entradas cableadas: con 28
+  pulsadores y los botones virtuales ya desactivados quedan 373 bytes y
+  el MQTT no se sostiene. Palancas que quedan: apagar <code>HABILITAR_DEBUG</code>
+  (1.8.7), desactivar <code>HABILITAR_LARGA_FIN</code> si no se usa el patron
+  "mantener para mover / soltar para parar", o una tercera unidad
+  fisica (<code>PLACA_C</code>). La via de los sockets de Ethernet queda
+  descartada salvo que se edite la libreria, que no se va a hacer.</li>
+</ul>
 <h2 id="188-2026-09-17-mega_pulsadores_low_ram">[1.8.8] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#188-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1175,7 +1211,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   <code>AceButton.h</code>). Con 28 pulsadores y una linea por pulsacion, esa
   pausa se nota.</li>
 </ul>
-<h3 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h3>
+<h3 id="notes_1">Notes<a class="headerlink" href="#notes_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Medido en placa con 28 pulsadores, <code>HABILITAR_BOTON_VIRTUAL</code>
   desactivado y buffer de 512: <code>setBufferSize(512) -&gt; OK</code> (el fix de
@@ -1224,7 +1260,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   de larga al desactivarlos.</li>
 </ul>
 <h2 id="185-2026-09-17-mega_pulsadores_low_ram">[1.8.5] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#185-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>setBufferSize()</code> fallaba al subir de pulsadores, dejando el buffer
   en 256 bytes y rompiendo otra vez el discovery de los
@@ -1254,7 +1290,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   memoria contigua — margen que importa en un Mega de 8 KB al subir el
   numero de pulsadores.</li>
 </ul>
-<h3 id="notes_1">Notes<a class="headerlink" href="#notes_1" title="Permanent link">&para;</a></h3>
+<h3 id="notes_2">Notes<a class="headerlink" href="#notes_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Confirmado en esta sesion que el problema original NO era el retain
   ni el broker: los 64 configs de discovery se publican correctamente y
@@ -1302,7 +1338,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   Todo esto se quita una vez identificada la causa.</li>
 </ul>
 <h2 id="183-2026-09-05-mega_pulsadores_low_ram">[1.8.3] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#183-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Los <code>HADeviceTrigger</code> (corta/doble/larga/largaFin) nunca aparecían
   en Home Assistant como trigger de tipo "Dispositivo"</strong> — solo se veía
@@ -1333,7 +1369,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
     directo, sin librerías, del bug de la versión 1.8.2).</li>
 </ul>
 <h2 id="182-2026-09-05-mega_pulsadores_low_ram">[1.8.2] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#182-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong><code>larga (fin)</code> nunca se disparaba</strong> al soltar tras una pulsación
   larga, confirmado en placa real: <code>AceButton::checkReleased()</code> solo
@@ -1366,7 +1402,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   posible segundo toque.</li>
 </ul>
 <h2 id="181-2026-09-05-mega_pulsadores_low_ram">[1.8.1] - 2026-09-05 (mega_pulsadores_low_ram)<a class="headerlink" href="#181-2026-09-05-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Bug real de carrera en el botón virtual</strong>, detectado en placa real:
   el pulsador físico se quedaba "atascado" detectando solo pulsación
@@ -1558,7 +1594,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="163-2026-09-04-mega_pulsadores">[1.6.3] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#163-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.6.3).</p>
-<h3 id="fixed_4">Fixed<a class="headerlink" href="#fixed_4" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>setup()</code> adjuntaba los callbacks de <code>OneButton</code> (<code>attachClick</code>,
   <code>attachDoubleClick</code>, <code>attachMultiClick</code>, <code>attachLongPressStart</code>,
@@ -1574,7 +1610,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="163-2026-09-04-mega_dispositivos">[1.6.3] - 2026-09-04 (mega_dispositivos)<a class="headerlink" href="#163-2026-09-04-mega_dispositivos" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.3).</p>
-<h3 id="fixed_5">Fixed<a class="headerlink" href="#fixed_5" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Los arrays globales <code>inicioMovimiento</code>, <code>subiendo</code> y
   <code>ultimaPublicacionPosicion</code> (tamaño <code>NUM_PERSIANAS</code>) llevaban un
@@ -1601,7 +1637,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="161-2026-09-02">[1.6.1] - 2026-09-02<a class="headerlink" href="#161-2026-09-02" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.1).</p>
-<h3 id="fixed_6">Fixed<a class="headerlink" href="#fixed_6" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_7">Fixed<a class="headerlink" href="#fixed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>El auto-stop al llegar a un extremo (añadido en 1.6.0) comprobaba
   <code>posicion &lt;= 0 || posicion &gt;= 100</code> sin mirar hacia qué lado se estaba
@@ -1633,7 +1669,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   lleva ese tiempo en movimiento sin llegar a un extremo ni recibir
   STOP, se para sola para no forzar el motor.</li>
 </ul>
-<h3 id="fixed_7">Fixed<a class="headerlink" href="#fixed_7" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_8">Fixed<a class="headerlink" href="#fixed_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Sin <code>HACover::PositionFeature</code>, Home Assistant no tiene un estado real
   de "parada a medias": al recibir <code>stopped</code> sin posición conocida,
@@ -1666,7 +1702,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   fallando siempre).</li>
 </ul>
 <h2 id="150-2026-09-02">[1.5.0] - 2026-09-02<a class="headerlink" href="#150-2026-09-02" title="Permanent link">&para;</a></h2>
-<h3 id="fixed_8">Fixed<a class="headerlink" href="#fixed_8" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_9">Fixed<a class="headerlink" href="#fixed_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>Ethernet.begin(mac, IP_ESTATICA)</code> en ambos <code>.ino</code> solo fijaba la IP:
   la librería Ethernet asumía un gateway por defecto que no coincidía
