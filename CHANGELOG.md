@@ -23,6 +23,38 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.4] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Added
+- **Instrumentacion temporal de diagnostico** para investigar por que
+  los `HADeviceTrigger` siguen sin aparecer en Home Assistant como
+  trigger de tipo "Dispositivo" incluso con el `setBufferSize(1024)`
+  de la 1.8.3 ya aplicado y confirmado en placa (Device info muestra
+  la version correcta, pero en HA solo se ven los `HAButton` virtuales
+  y una automatizacion sobre `p22` solo ofrece "click normal", sin
+  doble ni larga). Sintoma clave: el monitor serie imprime
+  `[boton] p22 -> corta` con normalidad, asi que la deteccion del
+  pulsador funciona y el fallo esta en la publicacion MQTT.
+  Tres puntos nuevos de log, todos marcados como TEMPORAL en el codigo:
+  - **Retorno de `setBufferSize(1024)`** — devuelve `boolean` y hasta
+    ahora nadie lo miraba. Si el `realloc` no encuentra un bloque
+    CONTIGUO de 1024 bytes, devuelve `false` y PubSubClient se queda
+    con los 256 de siempre, sin ningun aviso: exactamente el mismo bug
+    que la 1.8.3 pretendia arreglar, pero invisible. Es un escenario
+    plausible aqui porque la llamada ocurre DESPUES de los ~100 `new`
+    del bucle de pulsadores, con el heap ya fragmentado — puede haber
+    1701 bytes libres en total (medido) y ni un hueco contiguo de 1024.
+  - **Retorno de `trigger()`** en los cuatro eventos de
+    `handleEvent()`. Devuelve `bool` y tampoco se comprobaba, asi que
+    el `Serial.print` salia igual aunque la publicacion fallara — de
+    ahi el sintoma "lo veo en el monitor serie pero HA no reacciona".
+    Ahora cada evento imprime `[publicado]` o `[FALLO MQTT]`.
+  - **Contador de entidades MQTT creadas** vs. el hueco reservado en
+    el constructor de `HAMqtt`. Si las creadas superan el maximo,
+    ArduinoHA descarta en silencio las que no caben, y se perderian
+    triggers sin ningun aviso.
+  Todo esto se quita una vez identificada la causa.
+
 ## [1.8.3] - 2026-09-05 (mega_pulsadores_low_ram)
 
 ### Fixed

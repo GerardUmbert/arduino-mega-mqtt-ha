@@ -297,36 +297,54 @@ void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
     uint8_t idx = button->getId();
     switch (eventType) {
 #ifdef HABILITAR_CORTA
-        case AceButton::kEventClicked:
-            corta[idx]->trigger();
+        case AceButton::kEventClicked: {
+            // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO (2026-09-17): trigger()
+            // devuelve bool y hasta ahora nadie mira ese valor, así que
+            // el Serial.print de abajo se imprime IGUAL aunque la
+            // publicación MQTT haya fallado — de ahí el síntoma "lo veo
+            // en el monitor serie pero HA no reacciona". Quitar el
+            // "-> publicado/FALLO" cuando esté resuelto.
+            bool ok = corta[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
-            Serial.println(F(" -> corta"));
+            Serial.print(F(" -> corta ["));
+            Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+            Serial.println(']');
             break;
+        }
 #endif
 #ifdef HABILITAR_DOBLE
-        case AceButton::kEventDoubleClicked:
-            doble[idx]->trigger();
+        case AceButton::kEventDoubleClicked: {
+            bool ok = doble[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
-            Serial.println(F(" -> doble"));
+            Serial.print(F(" -> doble ["));
+            Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+            Serial.println(']');
             break;
+        }
 #endif
 #ifdef HABILITAR_LARGA
-        case AceButton::kEventLongPressed:
-            larga[idx]->trigger();
+        case AceButton::kEventLongPressed: {
+            bool ok = larga[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
-            Serial.println(F(" -> larga (inicio)"));
+            Serial.print(F(" -> larga (inicio) ["));
+            Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+            Serial.println(']');
             break;
+        }
 #endif
 #ifdef HABILITAR_LARGA_FIN
-        case AceButton::kEventLongReleased:
-            largaFin[idx]->trigger();
+        case AceButton::kEventLongReleased: {
+            bool ok = largaFin[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
-            Serial.println(F(" -> larga (fin)"));
+            Serial.print(F(" -> larga (fin) ["));
+            Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+            Serial.println(']');
             break;
+        }
 #endif
     }
 }
@@ -362,7 +380,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.3");
+    device.setSoftwareVersion("1.8.4");
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -430,6 +448,11 @@ void setup() {
     // digitalRead directo no mostró rebote), se deja en el default.
     // cfg->setDebounceDelay(20);
 
+    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO (2026-09-17): cuenta cada
+    // entidad MQTT que se crea, para comparar al final de setup()
+    // con el hueco reservado en el constructor de HAMqtt.
+    int entidadesCreadas = 0;
+
     // --- creamos cada pulsador (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
@@ -446,15 +469,19 @@ void setup() {
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
+        entidadesCreadas++;
 #endif
 #ifdef HABILITAR_DOBLE
         doble[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType,    idBoton[i]);
+        entidadesCreadas++;
 #endif
 #ifdef HABILITAR_LARGA
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
+        entidadesCreadas++;
 #endif
 #ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
+        entidadesCreadas++;
 #endif
 
         // Botón virtual: entidad real y pulsable en la UI de HA (a
@@ -462,6 +489,7 @@ void setup() {
         botonVirtual[i] = new HAButton(idBotonVirtual[i]);
         botonVirtual[i]->setName(idBoton[i]);
         botonVirtual[i]->onCommand(onBotonVirtual);
+        entidadesCreadas++;
     }
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
@@ -507,7 +535,34 @@ void setup() {
     // devuelve false EN SILENCIO si dataLength no cabe en el buffer, sin
     // ningún error visible en Serial. El botón virtual (HAButton) tiene
     // un payload de discovery más pequeño, por eso ese sí se veía.
-    mqtt.setBufferSize(1024);
+    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO (2026-09-17): quitar cuando se
+    // encuentre por qué los HADeviceTrigger no llegan a HA ni con el
+    // setBufferSize ya aplicado.
+    // setBufferSize() devuelve boolean: si el realloc de 1024 bytes no
+    // encuentra un bloque CONTIGUO libre, devuelve false y PubSubClient
+    // se queda con los 256 bytes de siempre, sin decir nada — mismo
+    // bug que antes, invisible. Y aquí el riesgo es real: esta llamada
+    // ocurre DESPUÉS de los ~100 new del bucle de pulsadores, con el
+    // heap ya fragmentado en asignaciones pequeñas, así que puede haber
+    // 1700 bytes libres en total y ni un hueco contiguo de 1024.
+    bool bufOk = mqtt.setBufferSize(1024);
+    Serial.print(F("[debug] setBufferSize(1024) -> "));
+    Serial.println(bufOk ? F("OK") : F("FALLO (sigue en 256!)"));
+
+    // Cuántas entidades MQTT se han creado de verdad (contadas a mano
+    // en el bucle de arriba) vs. el hueco que se reservó en el
+    // constructor de HAMqtt. Si "creadas" supera el "maximo",
+    // ArduinoHA ha DESCARTADO en silencio las que no cabían — y basta
+    // con que el cálculo del constructor se quede corto para perder
+    // triggers sin ningún aviso.
+    Serial.print(F("[debug] entidades MQTT creadas: "));
+    Serial.print(entidadesCreadas);
+    Serial.print(F(" / maximo reservado: "));
+    Serial.println(NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
+    Serial.print(F("[debug] NUM_PULSADORES="));
+    Serial.print(NUM_PULSADORES);
+    Serial.print(F(" triggers/pulsador="));
+    Serial.println(NUM_TRIGGERS_POR_PULSADOR);
 
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
