@@ -705,6 +705,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#otros-dos-flags-ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Otros dos flags (RAM)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#diferencia-clave-con-onebutton-en-el-codigo" class="md-nav__link">
     <span class="md-ellipsis">
       Diferencia clave con OneButton en el código
@@ -1192,6 +1201,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#otros-dos-flags-ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Otros dos flags (RAM)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#diferencia-clave-con-onebutton-en-el-codigo" class="md-nav__link">
     <span class="md-ellipsis">
       Diferencia clave con OneButton en el código
@@ -1334,6 +1352,50 @@ librería solo distingue click simple y doble click.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="otros-dos-flags-ram">Otros dos flags (RAM)<a class="headerlink" href="#otros-dos-flags-ram" title="Permanent link">&para;</a></h2>
+<p>Además de los 4 eventos, hay dos interruptores más, ambos <strong>activados
+por defecto</strong> — si no los tocas, nada cambia:</p>
+<table>
+<thead>
+<tr>
+<th><code>#define</code></th>
+<th>Desde</th>
+<th>Qué quita al comentarlo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>HABILITAR_BOTON_VIRTUAL</code></td>
+<td>1.8.6</td>
+<td>Los <code>HAButton</code> ("Press" en Controls de HA) y todo su andamiaje de simulación. <strong>~31 bytes/pulsador</strong> (~750 con 24)</td>
+</tr>
+<tr>
+<td><code>HABILITAR_DEBUG</code></td>
+<td>1.8.7</td>
+<td><code>freeMemory()</code>, el contador de entidades, el retorno de <code>setBufferSize()</code> y el <code>[publicado]/[FALLO MQTT]</code> de cada pulsación</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Qué NO se pierde al apagar <code>HABILITAR_BOTON_VIRTUAL</code></p>
+<p>Los pulsadores <strong>físicos</strong> siguen funcionando exactamente igual:
+corta, doble, larga y fin de larga se publican como siempre, que es
+lo que usan los blueprints y las automatizaciones por <em>device
+trigger</em>. Solo desaparecen los botones "Press" de la UI de HA, que
+servían para <strong>simular</strong> una pulsación corta desde la app.</p>
+<p>Esos botones virtuales nunca pudieron simular pulsación larga (el
+pulso es corto y fijo, <code>SIMULACION_PULSO_MS</code>), así que apagarlos no
+quita ninguna capacidad de larga.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title"><code>HABILITAR_DEBUG</code> no es solo RAM</p>
+<p>Cada <code>Serial.print</code> <strong>bloquea el loop</strong> mientras vacía el buffer a
+9600 baudios, y <code>AceButton</code> necesita <code>check()</code> cada &lt;5ms para que el
+debounce y la detección de multiclic funcionen (documentado en
+<code>AceButton.h</code>). Con muchos pulsadores y una línea impresa por
+pulsación, esa pausa se nota — déjalo activado mientras
+diagnosticas, apágalo en producción.</p>
+</div>
 <pre class="mermaid"><code>flowchart LR
     Btn(["`Pulsador físico
     (pin digital)`"]) --&gt; AB["`AceButton
@@ -1384,9 +1446,9 @@ hace con <code>button-&gt;getId()</code>, en vez del <code>void* param</code> qu
 <td>Clase base más pequeña</td>
 </tr>
 <tr>
-<td><strong>Límite práctico probado en placa</strong> (firmware 1.8.0, con botón virtual)</td>
+<td><strong>Límite práctico probado en placa</strong> (firmware 1.8.0, con botón virtual, buffer 256)</td>
 <td>12 estable, 16 falla</td>
-<td><strong>24 estable</strong> (623 bytes libres), 25 arranca pero MQTT inestable</td>
+<td><strong>24 estable</strong> (623 bytes libres), 25 arranca pero MQTT inestable — ver aviso de la 1.8.3 más abajo</td>
 </tr>
 <tr>
 <td><strong>Coste real medido por pulsador</strong></td>
@@ -1396,7 +1458,7 @@ hace con <code>button-&gt;getId()</code>, en vez del <code>void* param</code> qu
 </tbody>
 </table>
 <div class="admonition success">
-<p class="admonition-title">Confirmado en placa real (2026-09-05)</p>
+<p class="admonition-title">Confirmado en placa real (2026-09-05) — firmware 1.8.0, buffer MQTT de 256</p>
 <table>
 <thead>
 <tr>
@@ -1427,6 +1489,47 @@ hace con <code>button-&gt;getId()</code>, en vez del <code>void* param</code> qu
 </tr>
 </tbody>
 </table>
+</div>
+<div class="admonition danger">
+<p class="admonition-title">Desde la 1.8.3 esos límites ya no aplican tal cual</p>
+<p>El firmware llama a <code>mqtt.setBufferSize(512)</code> (imprescindible: con
+los 256 por defecto el discovery de los <code>HADeviceTrigger</code> no cabe y
+nunca llega a HA), y esos 512 bytes salen de la misma SRAM.</p>
+<p>Medido el 2026-09-17 con 1.8.5:</p>
+<table>
+<thead>
+<tr>
+<th>Pulsadores</th>
+<th>Botón virtual</th>
+<th>RAM libre</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>Activo</td>
+<td>1701 bytes</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Activo</td>
+<td>623 bytes</td>
+<td>Límite</td>
+</tr>
+<tr>
+<td>28</td>
+<td>Desactivado</td>
+<td>373 bytes</td>
+<td><strong>Inestable</strong> (MQTT en bucle)</td>
+</tr>
+</tbody>
+</table>
+<p>El umbral de inestabilidad ronda los <strong>~370 bytes</strong>. Ver
+<a href="../../reference/ram/">RAM y rendimiento</a> para el detalle, incluido
+el bug de fragmentación del heap que hacía fallar
+<code>setBufferSize()</code> en silencio.</p>
 </div>
 <p>Ver <a href="../../reference/ram/">RAM y rendimiento</a> para el desglose completo
 y cómo medir tu propia configuración en placa real.</p>

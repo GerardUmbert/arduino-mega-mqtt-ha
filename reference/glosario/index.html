@@ -1117,22 +1117,45 @@
     pulsador para saber qué otras luces/persianas afectar en
     pulsaciones "de grupo".</p>
 <p><code>device trigger</code>
-:   Tipo de entidad de ArduinoHA (<code>HADeviceTrigger</code>) que no tiene
-    estado propio — solo dispara un evento MQTT una vez, consumido
-    como trigger de una automatización en HA. Es lo que usan
-    <code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code> para cada tipo de
-    pulsación.</p>
+:   Mecanismo de ArduinoHA (<code>HADeviceTrigger</code>) que <strong>no es una
+    entidad</strong> y no tiene estado propio — solo dispara un evento MQTT
+    una vez, consumido como trigger de una automatización en HA. Es lo
+    que usan <code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code> para cada tipo
+    de pulsación.</p>
+<div class="highlight"><pre><span></span><code>⚠️ **No aparece en Ajustes → Entidades**, ni en *Controls* ni en
+*Activity* de la vista del dispositivo. Su única manifestación en
+la UI es el desplegable de disparadores al crear una automatización,
+y hay que llegar por **"By type" → Device**; la ruta "By target"
+solo ofrece disparadores de entidad. Fuente habitual de confusión:
+ver [Solución de problemas](troubleshooting.md).
+</code></pre></div>
 <p><code>HABILITAR_*</code>
-:   <code>#define</code> en el <code>.ino</code> de pulsadores que activa/desactiva un tipo
-    de evento concreto (p. ej. <code>HABILITAR_TRIPLE</code>). Comentar la línea
-    lo desactiva; ahorra RAM al no crear ese <code>HADeviceTrigger</code>.</p>
+:   <code>#define</code> en el <code>.ino</code> de pulsadores que activa/desactiva una
+    función concreta. Comentar la línea la desactiva. Los hay de tres
+    clases:</p>
+<div class="highlight"><pre><span></span><code>- **Por tipo de evento** (p. ej. `HABILITAR_TRIPLE`,
+  `HABILITAR_LARGA_FIN`): ahorra RAM al no crear ese
+  `HADeviceTrigger`.
+- **`HABILITAR_BOTON_VIRTUAL`** (desde 1.8.6, solo
+  `mega_pulsadores_low_ram`): quita los `HAButton` y su andamiaje
+  de simulación (~31 bytes/pulsador). No afecta a los pulsadores
+  físicos ni a sus device triggers.
+- **`HABILITAR_DEBUG`** (desde 1.8.7, solo
+  `mega_pulsadores_low_ram`): quita toda la instrumentación por
+  Serial. Además de RAM, evita que cada `Serial.print` bloquee el
+  loop, cosa que importa porque `AceButton` necesita `check()` cada
+  &lt;5ms.
+</code></pre></div>
 <p><code>HAButton</code>
 :   Clase de ArduinoHA para crear un botón <strong>con entidad real</strong>, a
     diferencia de <code>HADeviceTrigger</code> — visible en Ajustes → Entidades y
     pulsable desde cualquier tarjeta de Lovelace. Usado desde la
     versión 1.8.0 para el "botón virtual" de cada pulsador: al pulsarlo
     en HA, simula un clic corto inyectado en la misma lógica de
-    debounce/multiclic que procesa las pulsaciones físicas. Ver
+    debounce/multiclic que procesa las pulsaciones físicas. <strong>Solo
+    simula pulsación corta</strong>, nunca larga (el pulso es corto y fijo,
+    <code>SIMULACION_PULSO_MS</code>). En <code>mega_pulsadores_low_ram</code> se puede
+    desactivar con <code>HABILITAR_BOTON_VIRTUAL</code> desde la 1.8.6. Ver
     <a href="../../firmware/mega-pulsadores/#boton-virtual-simular-pulsaciones-desde-ha"><code>mega_pulsadores</code></a>.</p>
 <p><code>HADeviceTrigger</code>
 :   Clase de ArduinoHA para crear un device trigger. Cada instancia

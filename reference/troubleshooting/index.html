@@ -1100,6 +1100,57 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#en-ha-no-veo-los-pulsadores-como-trigger-de-cortadoblelarga" class="md-nav__link">
+    <span class="md-ellipsis">
+      "En HA no veo los pulsadores como trigger de corta/doble/larga"
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=""En HA no veo los pulsadores como trigger de corta/doble/larga"">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-estas-mirando-donde-no-aparecen-lo-mas-habitual" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Estás mirando donde no aparecen (lo más habitual)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-entidades-fantasma-de-un-flasheo-anterior" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Entidades fantasma de un flasheo anterior
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-el-buffer-mqtt-setbuffersize-fallo-en-silencio" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. El buffer MQTT: setBufferSize() falló en silencio
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#como-comprobar-que-publica-la-placa-de-verdad" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cómo comprobar qué publica la placa de verdad
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#un-blueprint-dejo-de-dispararse-sin-ningun-error" class="md-nav__link">
     <span class="md-ellipsis">
       "Un blueprint dejó de dispararse sin ningún error"
@@ -1219,6 +1270,57 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#en-ha-no-veo-los-pulsadores-como-trigger-de-cortadoblelarga" class="md-nav__link">
+    <span class="md-ellipsis">
+      "En HA no veo los pulsadores como trigger de corta/doble/larga"
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=""En HA no veo los pulsadores como trigger de corta/doble/larga"">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-estas-mirando-donde-no-aparecen-lo-mas-habitual" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Estás mirando donde no aparecen (lo más habitual)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-entidades-fantasma-de-un-flasheo-anterior" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Entidades fantasma de un flasheo anterior
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-el-buffer-mqtt-setbuffersize-fallo-en-silencio" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. El buffer MQTT: setBufferSize() falló en silencio
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#como-comprobar-que-publica-la-placa-de-verdad" class="md-nav__link">
+    <span class="md-ellipsis">
+      Cómo comprobar qué publica la placa de verdad
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#un-blueprint-dejo-de-dispararse-sin-ningun-error" class="md-nav__link">
     <span class="md-ellipsis">
       "Un blueprint dejó de dispararse sin ningún error"
@@ -1323,6 +1425,89 @@ sobrecarga que sí acepta lambdas con captura.</p>
 <code>parameterizedCallbackFunction</code> de <code>OneButton</code> (funciones sin captura
 que reciben el índice del pulsador como <code>void*</code>). Actualiza a una
 versión posterior.</p>
+<h2 id="en-ha-no-veo-los-pulsadores-como-trigger-de-cortadoblelarga">"En HA no veo los pulsadores como trigger de corta/doble/larga"<a class="headerlink" href="#en-ha-no-veo-los-pulsadores-como-trigger-de-cortadoblelarga" title="Permanent link">&para;</a></h2>
+<p>Caso real, diagnosticado a fondo el 2026-09-17. Tiene <strong>tres causas
+posibles</strong> y conviene descartarlas en este orden, porque la primera no
+es un bug.</p>
+<h3 id="1-estas-mirando-donde-no-aparecen-lo-mas-habitual">1. Estás mirando donde no aparecen (lo más habitual)<a class="headerlink" href="#1-estas-mirando-donde-no-aparecen-lo-mas-habitual" title="Permanent link">&para;</a></h3>
+<p>Un <code>HADeviceTrigger</code> <strong>no es una entidad</strong>. No sale en Ajustes →
+Entidades, ni en la sección <em>Controls</em> de la vista del dispositivo, ni
+en <em>Activity</em>. Su única manifestación en toda la UI es el desplegable
+de disparadores al crear una automatización.</p>
+<p>Y ahí hay que llegar por la ruta correcta:</p>
+<div class="admonition tip">
+<p class="admonition-title">Ruta correcta en el editor de automatizaciones</p>
+<p><strong>Añadir disparador → pestaña "By type" → Device →</strong> elegir el
+dispositivo.</p>
+<p>La pestaña <strong>"By target"</strong> solo ofrece disparadores de <em>entidad</em>, y
+por esa vía lo único que sale es <strong>"Button pressed"</strong> — que es el
+<code>HAButton</code> virtual, un <code>button</code> cuyo único disparador posible es
+"pulsado". Por muchos objetivos que le añadas, nunca dará
+corta/doble/larga.</p>
+<p>Tampoco sirve <strong>desplegar</strong> el dispositivo con la flecha y elegir
+uno de los <code>p22</code>/<code>p23</code> de dentro: eso son sus entidades hijas (los
+botones virtuales), no el dispositivo.</p>
+</div>
+<h3 id="2-entidades-fantasma-de-un-flasheo-anterior">2. Entidades fantasma de un flasheo anterior<a class="headerlink" href="#2-entidades-fantasma-de-un-flasheo-anterior" title="Permanent link">&para;</a></h3>
+<p>El discovery MQTT se publica <strong>retenido</strong>: el broker lo conserva. Si la
+unidad estuvo flasheada antes con más pines (o distintos), esas
+entidades <strong>siguen en HA</strong> aunque el firmware actual ya no las anuncie.</p>
+<p>Síntoma: HA muestra más pulsadores de los que dice
+<code>[debug] NUM_PULSADORES=N</code>. En el caso real, 23 botones en la UI contra
+16 en el firmware — los pines sobrantes estaban comentados en
+<code>board_config_a.h</code>.</p>
+<p>Arreglo: <strong>Ajustes → Dispositivos y servicios → MQTT →</strong> el dispositivo
+<strong>→ Eliminar</strong>, y reiniciar la placa para que republique solo los
+reales.</p>
+<h3 id="3-el-buffer-mqtt-setbuffersize-fallo-en-silencio">3. El buffer MQTT: <code>setBufferSize()</code> falló en silencio<a class="headerlink" href="#3-el-buffer-mqtt-setbuffersize-fallo-en-silencio" title="Permanent link">&para;</a></h3>
+<p>Esta es la causa de verdad, y es doblemente traicionera.</p>
+<p>El payload de discovery de un <code>device_automation</code> son unos <strong>~280
+bytes</strong> (~210 de JSON + ~60 de topic + cabeceras), por encima de los
+<strong>256 por defecto</strong> de PubSubClient. <code>HABaseDeviceType::publishConfig()</code>
+publica con <code>beginPublish(topic, dataLength, true)</code>, que devuelve
+<code>false</code> <strong>sin ningún error en Serial</strong> si no cabe.</p>
+<div class="admonition danger">
+<p class="admonition-title">Por qué los eventos funcionan pero el dispositivo no aparece</p>
+<p>El payload de un <strong>evento</strong> (<code>trigger()</code>) son unos pocos bytes y
+cabe de sobra en 256. El del <strong>discovery</strong> no.</p>
+<p>Resultado: el Serial imprime <code>[boton] p22 -&gt; corta</code> con toda
+normalidad, el pulsador se detecta perfectamente... y HA no reacciona,
+porque nunca recibió el config que le dice que ese trigger existe.
+Un evento de un trigger no registrado se descarta.</p>
+<p>El <code>HAButton</code> virtual sí se veía porque su discovery es más pequeño
+y cabía en 256.</p>
+</div>
+<p>Y la segunda trampa: <strong><code>setBufferSize()</code> puede fallar aunque parezca
+haber RAM</strong>. Hace un <code>realloc</code>, que necesita un bloque <strong>contiguo</strong>;
+llamado después de crear los ~120 objetos del bucle de pulsadores, el
+heap está troceado y no hay hueco seguido. Devuelve <code>false</code> en silencio
+y PubSubClient se queda con los 256 de siempre.</p>
+<p>Desde la <strong>1.8.7</strong> el firmware lo delata:</p>
+<div class="highlight"><pre><span></span><code>[debug] setBufferSize(512) -&gt; OK
+[debug] setBufferSize(512) -&gt; FALLO (sigue en 256!)   ← el bug
+</code></pre></div>
+<p>Arreglado en la <strong>1.8.5</strong> moviendo la llamada al principio de
+<code>setup()</code>, antes de crear ninguna entidad. Ver
+<a href="../ram/">RAM y rendimiento</a> para el detalle de la fragmentación.</p>
+<h3 id="como-comprobar-que-publica-la-placa-de-verdad">Cómo comprobar qué publica la placa de verdad<a class="headerlink" href="#como-comprobar-que-publica-la-placa-de-verdad" title="Permanent link">&para;</a></h3>
+<p>Sin tocar el firmware, desde HA: <strong>Ajustes → Dispositivos y servicios →
+MQTT → Configurar</strong>, y en <strong>"Escuchar un topic"</strong>:</p>
+<div class="highlight"><pre><span></span><code>homeassistant/device_automation/#
+</code></pre></div>
+<p><strong>Start listening</strong> y reiniciar la placa. Deberían aparecer 4 mensajes
+por pulsador (<code>button_short_press</code>, <code>button_double_press</code>,
+<code>button_long_press</code>, <code>button_long_release</code>).</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>Retain: false</code> en esta herramienta NO es un síntoma</p>
+<p>Un mensaje que llega <strong>en vivo</strong> (publicado en ese instante) se
+entrega siempre con el flag retain a <code>false</code>, aunque el broker lo
+esté almacenando. El flag solo viaja como <code>true</code> en los mensajes
+que el broker <strong>reenvía desde su almacén al suscribirse</strong>.</p>
+<p>Para ver el estado real: <strong>Stop listening</strong> y <strong>Start listening</strong> de
+nuevo, sin reiniciar la placa. Si los mensajes reaparecen con
+<code>Retain: true</code>, están correctamente retenidos y el problema no es
+del broker ni del firmware — es de registro en HA.</p>
+</div>
 <h2 id="un-blueprint-dejo-de-dispararse-sin-ningun-error">"Un blueprint dejó de dispararse sin ningún error"<a class="headerlink" href="#un-blueprint-dejo-de-dispararse-sin-ningun-error" title="Permanent link">&para;</a></h2>
 <p><strong>Causa casi siempre</strong>: el trigger que ese blueprint espera ya no
 existe — bien porque se desactivó con un <code>HABILITAR_*</code> en el <code>.ino</code>,

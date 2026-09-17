@@ -1381,6 +1381,82 @@ y los buffers de texto de cada pulsador.</p>
 <p>Con <code>mega_pulsadores</code> (OneButton) el límite equivalente está entre
 12 y 16 — <code>mega_pulsadores_low_ram</code> aguanta casi el doble.</p>
 </div>
+<div class="admonition danger">
+<p class="admonition-title">La tabla de arriba es de la 1.8.0 (buffer MQTT de 256) — desde la 1.8.3 ya NO aplica</p>
+<p>Desde la versión 1.8.3, el firmware llama a
+<code>mqtt.setBufferSize(512)</code> (1024 en 1.8.3-1.8.4) porque con los 256
+bytes por defecto el discovery de los <code>HADeviceTrigger</code> no cabía y
+nunca llegaba a HA. Ese buffer sale de la misma SRAM, así que <strong>el
+límite de 24 pulsadores de la tabla ya no es válido</strong>: hay que
+restar el buffer.</p>
+</div>
+<div class="admonition success">
+<p class="admonition-title">Confirmado en placa real (2026-09-17) — firmware 1.8.4/1.8.5, buffer de 512</p>
+<table>
+<thead>
+<tr>
+<th>Pulsadores</th>
+<th>Botón virtual</th>
+<th>RAM libre</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>16</td>
+<td>Activo</td>
+<td>1701 bytes</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Activo</td>
+<td>623 bytes</td>
+<td>Límite — <code>setBufferSize</code> FALLA si se llama tarde (ver abajo)</td>
+</tr>
+<tr>
+<td>28</td>
+<td><strong>Desactivado</strong></td>
+<td>373 bytes</td>
+<td>Arranca, pero MQTT en bucle conectar/desconectar — <strong>inestable</strong></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Coste de los <code>HAButton</code> virtuales: ~750 bytes en total con 24
+  pulsadores (~31 bytes/botón)</strong> — medido comparando 24-con-botones
+  contra 28-sin-botones. Bastante menos de lo que se supuso al
+  introducir <code>HABILITAR_BOTON_VIRTUAL</code>: <strong>no</strong> es la palanca de RAM
+  más grande del firmware.</li>
+<li>El umbral de inestabilidad se confirma otra vez alrededor de los
+  <strong>~370 bytes</strong> (373 aquí, 361 en la medición de 25 pulsadores del
+  2026-09-05): por debajo de eso MQTT no opera con estabilidad
+  aunque el arranque parezca correcto.</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="admonition-title"><code>setBufferSize()</code> puede fallar en silencio por fragmentación del heap</p>
+<p>Bug real, medido en placa el 2026-09-17 con 24 pulsadores:
+<code>setBufferSize(1024) -&gt; FALLO (sigue en 256!)</code>, y también con 512.</p>
+<p><code>setBufferSize()</code> hace un <code>realloc</code>, que necesita un bloque
+<strong>contiguo</strong> libre. Llamándolo <strong>después</strong> de crear los ~120
+objetos del bucle de pulsadores (<code>new HADeviceTrigger</code>,
+<code>new HAButton</code>), el heap queda troceado en asignaciones pequeñas y
+ya no hay hueco contiguo — <strong>aunque el total libre parezca
+suficiente</strong>. Con 623 bytes libres reportados, un bloque de 512
+seguidos no existía.</p>
+<p>Y como <code>realloc</code> fallido devuelve <code>false</code> <strong>en silencio</strong>,
+PubSubClient se quedaba con los 256 de siempre y volvía el bug del
+discovery, invisible.</p>
+<p>Dos cifras que miden cosas distintas y que conviene no confundir:
+<code>freeMemory()</code> mide la distancia entre el final del heap y el stack
+pointer, así que <strong>no sabe nada de los huecos internos</strong> — puede
+reportar 623 bytes alegremente mientras <code>realloc</code> fracasa.</p>
+<p><strong>Arreglo (1.8.5)</strong>: llamar a <code>setBufferSize()</code> al principio de
+<code>setup()</code>, antes de crear ninguna entidad, con el heap intacto.
+Verificado: con la llamada movida, <code>-&gt; OK</code> incluso con 28
+pulsadores.</p>
+</div>
 <h2 id="por-que-el-limite-es-tan-bajo">Por qué el límite es tan bajo<a class="headerlink" href="#por-que-el-limite-es-tan-bajo" title="Permanent link">&para;</a></h2>
 <pre class="mermaid"><code>flowchart TD
     Total["8192 bytes SRAM total"] --&gt; Fixed["`Coste fijo:
@@ -1400,9 +1476,18 @@ y los buffers de texto de cada pulsador.</p>
 <li><strong>Coste fijo</strong> (Ethernet + PubSubClient + ArduinoHA): se paga una
   sola vez por unidad, independiente de cuántos pulsadores tengas.
   PubSubClient reserva un buffer MQTT de 256 bytes por defecto
-  (<code>MQTT_MAX_PACKET_SIZE</code>), configurable vía <code>mqtt.setBufferSize(...)</code>
-  — no se ha tocado todavía porque reducirlo demasiado puede truncar
-  mensajes de discovery en silencio.</li>
+  (<code>MQTT_MAX_PACKET_SIZE</code>), configurable vía <code>mqtt.setBufferSize(...)</code>.
+  <strong>Desde la 1.8.3 sí se toca</strong>: se sube a 512 bytes porque con 256 el
+  discovery de los <code>HADeviceTrigger</code> no cabe y falla en silencio. No
+  bajarlo a 256 de nuevo — el payload real capturado del topic son
+  ~210 bytes de JSON más ~60 de topic más cabeceras (~280 total), por
+  encima de 256. 512 deja margen para nombres de dispositivo más largos.
+  A cambio, esos 512 bytes salen de la SRAM disponible y bajan el límite
+  de pulsadores respecto a las mediciones de la 1.8.0.</li>
+<li><strong>Sockets de Ethernet</strong>: la librería reserva <code>MAX_SOCK_NUM</code> sockets
+  (4 por defecto), y este firmware solo abre una conexión (la de MQTT).
+  Desde la 1.8.8 se limita a 1 — ver la nota de verificación en
+  <a href="../../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>.</li>
 <li><strong>Coste por pulsador</strong>: cada <code>HADeviceTrigger</code> que creas ocupa
   memoria en el heap (<code>new HADeviceTrigger(...)</code>), el objeto
   <code>OneButton</code>/<code>AceButton</code> en sí tiene un tamaño fijo por instancia, y
@@ -1451,11 +1536,18 @@ ambas librerías — no incluye <code>HADeviceTrigger</code>, <code>HAButton</co
 </tr>
 <tr>
 <td><code>mega_pulsadores_low_ram</code> (AceButton)</td>
-<td>24 estable, 25 inestable</td>
+<td>24 estable, 25 inestable (firmware 1.8.0, buffer 256)</td>
 <td>~263 bytes</td>
 </tr>
 </tbody>
 </table>
+<div class="admonition warning">
+<p class="admonition-title">Los límites de esta tabla son de la 1.8.0</p>
+<p>Desde la 1.8.3 hay que restar el buffer MQTT de 512 bytes, así que
+el techo real es más bajo. Medido con 1.8.5: 28 pulsadores sin
+botones virtuales dejan 373 bytes — inestable. Ver la tabla del
+2026-09-17 más arriba.</p>
+</div>
 <p>Esto es lo que justifica la existencia de
 <a href="../../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>
 como firmware separado — ver la
@@ -1507,9 +1599,21 @@ entidad extra y probablemente ya no sea exacto.</p>
 <a href="https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/instructions.md"><code>mega_pulsadores/instructions.md</code></a>.</p>
 <h2 id="que-hacer-si-necesitas-mas-pulsadores-de-los-que-caben">Qué hacer si necesitas más pulsadores de los que caben<a class="headerlink" href="#que-hacer-si-necesitas-mas-pulsadores-de-los-que-caben" title="Permanent link">&para;</a></h2>
 <ol>
+<li><strong>Apaga <code>HABILITAR_DEBUG</code></strong> (desde la 1.8.7, solo
+   <code>mega_pulsadores_low_ram</code>) — quita <code>freeMemory()</code>, el contador de
+   entidades y los prints por pulsación. Además de la RAM, cada
+   <code>Serial.print</code> bloquea el loop vaciando el buffer a 9600 baudios, y
+   AceButton necesita <code>check()</code> cada &lt;5ms.</li>
+<li><strong>Apaga <code>HABILITAR_BOTON_VIRTUAL</code></strong> (desde la 1.8.6, solo
+   <code>mega_pulsadores_low_ram</code>) — libera ~31 bytes por pulsador (~750 con
+   24). Solo se pierden los botones "Press" de la UI de HA, que
+   simulaban una pulsación corta; los pulsadores físicos y sus
+   <code>HADeviceTrigger</code> (corta/doble/larga/fin) siguen intactos.</li>
 <li><strong>Desactiva triggers que no uses</strong> (<code>HABILITAR_TRIPLE</code> etc. en
    <code>mega_pulsadores</code>) — ya están desactivados por defecto salvo
-   corta/doble/larga/fin de larga.</li>
+   corta/doble/larga/fin de larga. En <code>mega_pulsadores_low_ram</code>,
+   <code>HABILITAR_LARGA_FIN</code> es el candidato si no usas el patrón
+   "mantener para mover / soltar para parar".</li>
 <li><strong>Cambia a <code>mega_pulsadores_low_ram</code></strong> si ninguno de los pulsadores
    afectados necesita triple/cuádruple/quíntuple — ver
    <a href="../../firmware/decision/">guía de decisión</a>.</li>
