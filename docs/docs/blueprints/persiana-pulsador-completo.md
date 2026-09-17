@@ -20,11 +20,22 @@ SIEMPRE de "bajar", para todas las persianas de esa agrupación.
 | Pulsaciones | Botón subir | Botón bajar |
 |:---:|---|---|
 | 1 | esta persiana → 100%, o **PARA** si ya se mueve | esta persiana → 0%, o **PARA** si ya se mueve |
-| 2 | persianas de la misma Area → 100% cada una | ídem → 0% cada una |
+| 2 | persianas de la misma Area → 100% cada una, o **PARA todas** si alguna se mueve | ídem → 0% cada una, o **PARA todas** |
 | 3 | esta persiana → 50% | esta persiana → 50% |
 | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
 | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
+
+!!! tip "2 pulsaciones paran todo el Area (desde `v1.2.0`)"
+    Mismo toggle que 1 pulsación, pero a nivel de Area: si **alguna**
+    persiana del área se está moviendo, las **para todas**. Si están
+    todas quietas, las lanza al extremo.
+
+    Basta con que una se mueva para parar todas, a propósito: con
+    varias persianas el estado puede ser mixto, y al machacar el botón
+    lo que se espera es "para la habitación", no un toggle
+    independiente por persiana que dejaría unas subiendo y otras
+    paradas según el instante.
 
 !!! tip "1 pulsación hace toggle (desde `v1.1.0`)"
     Si la persiana está quieta, 1 pulsación la lanza al extremo. Si ya
@@ -49,7 +60,9 @@ flowchart TD
     N -- "1" --> T{"¿Ya se está<br/>moviendo?"}
     T -- "sí" --> STOP["PARA (stop_cover)"]
     T -- "no" --> A["Esta persiana → 100%"]
-    N -- "2" --> B["Persianas de la Area → 100%"]
+    N -- "2" --> T2{"¿Alguna del Area<br/>se está moviendo?"}
+    T2 -- "sí" --> STOP2["PARA todas las del Area"]
+    T2 -- "no" --> B["Persianas de la Area → 100%"]
     N -- "3" --> C["Esta persiana → 50%"]
     N -- "4" --> D["Esta persiana → posición + 5%"]
     N -- "5" --> E["TODAS las persianas de la casa → 100%"]

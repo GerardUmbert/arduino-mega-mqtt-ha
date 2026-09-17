@@ -23,6 +23,33 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.2.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
+
+### Changed
+- **2 pulsaciones ahora tambien hacen toggle, a nivel de Area**: si
+  alguna persiana del area se esta moviendo, las **para todas**; si
+  estan todas quietas, las lanza al extremo. Extiende a la doble
+  pulsacion el mismo comportamiento que la 1.1.0 dio a la pulsacion
+  simple.
+
+  Criterio deliberado: basta con que UNA del area se mueva para parar
+  TODAS. Con varias persianas el estado puede ser mixto (una subiendo,
+  otra quieta), y al machacar el boton lo que se espera es "para la
+  habitacion", no un toggle independiente por persiana que dejaria unas
+  subiendo y otras paradas segun el instante en que se pulse.
+
+  Implementado con `covers_area | map('states') | select('in',
+  ['opening', 'closing']) | list | count > 0`. Igual que en la 1.1.0,
+  depende de que las persianas reporten los estados intermedios
+  (`mega_dispositivos` 1.6.0+); una persiana que no los reporte no
+  cuenta para la condicion, asi que si NINGUNA los reporta el boton se
+  comporta como antes y nunca para.
+
+  Recordatorio de alcance: `covers_area` son TODAS las persianas del
+  area de la persiana configurada, no solo las de la agrupacion de 4
+  pulsadores. Y si la persiana no tiene area asignada en HA,
+  `covers_area` cae al fallback de solo esa persiana.
+
 ## [1.1.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
 
 ### Changed

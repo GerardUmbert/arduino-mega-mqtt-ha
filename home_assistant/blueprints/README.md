@@ -87,11 +87,17 @@ todas las persianas de esa agrupación:
 | Pulsaciones | Botón subir | Botón bajar |
 |---|---|---|
 | 1 | esta persiana → 100%, o **PARA** si ya se mueve | esta persiana → 0%, o **PARA** si ya se mueve |
-| 2 | persianas de la misma Area → 100% cada una | ídem → 0% cada una |
+| 2 | persianas de la misma Area → 100% cada una, o **PARA todas** si alguna se mueve | ídem → 0% cada una, o **PARA todas** |
 | 3 | esta persiana → 50% | esta persiana → 50% |
 | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
 | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
+
+Desde `v1.2.0`, **1 y 2 pulsaciones hacen toggle**. Con 2 pulsaciones
+basta con que UNA persiana del área se esté moviendo para parar todas:
+al machacar el botón lo que se espera es "para la habitación", no un
+toggle independiente por persiana que dejaría unas subiendo y otras
+paradas.
 
 Desde `v1.1.0`, **1 pulsación hace toggle**: si la persiana está
 quieta la lanza al extremo, y si ya se está moviendo la **para** donde
