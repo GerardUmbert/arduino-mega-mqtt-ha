@@ -1136,6 +1136,27 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   (p. ej. <code>blueprints/luz_pulsador/v1.1.0</code>) — empieza en <code>v1.0.0</code> la
   primera vez que se tageé cada blueprint.</li>
 </ul>
+<h2 id="188-2026-09-17-mega_pulsadores_low_ram">[1.8.8] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#188-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Sockets de Ethernet limitados a 1</strong> para recuperar SRAM: la
+  libreria reserva <code>MAX_SOCK_NUM</code> sockets (4 por defecto) y este
+  firmware solo abre una conexion, la de MQTT. Es la bolsa de RAM mas
+  grande que quedaba sin tocar, bastante mayor que los ~750 bytes de
+  los botones virtuales.
+  Se aplican <strong>las dos vias a la vez</strong> porque cual funciona depende de
+  la version de Ethernet instalada, y no se ha podido verificar contra
+  la libreria (no esta en el equipo donde se edita el repo):
+  <code>#define MAX_SOCK_NUM 1</code> antes del include (solo surte efecto si
+  <code>Ethernet.h</code> lo declara con guarda <code>#ifndef</code>; si lo define a pelo,
+  manda el valor de la libreria y el ahorro es CERO sin que se note) y
+  <code>Ethernet.init(1)</code> en <code>setup()</code> (via de Ethernet 2.x, en tiempo de
+  ejecucion).
+  ⚠️ <strong>Verificar en placa</strong>: el nuevo <code>[debug] sockets Ethernet: N</code>
+  imprime el valor real que ha quedado. Si no dice 1, esta via no esta
+  ahorrando nada y hay que buscar la RAM en otro sitio — no darla por
+  buena sin leer esa linea.</li>
+</ul>
 <h2 id="187-2026-09-17-mega_pulsadores_low_ram">[1.8.7] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#187-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1224,7 +1245,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   un evento son unos pocos bytes y cabe en 256 — solo fallaba el
   discovery, que ronda los ~250 bytes mas topic y cabeceras.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Buffer de 1024 a 512 bytes.</strong> Los payloads de discovery reales,
   capturados del topic <code>homeassistant/device_automation/#</code> en placa,
@@ -1296,7 +1317,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   porque su payload de discovery es más pequeño y cabía igualmente en
   256 bytes. Arreglo: <code>mqtt.setBufferSize(1024)</code> antes de <code>mqtt.begin(...)</code>.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ajustes de temporización de <code>AceButton</code> explicitados y a gusto del
   usuario tras pruebas en placa real (antes quedaban comentados con el
@@ -1417,7 +1438,7 @@ día — ambos <code>mega_dispositivos</code> y <code>mega_pulsadores_low_ram</c
 <code>1.6.3</code>/<code>1.0.0-low-ram</code>, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 <h2 id="171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos">[1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)<a class="headerlink" href="#171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos" title="Permanent link">&para;</a></h2>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Unificado el número de versión de los tres <code>.ino</code> a <code>1.7.1</code> (antes:
   <code>mega_pulsadores</code> 1.7.1, <code>mega_pulsadores_low_ram</code> 1.0.0-low-ram,
@@ -1470,7 +1491,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="171-2026-09-04-mega_pulsadores">[1.7.1] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#171-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.7.1).</p>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: el subtype de cada pulsador pasa de
   <code>"boton_NN"</code> a <code>"pNN"</code> (p. ej. <code>boton_14</code> → <code>p14</code>), donde NN es el
@@ -1514,7 +1535,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
   más pulsadores por unidad de los que caben con los 7 triggers
   completos.</li>
 </ul>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: los triggers de pulsación triple,
   cuádruple y quíntuple ahora están DESACTIVADOS por defecto
@@ -1668,7 +1689,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   físico a la placa.</li>
 </ul>
 <h2 id="140-2026-08-02">[1.4.0] - 2026-08-02<a class="headerlink" href="#140-2026-08-02" title="Permanent link">&para;</a></h2>
-<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ambos <code>.ino</code> ya no piden IP por DHCP (<code>Ethernet.begin(mac)</code>): ahora
   usan IP fija (<code>Ethernet.begin(mac, IP_ESTATICA)</code>), con la IP definida
@@ -1759,7 +1780,7 @@ número de versión sino el nombre del tag de este commit).</p>
   larga) se imprime por Serial con el ID del botón.</li>
 </ul>
 <h2 id="120-2026-07-23">[1.2.0] - 2026-07-23<a class="headerlink" href="#120-2026-07-23" title="Permanent link">&para;</a></h2>
-<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>El <code>unique_id</code> de cada pulsador/luz/persiana (<code>boton_XX</code>, <code>luz_XX</code>,
   <code>persiana_XX_YY</code>) ahora se genera a partir del número de PIN físico,
@@ -1815,7 +1836,7 @@ número de versión sino el nombre del tag de este commit).</p>
   genera por posición en el array, no por número de pin — no reordenar
   ni insertar/borrar en medio una vez renombrado en Home Assistant.</li>
 </ul>
-<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
+<h3 id="changed_8">Changed<a class="headerlink" href="#changed_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Cada sketch movido a su propia carpeta (<code>mega_pulsadores/</code>,
   <code>mega_dispositivos/</code>) para que el Arduino IDE pueda abrirlos
