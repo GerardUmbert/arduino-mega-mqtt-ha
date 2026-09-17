@@ -23,6 +23,33 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.1.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
+
+### Changed
+- **1 pulsación ahora hace toggle: arranca la persiana, o la PARA si ya
+  se está moviendo.** Antes lanzaba siempre la persiana al extremo
+  (100%/0%) y no habia forma de detenerla a media altura con
+  pulsaciones cortas — habia que mantener pulsado (larga) y soltar en
+  el punto deseado. Con el toggle, un segundo toque corto la para donde
+  este.
+
+  Implementado con una condicion sobre el estado del `cover`: si
+  `states(cover_entity)` es `opening` o `closing`, llama a
+  `cover.stop_cover`; si no, abre o cierra como hasta ahora.
+
+  Depende de que la persiana reporte los estados intermedios
+  `opening`/`closing` mientras se mueve. `mega_dispositivos` lo hace
+  desde el firmware 1.6.0+ (`setState(StateOpening/StateClosing)` al
+  recibir el comando, vuelta a `open`/`closed` al terminar el
+  recorrido). En una persiana que NO los reporte, la condicion nunca se
+  cumple y el boton se comporta igual que antes de este cambio: siempre
+  lanza el movimiento, nunca para. Es una degradacion silenciosa, no un
+  error visible.
+
+  Las pulsaciones 2/3/4/5 **no** hacen toggle, a proposito: son ordenes
+  de destino concreto ("ve al 50%", "+5%"), no "muevete", asi que tiene
+  sentido que se apliquen tambien con la persiana en marcha.
+
 ## [1.9.0] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Changed

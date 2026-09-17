@@ -86,12 +86,21 @@ todas las persianas de esa agrupación:
 
 | Pulsaciones | Botón subir | Botón bajar |
 |---|---|---|
-| 1 | esta persiana → 100% | esta persiana → 0% |
+| 1 | esta persiana → 100%, o **PARA** si ya se mueve | esta persiana → 0%, o **PARA** si ya se mueve |
 | 2 | persianas de la misma Area → 100% cada una | ídem → 0% cada una |
 | 3 | esta persiana → 50% | esta persiana → 50% |
 | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
 | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
+
+Desde `v1.1.0`, **1 pulsación hace toggle**: si la persiana está
+quieta la lanza al extremo, y si ya se está moviendo la **para** donde
+esté. Así se puede detener a media altura con un segundo toque corto,
+sin tener que mantener pulsado y soltar en el punto justo. Requiere que
+la persiana reporte `opening`/`closing` mientras se mueve
+(`mega_dispositivos` 1.6.0+); si no los reporta, el botón se comporta
+como antes y nunca para. Las pulsaciones 2/3/4/5 no hacen toggle: son
+órdenes de destino concreto, no de movimiento.
 
 Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
 `set_cover_position` sobre la posición NATIVA que reporta

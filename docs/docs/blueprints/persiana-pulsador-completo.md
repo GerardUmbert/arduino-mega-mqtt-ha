@@ -19,17 +19,36 @@ SIEMPRE de "bajar", para todas las persianas de esa agrupación.
 
 | Pulsaciones | Botón subir | Botón bajar |
 |:---:|---|---|
-| 1 | esta persiana → 100% | esta persiana → 0% |
+| 1 | esta persiana → 100%, o **PARA** si ya se mueve | esta persiana → 0%, o **PARA** si ya se mueve |
 | 2 | persianas de la misma Area → 100% cada una | ídem → 0% cada una |
 | 3 | esta persiana → 50% | esta persiana → 50% |
 | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
 | 5 | TODAS las persianas de la casa → 100% | TODAS → 0% |
 | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
+!!! tip "1 pulsación hace toggle (desde `v1.1.0`)"
+    Si la persiana está quieta, 1 pulsación la lanza al extremo. Si ya
+    se está moviendo, la **para** donde esté — así se puede detener a
+    media altura con un segundo toque corto, sin tener que mantener
+    pulsado y soltar en el punto justo.
+
+    Requiere que la persiana reporte los estados intermedios
+    `opening`/`closing` mientras se mueve, cosa que `mega_dispositivos`
+    hace desde el firmware 1.6.0+. En una persiana que no los reporte,
+    la condición nunca se cumple y el botón se comporta como antes:
+    siempre lanza el movimiento, nunca para. Degradación silenciosa, sin
+    error visible.
+
+    Las pulsaciones 2/3/4/5 **no** hacen toggle a propósito: son órdenes
+    de destino concreto ("ve al 50%", "+5%"), no "muévete", así que se
+    aplican también con la persiana en marcha.
+
 ```mermaid
 flowchart TD
     P["Pulsación en el botón 'subir'"] --> N{"¿Cuántos clics?"}
-    N -- "1" --> A["Esta persiana → 100%"]
+    N -- "1" --> T{"¿Ya se está<br/>moviendo?"}
+    T -- "sí" --> STOP["PARA (stop_cover)"]
+    T -- "no" --> A["Esta persiana → 100%"]
     N -- "2" --> B["Persianas de la Area → 100%"]
     N -- "3" --> C["Esta persiana → 50%"]
     N -- "4" --> D["Esta persiana → posición + 5%"]

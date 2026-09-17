@@ -11,7 +11,7 @@ blueprint:
 
     | Pulsaciones | Botón subir | Botón bajar |
     |---|---|---|
-    | 1 | esta persiana → 100% | esta persiana → 0% |
+    | 1 | esta persiana → 100%, o PARA si ya se mueve | esta persiana → 0%, o PARA si ya se mueve |
     | 2 | persianas del Area → 100% cada una | persianas del Area → 0% cada una |
     | 3 | esta persiana → 50% | esta persiana → 50% |
     | 4 | esta persiana → posición actual + 5% | esta persiana → posición actual − 5% |
@@ -114,14 +114,39 @@ variables:
 
 action:
   - choose:
-      # --- 1 pulsación: esta persiana al extremo correspondiente.
+      # --- 1 pulsación: arranca hacia el extremo, o PARA si ya se
+      # está moviendo (toggle). Así el mismo botón sirve para lanzar la
+      # persiana y para detenerla a media altura con otro toque corto,
+      # sin tener que mantener pulsado.
+      #
+      # Depende de que la persiana reporte "opening"/"closing" mientras
+      # se mueve: mega_dispositivos lo hace desde el firmware 1.6.0+
+      # (setState(StateOpening/StateClosing) al recibir el comando, y
+      # vuelta a open/closed al terminar el recorrido). Si una persiana
+      # NO reporta esos estados intermedios, la condición nunca se
+      # cumple y el botón se comporta como antes de este cambio:
+      # siempre lanza el movimiento, nunca para.
+      #
+      # Las pulsaciones 2/3/4/5 NO hacen toggle a propósito: son órdenes
+      # de destino concreto ("ve al 50%", "+5%"), no "muévete", así que
+      # tiene sentido que se apliquen también con la persiana en marcha.
       - conditions:
           - condition: trigger
             id: p1
         sequence:
-          - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
-            target:
-              entity_id: "{{ cover_entity }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {{ states(cover_entity) in ['opening', 'closing'] }}
+                sequence:
+                  - service: cover.stop_cover
+                    target:
+                      entity_id: "{{ cover_entity }}"
+            default:
+              - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
+                target:
+                  entity_id: "{{ cover_entity }}"
 
       # --- 2 pulsaciones: todas las persianas de la misma Area.
       - conditions:
