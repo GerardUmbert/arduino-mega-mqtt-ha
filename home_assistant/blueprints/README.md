@@ -26,10 +26,33 @@ sube o baja la persiana, soltar para. Un botón de la agrupación se asigna
 a subir, otro a bajar — cada uno es una instancia separada de este
 blueprint.
 
+| Pulsaciones | Botón subir | Botón bajar |
+|---|---|---|
+| 1 | — | — |
+| 2 | — | — |
+| 3 | — | — |
+| 4 | — | — |
+| 5 | — | — |
+| larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
+
+Solo usa la pulsación larga: las pulsaciones contadas (1 a 5) no hacen
+nada en este blueprint — para eso está
+[`persiana_pulsador_completo.yaml`](#persiana_pulsador_completoyaml).
+
 Usa los triggers `button_long_press` (empezar a mantener pulsado) y
 `button_long_release` (soltar) que expone `mega_pulsadores` — ver
 `mega_pulsadores.ino:127-128` (`ButtonLongPressType` /
 `ButtonLongReleaseType`).
+
+Al necesitar solo `HABILITAR_LARGA` y `HABILITAR_LARGA_FIN`, este
+blueprint funciona en **ambos firmwares**. Es además el único de
+persianas compatible con `mega_pulsadores_low_ram`, que no puede hacer
+triple/cuádruple/quíntuple clic (AceButton no los soporta).
+
+⚠️ **Necesita `HABILITAR_LARGA_FIN` activo en el `.ino`.** Sin ese
+trigger, la persiana empieza a moverse al mantener pulsado y **no para
+nunca al soltar** — sigue hasta su fin de carrera. No es un fallo
+silencioso cualquiera: deja la persiana moviéndose.
 
 ### Instanciar el blueprint
 
