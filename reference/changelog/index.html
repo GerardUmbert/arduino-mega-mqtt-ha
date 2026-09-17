@@ -1136,8 +1136,38 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   (p. ej. <code>blueprints/luz_pulsador/v1.1.0</code>) — empieza en <code>v1.0.0</code> la
   primera vez que se tageé cada blueprint.</li>
 </ul>
-<h2 id="120-2026-09-17-blueprint-persiana_pulsador_completo">[1.2.0] - 2026-09-17 (blueprint persiana_pulsador_completo)<a class="headerlink" href="#120-2026-09-17-blueprint-persiana_pulsador_completo" title="Permanent link">&para;</a></h2>
+<h2 id="200-2026-09-17-blueprint-persiana_pulsador_completo">[2.0.0] - 2026-09-17 (blueprint persiana_pulsador_completo)<a class="headerlink" href="#200-2026-09-17-blueprint-persiana_pulsador_completo" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>BREAKING: una sola instancia por persiana en vez de dos.</strong> El
+  blueprint ahora pide los DOS botones de la pareja (subir y bajar) en
+  la misma automatizacion, y deduce la direccion de cual de los dos ha
+  disparado. Antes habia que instanciarlo dos veces por persiana, una
+  por boton, con el input <code>direccion</code> puesto a mano en cada una — con
+  10 persianas eran 20 automatizaciones, y era facil equivocarse
+  poniendo la misma direccion en las dos.</li>
+</ul>
+<p>Cambios concretos:
+  - Inputs: <code>boton_subtype</code> se parte en <strong><code>boton_subtype_subir</code></strong> y
+    <strong><code>boton_subtype_bajar</code></strong>; <strong>desaparece <code>direccion</code></strong>.
+  - Triggers: de 7 a <strong>14</strong> (los 7 tipos de pulsacion x 2 botones), con
+    los ids sufijados <code>_sube</code>/<code>_baja</code>.
+  - <code>direccion</code> pasa a ser una variable calculada:
+    <code>{{ 'subir' if trigger.id.endswith('_sube') else 'bajar' }}</code>.
+  - Las condiciones del <code>action</code> aceptan ahora la lista de los dos ids
+    (<code>p1_sube</code>/<code>p1_baja</code>, etc.). El resto de la logica (variables
+    derivadas, los 5 bloques de accion) no cambia: sigue usando
+    <code>direccion</code> igual que antes.</p>
+<h3 id="migracion">Migracion<a class="headerlink" href="#migracion" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Las automatizaciones creadas con <code>v1.x</code> dejan de funcionar</strong> al
+  reimportar el blueprint: los inputs ya no coinciden y HA no puede
+  migrarlos solo. Hay que recrearlas — una nueva instancia por
+  persiana, indicando los dos pines, en lugar de las dos que habia.
+  De ahi el salto de version major.</li>
+</ul>
+<h2 id="120-2026-09-17-blueprint-persiana_pulsador_completo">[1.2.0] - 2026-09-17 (blueprint persiana_pulsador_completo)<a class="headerlink" href="#120-2026-09-17-blueprint-persiana_pulsador_completo" title="Permanent link">&para;</a></h2>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>2 pulsaciones ahora tambien hacen toggle, a nivel de Area</strong>: si
   alguna persiana del area se esta moviendo, las <strong>para todas</strong>; si
@@ -1161,7 +1191,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   pulsadores. Y si la persiana no tiene area asignada en HA,
   <code>covers_area</code> cae al fallback de solo esa persiana.</p>
 <h2 id="110-2026-09-17-blueprint-persiana_pulsador_completo">[1.1.0] - 2026-09-17 (blueprint persiana_pulsador_completo)<a class="headerlink" href="#110-2026-09-17-blueprint-persiana_pulsador_completo" title="Permanent link">&para;</a></h2>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>1 pulsación ahora hace toggle: arranca la persiana, o la PARA si ya
   se está moviendo.</strong> Antes lanzaba siempre la persiana al extremo
@@ -1185,7 +1215,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   de destino concreto ("ve al 50%", "+5%"), no "muevete", asi que tiene
   sentido que se apliquen tambien con la persiana en marcha.</p>
 <h2 id="190-2026-09-17-mega_pulsadores_low_ram">[1.9.0] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#190-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Buffer MQTT de 512 a 384 bytes.</strong> Calculado con el paquete real
   capturado del topic <code>homeassistant/device_automation/#</code> (el mas largo
@@ -1300,7 +1330,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   descartada salvo que se edite la libreria, que no se va a hacer.</li>
 </ul>
 <h2 id="188-2026-09-17-mega_pulsadores_low_ram">[1.8.8] - 2026-09-17 (mega_pulsadores_low_ram)<a class="headerlink" href="#188-2026-09-17-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Sockets de Ethernet limitados a 1</strong> para recuperar SRAM: la
   libreria reserva <code>MAX_SOCK_NUM</code> sockets (4 por defecto) y este
@@ -1408,7 +1438,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   un evento son unos pocos bytes y cabe en 256 — solo fallaba el
   discovery, que ronda los ~250 bytes mas topic y cabeceras.</li>
 </ul>
-<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
+<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Buffer de 1024 a 512 bytes.</strong> Los payloads de discovery reales,
   capturados del topic <code>homeassistant/device_automation/#</code> en placa,
@@ -1480,7 +1510,7 @@ blueprint, se marca con un tag de git — formato <code>&lt;carpeta&gt;/vX.Y.Z</
   porque su payload de discovery es más pequeño y cabía igualmente en
   256 bytes. Arreglo: <code>mqtt.setBufferSize(1024)</code> antes de <code>mqtt.begin(...)</code>.</li>
 </ul>
-<h3 id="changed_5">Changed<a class="headerlink" href="#changed_5" title="Permanent link">&para;</a></h3>
+<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ajustes de temporización de <code>AceButton</code> explicitados y a gusto del
   usuario tras pruebas en placa real (antes quedaban comentados con el
@@ -1601,7 +1631,7 @@ día — ambos <code>mega_dispositivos</code> y <code>mega_pulsadores_low_ram</c
 <code>1.6.3</code>/<code>1.0.0-low-ram</code>, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 <h2 id="171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos">[1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)<a class="headerlink" href="#171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos" title="Permanent link">&para;</a></h2>
-<h3 id="changed_6">Changed<a class="headerlink" href="#changed_6" title="Permanent link">&para;</a></h3>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Unificado el número de versión de los tres <code>.ino</code> a <code>1.7.1</code> (antes:
   <code>mega_pulsadores</code> 1.7.1, <code>mega_pulsadores_low_ram</code> 1.0.0-low-ram,
@@ -1654,7 +1684,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="171-2026-09-04-mega_pulsadores">[1.7.1] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#171-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.7.1).</p>
-<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
+<h3 id="changed_8">Changed<a class="headerlink" href="#changed_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: el subtype de cada pulsador pasa de
   <code>"boton_NN"</code> a <code>"pNN"</code> (p. ej. <code>boton_14</code> → <code>p14</code>), donde NN es el
@@ -1698,7 +1728,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
   más pulsadores por unidad de los que caben con los 7 triggers
   completos.</li>
 </ul>
-<h3 id="changed_8">Changed<a class="headerlink" href="#changed_8" title="Permanent link">&para;</a></h3>
+<h3 id="changed_9">Changed<a class="headerlink" href="#changed_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: los triggers de pulsación triple,
   cuádruple y quíntuple ahora están DESACTIVADOS por defecto
@@ -1852,7 +1882,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   físico a la placa.</li>
 </ul>
 <h2 id="140-2026-08-02">[1.4.0] - 2026-08-02<a class="headerlink" href="#140-2026-08-02" title="Permanent link">&para;</a></h2>
-<h3 id="changed_9">Changed<a class="headerlink" href="#changed_9" title="Permanent link">&para;</a></h3>
+<h3 id="changed_10">Changed<a class="headerlink" href="#changed_10" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ambos <code>.ino</code> ya no piden IP por DHCP (<code>Ethernet.begin(mac)</code>): ahora
   usan IP fija (<code>Ethernet.begin(mac, IP_ESTATICA)</code>), con la IP definida
@@ -1943,7 +1973,7 @@ número de versión sino el nombre del tag de este commit).</p>
   larga) se imprime por Serial con el ID del botón.</li>
 </ul>
 <h2 id="120-2026-07-23">[1.2.0] - 2026-07-23<a class="headerlink" href="#120-2026-07-23" title="Permanent link">&para;</a></h2>
-<h3 id="changed_10">Changed<a class="headerlink" href="#changed_10" title="Permanent link">&para;</a></h3>
+<h3 id="changed_11">Changed<a class="headerlink" href="#changed_11" title="Permanent link">&para;</a></h3>
 <ul>
 <li>El <code>unique_id</code> de cada pulsador/luz/persiana (<code>boton_XX</code>, <code>luz_XX</code>,
   <code>persiana_XX_YY</code>) ahora se genera a partir del número de PIN físico,
@@ -1999,7 +2029,7 @@ número de versión sino el nombre del tag de este commit).</p>
   genera por posición en el array, no por número de pin — no reordenar
   ni insertar/borrar en medio una vez renombrado en Home Assistant.</li>
 </ul>
-<h3 id="changed_11">Changed<a class="headerlink" href="#changed_11" title="Permanent link">&para;</a></h3>
+<h3 id="changed_12">Changed<a class="headerlink" href="#changed_12" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Cada sketch movido a su propia carpeta (<code>mega_pulsadores/</code>,
   <code>mega_dispositivos/</code>) para que el Arduino IDE pueda abrirlos

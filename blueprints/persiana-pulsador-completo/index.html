@@ -1298,17 +1298,31 @@ la llamada a esa persiana en concreto no hace nada, <strong>sin error
 visible</strong>.</p>
 </div>
 <h2 id="instanciar-el-blueprint">Instanciar el blueprint<a class="headerlink" href="#instanciar-el-blueprint" title="Permanent link">&para;</a></h2>
-<p>Dos instancias por persiana (una por botón subir, otra por bajar) — o
-más si varias persianas comparten el mismo par de botones subir/bajar:</p>
+<p>Desde <code>v2.0.0</code>, <strong>una sola instancia por persiana</strong> — los dos botones de
+la pareja se indican en la misma automatización:</p>
 <ol>
 <li>Ajustes → Automatizaciones y escenas → Blueprints → importar
    <code>persiana_pulsador_completo.yaml</code> → Crear automatización.</li>
-<li><strong>Pulsador (device)</strong> y <strong>Subtype del botón</strong>: igual que en los
-   otros blueprints de pulsador.</li>
-<li><strong>Persiana controlada por este botón</strong>: la entidad <code>cover</code> concreta
-   (para 1/3/4/larga; 2/5 se calculan solas a partir de esta).</li>
-<li><strong>Dirección</strong>: Subir o Bajar, según qué botón sea este.</li>
+<li><strong>Pulsador (device)</strong>: el device MQTT donde están cableados ambos
+   botones.</li>
+<li><strong>Subtype del botón de SUBIR</strong> y <strong>Subtype del botón de BAJAR</strong>: los
+   dos pines de la pareja, p. ej. <code>p22</code> y <code>p23</code>.</li>
+<li><strong>Persiana controlada por esta pareja de botones</strong>: la entidad
+   <code>cover</code> concreta (para 1/3/4/larga; 2/5 se calculan solas a partir de
+   esta).</li>
 </ol>
+<p>Ya no hay input <strong>Dirección</strong>: se deduce de cuál de los dos botones ha
+disparado, comprobando el sufijo <code>_sube</code>/<code>_baja</code> del <code>trigger.id</code>.</p>
+<div class="admonition danger">
+<p class="admonition-title">Cambio incompatible en <code>v2.0.0</code></p>
+<p>Los inputs han cambiado (<code>boton_subtype</code> se parte en
+<code>boton_subtype_subir</code> + <code>boton_subtype_bajar</code>, y desaparece
+<code>direccion</code>), así que <strong>las automatizaciones creadas con <code>v1.x</code>
+dejan de funcionar</strong> al reimportar el blueprint — HA no puede
+migrar inputs que ya no existen.</p>
+<p>Hay que recrearlas: una instancia nueva por persiana, indicando los
+dos pines, en lugar de las dos que había antes.</p>
+</div>
 
 
 
