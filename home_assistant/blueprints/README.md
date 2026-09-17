@@ -120,16 +120,27 @@ no hace nada, sin error visible.
 
 ### Instanciar el blueprint
 
-Dos instancias por persiana (una por botón subir, otra por bajar) — o
-más si varias persianas comparten el mismo par de botones subir/bajar:
+Desde `v2.0.0`, **una sola instancia por persiana** — los dos botones
+de la pareja se indican en la misma automatización:
 
 1. Ajustes → Automatizaciones y escenas → Blueprints → importar
    `persiana_pulsador_completo.yaml` → Crear automatización.
-2. **Pulsador (device)** y **Subtype del botón**: igual que en los
-   otros blueprints de pulsador.
-3. **Persiana controlada por este botón**: la entidad `cover` concreta
-   (para 1/3/4/larga; 2/5 se calculan solas a partir de esta).
-4. **Dirección**: Subir o Bajar, según qué botón sea este.
+2. **Pulsador (device)**: el device MQTT donde están cableados ambos
+   botones.
+3. **Subtype del botón de SUBIR** y **Subtype del botón de BAJAR**:
+   los dos pines de la pareja, p. ej. `p22` y `p23`.
+4. **Persiana controlada por esta pareja de botones**: la entidad
+   `cover` concreta (para 1/3/4/larga; 2/5 se calculan solas a partir
+   de esta).
+
+Ya no hay input **Dirección**: se deduce de cuál de los dos botones ha
+disparado.
+
+> ⚠️ **Cambio incompatible en `v2.0.0`.** Los inputs han cambiado
+> (`boton_subtype` → `boton_subtype_subir` + `boton_subtype_bajar`, y
+> desaparece `direccion`), así que las automatizaciones creadas con
+> `v1.x` **dejan de funcionar** al reimportar el blueprint. Hay que
+> recrearlas: una nueva por persiana, en vez de las dos que había.
 
 ## `luz_pulsador.yaml`
 

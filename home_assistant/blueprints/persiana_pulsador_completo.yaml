@@ -5,9 +5,13 @@ blueprint:
     niveles de pulsación de un botón, no solo mantener pulsado. Pensado
     para el patrón de `todo.md`: agrupación de 4 pulsadores por
     habitación, uno hace SIEMPRE de "subir" y otro SIEMPRE de "bajar"
-    para todas las persianas de esa agrupación. Se instancia dos veces
-    por habitación — una para el botón de subir, otra para el de bajar —
-    con `direccion` puesta a `subir`/`bajar` respectivamente.
+    para todas las persianas de esa agrupación.
+
+    Desde la v2.0.0 se instancia UNA SOLA VEZ por persiana, indicando
+    los dos botones de la pareja (subir y bajar) en la misma
+    automatización. La dirección se deduce de cuál de los dos ha
+    disparado, así que ya no hay input `direccion` ni hace falta crear
+    dos automatizaciones por persiana como en la v1.x.
 
     | Pulsaciones | Botón subir | Botón bajar |
     |---|---|---|
@@ -33,77 +37,124 @@ blueprint:
       selector:
         device:
           integration: mqtt
-    boton_subtype:
-      name: Subtype del botón
+    boton_subtype_subir:
+      name: Subtype del botón de SUBIR
       description: >
-        P. ej. "p2". Cópialo desde la UI al añadir el disparador
+        P. ej. "p22". Cópialo desde la UI al añadir el disparador
         Device para evitar errores de tecleo.
       selector:
         text: {}
+    boton_subtype_bajar:
+      name: Subtype del botón de BAJAR
+      description: >
+        P. ej. "p23". El otro botón de la pareja, el que hace la acción
+        contraria sobre esta misma persiana.
+      selector:
+        text: {}
     cover_entity:
-      name: Persiana controlada por este botón
+      name: Persiana controlada por esta pareja de botones
       selector:
         entity:
           domain: cover
-    direccion:
-      name: Dirección de este botón
-      selector:
-        select:
-          options:
-            - label: Subir
-              value: subir
-            - label: Bajar
-              value: bajar
 
 mode: restart
 
 trigger:
+  # --- botón de SUBIR ---
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_short_press
-    subtype: !input boton_subtype
-    id: p1
+    subtype: !input boton_subtype_subir
+    id: p1_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_double_press
-    subtype: !input boton_subtype
-    id: p2
+    subtype: !input boton_subtype_subir
+    id: p2_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_triple_press
-    subtype: !input boton_subtype
-    id: p3
+    subtype: !input boton_subtype_subir
+    id: p3_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_quadruple_press
-    subtype: !input boton_subtype
-    id: p4
+    subtype: !input boton_subtype_subir
+    id: p4_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_quintuple_press
-    subtype: !input boton_subtype
-    id: p5
+    subtype: !input boton_subtype_subir
+    id: p5_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_long_press
-    subtype: !input boton_subtype
-    id: larga_inicio
+    subtype: !input boton_subtype_subir
+    id: larga_inicio_sube
   - platform: device
     domain: mqtt
     device_id: !input boton_device_id
     type: button_long_release
-    subtype: !input boton_subtype
-    id: larga_fin
+    subtype: !input boton_subtype_subir
+    id: larga_fin_sube
+  # --- botón de BAJAR ---
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_short_press
+    subtype: !input boton_subtype_bajar
+    id: p1_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_double_press
+    subtype: !input boton_subtype_bajar
+    id: p2_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_triple_press
+    subtype: !input boton_subtype_bajar
+    id: p3_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quadruple_press
+    subtype: !input boton_subtype_bajar
+    id: p4_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quintuple_press
+    subtype: !input boton_subtype_bajar
+    id: p5_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_press
+    subtype: !input boton_subtype_bajar
+    id: larga_inicio_baja
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_release
+    subtype: !input boton_subtype_bajar
+    id: larga_fin_baja
 
 variables:
   cover_entity: !input cover_entity
-  direccion: !input direccion
+  # La dirección ya no es un input: se deduce de CUÁL de los dos
+  # botones ha disparado. Cada trigger lleva el sufijo _sube/_baja en
+  # su id (ver el bloque trigger de arriba), así una sola instancia del
+  # blueprint cubre la pareja entera de botones de esta persiana.
+  direccion: "{{ 'subir' if trigger.id.endswith('_sube') else 'bajar' }}"
+
   objetivo_extremo: "{{ 100 if direccion == 'subir' else 0 }}"
   area_id: "{{ area_id(cover_entity) }}"
   covers_area: "{{ area_entities(area_id) | select('match', '^cover\\.') | list if area_id else [cover_entity] }}"
@@ -132,7 +183,9 @@ action:
       # tiene sentido que se apliquen también con la persiana en marcha.
       - conditions:
           - condition: trigger
-            id: p1
+            id:
+              - p1_sube
+              - p1_baja
         sequence:
           - choose:
               - conditions:
@@ -160,7 +213,9 @@ action:
       # el instante.
       - conditions:
           - condition: trigger
-            id: p2
+            id:
+              - p2_sube
+              - p2_baja
         sequence:
           - choose:
               - conditions:
@@ -182,7 +237,9 @@ action:
       # --- 3 pulsaciones: esta persiana al 50%.
       - conditions:
           - condition: trigger
-            id: p3
+            id:
+              - p3_sube
+              - p3_baja
         sequence:
           - service: cover.set_cover_position
             target:
@@ -193,7 +250,9 @@ action:
       # --- 4 pulsaciones: ajuste fino ±5% desde la posición actual.
       - conditions:
           - condition: trigger
-            id: p4
+            id:
+              - p4_sube
+              - p4_baja
         sequence:
           - service: cover.set_cover_position
             target:
@@ -204,7 +263,9 @@ action:
       # --- 5 pulsaciones: TODAS las persianas de la casa.
       - conditions:
           - condition: trigger
-            id: p5
+            id:
+              - p5_sube
+              - p5_baja
         sequence:
           - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
             target:
@@ -214,7 +275,9 @@ action:
       # --- Larga: mover mientras se mantiene.
       - conditions:
           - condition: trigger
-            id: larga_inicio
+            id:
+              - larga_inicio_sube
+              - larga_inicio_baja
         sequence:
           - service: "cover.{{ 'open_cover' if direccion == 'subir' else 'close_cover' }}"
             target:
@@ -225,7 +288,9 @@ action:
       # falta ningún cálculo aparte aquí.
       - conditions:
           - condition: trigger
-            id: larga_fin
+            id:
+              - larga_fin_sube
+              - larga_fin_baja
         sequence:
           - service: cover.stop_cover
             target:

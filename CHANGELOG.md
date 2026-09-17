@@ -23,6 +23,36 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [2.0.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
+
+### Changed
+- **BREAKING: una sola instancia por persiana en vez de dos.** El
+  blueprint ahora pide los DOS botones de la pareja (subir y bajar) en
+  la misma automatizacion, y deduce la direccion de cual de los dos ha
+  disparado. Antes habia que instanciarlo dos veces por persiana, una
+  por boton, con el input `direccion` puesto a mano en cada una — con
+  10 persianas eran 20 automatizaciones, y era facil equivocarse
+  poniendo la misma direccion en las dos.
+
+  Cambios concretos:
+  - Inputs: `boton_subtype` se parte en **`boton_subtype_subir`** y
+    **`boton_subtype_bajar`**; **desaparece `direccion`**.
+  - Triggers: de 7 a **14** (los 7 tipos de pulsacion x 2 botones), con
+    los ids sufijados `_sube`/`_baja`.
+  - `direccion` pasa a ser una variable calculada:
+    `{{ 'subir' if trigger.id.endswith('_sube') else 'bajar' }}`.
+  - Las condiciones del `action` aceptan ahora la lista de los dos ids
+    (`p1_sube`/`p1_baja`, etc.). El resto de la logica (variables
+    derivadas, los 5 bloques de accion) no cambia: sigue usando
+    `direccion` igual que antes.
+
+### Migracion
+- **Las automatizaciones creadas con `v1.x` dejan de funcionar** al
+  reimportar el blueprint: los inputs ya no coinciden y HA no puede
+  migrarlos solo. Hay que recrearlas — una nueva instancia por
+  persiana, indicando los dos pines, en lugar de las dos que habia.
+  De ahi el salto de version major.
+
 ## [1.2.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
 
 ### Changed
