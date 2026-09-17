@@ -56,6 +56,26 @@
 // (mismo procedimiento, aplica igual aquí).
 // ===========================================================
 
+// ===========================================================
+// SOCKETS DE ETHERNET — RAM
+// La libreria Ethernet reserva MAX_SOCK_NUM sockets (4 por defecto en
+// un W5100/W5500 con 8 KB de buffer), y cada uno se lleva su parte de
+// SRAM. Este firmware solo abre UNA conexion (la de MQTT), asi que el
+// resto es memoria reservada para nada — la bolsa mas grande que queda
+// por recuperar en un Mega apretado de pulsadores.
+//
+// ⚠️ Se atacan las dos vias a la vez a proposito, porque cual funciona
+// depende de la version de la libreria Ethernet instalada:
+//   - El #define de aqui solo surte efecto si Ethernet.h declara
+//     MAX_SOCK_NUM con guarda (#ifndef). Si lo define a pelo, el
+//     compilador avisa de redefinicion y MANDA EL VALOR DE LA LIBRERIA,
+//     no este — el ahorro seria cero sin que se note.
+//   - Ethernet.init(1) en setup() es la via de la libreria moderna
+//     (Ethernet 2.x), y esa si se aplica en tiempo de ejecucion.
+// El "[debug] sockets Ethernet" de setup() imprime el valor REAL que
+// ha quedado: si no dice 1, esta via no esta ahorrando nada y hay que
+// buscar la RAM en otro sitio en vez de darla por buena.
+#define MAX_SOCK_NUM 1
 #include <Ethernet.h>
 #include <ArduinoHA.h>
 #include <AceButton.h>
@@ -451,7 +471,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.7");
+    device.setSoftwareVersion("1.8.8");
 
     // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
     // solo HADeviceTrigger/HAButton — no después del bucle, donde
@@ -628,6 +648,18 @@ void setup() {
     Serial.print(NUM_PULSADORES);
     Serial.print(F(" triggers/pulsador="));
     Serial.println(NUM_TRIGGERS_POR_PULSADOR);
+#endif
+
+    // Limita los sockets a 1 (ver el bloque de MAX_SOCK_NUM arriba).
+    // Via de la libreria moderna; inofensivo si la version instalada la
+    // ignora.
+    Ethernet.init(1);
+
+#ifdef HABILITAR_DEBUG
+    // Valor REAL que ha quedado, no el que pedimos: si no es 1, el
+    // #define de arriba no ha surtido efecto (ver su comentario).
+    Serial.print(F("[debug] sockets Ethernet: "));
+    Serial.println(MAX_SOCK_NUM);
 #endif
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));

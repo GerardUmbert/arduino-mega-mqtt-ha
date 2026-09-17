@@ -23,6 +23,27 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.8] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Changed
+- **Sockets de Ethernet limitados a 1** para recuperar SRAM: la
+  libreria reserva `MAX_SOCK_NUM` sockets (4 por defecto) y este
+  firmware solo abre una conexion, la de MQTT. Es la bolsa de RAM mas
+  grande que quedaba sin tocar, bastante mayor que los ~750 bytes de
+  los botones virtuales.
+  Se aplican **las dos vias a la vez** porque cual funciona depende de
+  la version de Ethernet instalada, y no se ha podido verificar contra
+  la libreria (no esta en el equipo donde se edita el repo):
+  `#define MAX_SOCK_NUM 1` antes del include (solo surte efecto si
+  `Ethernet.h` lo declara con guarda `#ifndef`; si lo define a pelo,
+  manda el valor de la libreria y el ahorro es CERO sin que se note) y
+  `Ethernet.init(1)` en `setup()` (via de Ethernet 2.x, en tiempo de
+  ejecucion).
+  ⚠️ **Verificar en placa**: el nuevo `[debug] sockets Ethernet: N`
+  imprime el valor real que ha quedado. Si no dice 1, esta via no esta
+  ahorrando nada y hay que buscar la RAM en otro sitio — no darla por
+  buena sin leer esa linea.
+
 ## [1.8.7] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Added
