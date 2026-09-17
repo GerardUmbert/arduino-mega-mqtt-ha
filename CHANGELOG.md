@@ -23,6 +23,43 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.7] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Added
+- **`HABILITAR_DEBUG`**: todo el debug por Serial queda detras de un
+  flag, en vez de ir suelto por el sketch marcado como "TEMPORAL".
+  Activado por defecto. Al comentarlo desaparecen `freeMemory()` y el
+  `[debug] RAM libre`, el retorno de `setBufferSize()` y su linea, el
+  contador `entidadesCreadas` con sus `[debug] entidades/NUM_PULSADORES`,
+  y el `[publicado]/[FALLO MQTT]` de cada pulsacion. La llamada a
+  `setBufferSize(512)` y los cuatro `trigger()` siguen ejecutandose
+  igual en ambos casos — solo se va la instrumentacion.
+  Lo que se gana no es solo la RAM del contador y de los `bool`: cada
+  `Serial.print` BLOQUEA el loop mientras vacia el buffer a 9600
+  baudios, y AceButton necesita `check()` cada <5ms para que el
+  debounce y la deteccion de multiclic funcionen (documentado en
+  `AceButton.h`). Con 28 pulsadores y una linea por pulsacion, esa
+  pausa se nota.
+
+### Notes
+- Medido en placa con 28 pulsadores, `HABILITAR_BOTON_VIRTUAL`
+  desactivado y buffer de 512: `setBufferSize(512) -> OK` (el fix de
+  la 1.8.5 funciona — antes fallaba ya con 24), 112 entidades creadas
+  de 114 reservadas, pero **373 bytes libres y el MQTT entra en bucle
+  de conectar/desconectar** — mismo umbral de inestabilidad que la
+  medicion de 25 pulsadores del 2026-09-05 (361 bytes). Con 28
+  pulsadores cableados hace falta liberar mas RAM por otra via.
+- Quitar los 24 `HAButton` virtuales libero ~750 bytes (~31 bytes por
+  boton), bastante menos de lo insinuado al introducir el flag en la
+  1.8.6: no es "la palanca de RAM mas grande" del firmware. La bolsa
+  grande sin tocar son los sockets de la libreria Ethernet (4 x 512
+  bytes reservados, de los que este firmware solo usa uno) — pendiente
+  de verificar contra la libreria antes de tocarlo.
+- El buffer NO debe bajar a 256: el payload de discovery real capturado
+  del topic son ~210 bytes de JSON mas ~60 de topic mas cabeceras
+  (~280 total), por encima de 256 — es exactamente el bug de la 1.8.0.
+  512 deja margen para nombres de dispositivo mas largos.
+
 ## [1.8.6] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Added

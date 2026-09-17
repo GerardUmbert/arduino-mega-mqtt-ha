@@ -144,6 +144,21 @@ using namespace ace_button;
 // ButtonConfig normal de AceButton.
 #define HABILITAR_BOTON_VIRTUAL
 
+// ===========================================================
+// DEBUG POR SERIAL — ON/OFF
+// Coméntalo para compilar sin nada de instrumentación. Quita:
+//   - freeMemory() y el "[debug] RAM libre"
+//   - el retorno de setBufferSize() y su "[debug] setBufferSize(...)"
+//   - el contador de entidades y los "[debug] entidades/NUM_PULSADORES"
+//   - el "[publicado]/[FALLO MQTT]" de cada pulsación
+// Lo que se gana no es solo la RAM del contador y los bool: cada
+// Serial.print BLOQUEA el loop mientras vacía el buffer de 9600 baudios,
+// y AceButton necesita check() cada <5ms para que el debounce y la
+// detección de multiclic funcionen bien (documentado en AceButton.h).
+// Con 28 pulsadores y una línea impresa por pulsación, esa pausa se
+// nota. Déjalo activado mientras diagnostiques; apágalo en producción.
+#define HABILITAR_DEBUG
+
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
 
@@ -314,12 +329,14 @@ void onMqttDisconnected() {
 // ⚠️ TEMPORAL — DEBUG DE RAM (quitar cuando ya no haga falta medir).
 // Misma técnica que en mega_pulsadores/mega_pulsadores.ino — ver
 // mega_pulsadores/instructions.md para el procedimiento completo.
+#ifdef HABILITAR_DEBUG
 extern char* __brkval;
 extern char __bss_end;
 int freeMemory() {
     char top;
     return &top - (__brkval ? __brkval : &__bss_end);
 }
+#endif
 
 // AceButton usa UN solo handler global compartido por todos los
 // botones (vía ButtonConfig::setEventHandler), a diferencia de
@@ -340,45 +357,61 @@ void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
             // publicación MQTT haya fallado — de ahí el síntoma "lo veo
             // en el monitor serie pero HA no reacciona". Quitar el
             // "-> publicado/FALLO" cuando esté resuelto.
+#ifdef HABILITAR_DEBUG
             bool ok = corta[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
             Serial.print(F(" -> corta ["));
             Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
             Serial.println(']');
+#else
+            corta[idx]->trigger();
+#endif
             break;
         }
 #endif
 #ifdef HABILITAR_DOBLE
         case AceButton::kEventDoubleClicked: {
+#ifdef HABILITAR_DEBUG
             bool ok = doble[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
             Serial.print(F(" -> doble ["));
             Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
             Serial.println(']');
+#else
+            doble[idx]->trigger();
+#endif
             break;
         }
 #endif
 #ifdef HABILITAR_LARGA
         case AceButton::kEventLongPressed: {
+#ifdef HABILITAR_DEBUG
             bool ok = larga[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
             Serial.print(F(" -> larga (inicio) ["));
             Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
             Serial.println(']');
+#else
+            larga[idx]->trigger();
+#endif
             break;
         }
 #endif
 #ifdef HABILITAR_LARGA_FIN
         case AceButton::kEventLongReleased: {
+#ifdef HABILITAR_DEBUG
             bool ok = largaFin[idx]->trigger();
             Serial.print(F("[boton] "));
             Serial.print(idBoton[idx]);
             Serial.print(F(" -> larga (fin) ["));
             Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
             Serial.println(']');
+#else
+            largaFin[idx]->trigger();
+#endif
             break;
         }
 #endif
@@ -418,7 +451,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.6");
+    device.setSoftwareVersion("1.8.7");
 
     // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
     // solo HADeviceTrigger/HAButton — no después del bucle, donde
@@ -442,9 +475,13 @@ void setup() {
     // topic homeassistant/device_automation/# en placa, rondan los
     // ~250 bytes, así que 512 va sobrado y pide la mitad de memoria
     // contigua — importante en un Mega de 8 KB al subir de pulsadores.
+#ifdef HABILITAR_DEBUG
     bool bufOk = mqtt.setBufferSize(512);
     Serial.print(F("[debug] setBufferSize(512) -> "));
     Serial.println(bufOk ? F("OK") : F("FALLO (sigue en 256!)"));
+#else
+    mqtt.setBufferSize(512);
+#endif
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -521,7 +558,9 @@ void setup() {
     // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO (2026-09-17): cuenta cada
     // entidad MQTT que se crea, para comparar al final de setup()
     // con el hueco reservado en el constructor de HAMqtt.
+#ifdef HABILITAR_DEBUG
     int entidadesCreadas = 0;
+#endif
 
     // --- creamos cada pulsador (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
@@ -541,19 +580,27 @@ void setup() {
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
+#ifdef HABILITAR_DEBUG
         entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_DOBLE
         doble[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType,    idBoton[i]);
+#ifdef HABILITAR_DEBUG
         entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_LARGA
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
+#ifdef HABILITAR_DEBUG
         entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
+#ifdef HABILITAR_DEBUG
         entidadesCreadas++;
+#endif
 #endif
 
 #ifdef HABILITAR_BOTON_VIRTUAL
@@ -562,10 +609,13 @@ void setup() {
         botonVirtual[i] = new HAButton(idBotonVirtual[i]);
         botonVirtual[i]->setName(idBoton[i]);
         botonVirtual[i]->onCommand(onBotonVirtual);
+#ifdef HABILITAR_DEBUG
         entidadesCreadas++;
+#endif
 #endif
     }
 
+#ifdef HABILITAR_DEBUG
     // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO: cuantas entidades MQTT se han
     // creado de verdad vs. el hueco reservado en el constructor de
     // HAMqtt. Si "creadas" supera el "maximo", ArduinoHA descarta en
@@ -578,6 +628,7 @@ void setup() {
     Serial.print(NUM_PULSADORES);
     Serial.print(F(" triggers/pulsador="));
     Serial.println(NUM_TRIGGERS_POR_PULSADOR);
+#endif
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
     Ethernet.begin(mac, IP_ESTATICA, IP_GATEWAY, IP_GATEWAY, IP_SUBNET);
@@ -614,6 +665,7 @@ void setup() {
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
 
+#ifdef HABILITAR_DEBUG
     // ⚠️ TEMPORAL — DEBUG DE RAM: quitar junto con freeMemory() de más
     // arriba cuando ya no haga falta medir. Se imprime al final de
     // setup() a propósito: es el punto de mínima RAM libre del
@@ -621,6 +673,7 @@ void setup() {
     Serial.print(F("[debug] RAM libre: "));
     Serial.print(freeMemory());
     Serial.println(F(" bytes"));
+#endif
 }
 
 void loop() {
