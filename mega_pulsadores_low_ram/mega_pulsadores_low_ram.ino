@@ -380,7 +380,33 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.4");
+    device.setSoftwareVersion("1.8.5");
+
+    // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
+    // solo HADeviceTrigger/HAButton — no después del bucle, donde
+    // estaba hasta la 1.8.4.
+    //
+    // Contexto (bug real, medido en placa 2026-09-17): el buffer por
+    // defecto de PubSubClient (256 bytes) no alcanza para el payload
+    // de discovery de un device_automation, así que los triggers no
+    // llegaban nunca a HA (ver CHANGELOG 1.8.3). Pero setBufferSize()
+    // hace un realloc, que necesita un bloque CONTIGUO libre, y
+    // devuelve false EN SILENCIO si no lo encuentra: PubSubClient se
+    // queda con los 256 de siempre y el bug vuelve, invisible.
+    //
+    // Llamándolo después del bucle, con 24 pulsadores (120 objetos ya
+    // creados con new) fallaba tanto con 1024 como con 512 — el heap
+    // queda troceado en asignaciones pequeñas y ya no hay hueco
+    // contiguo, aunque el total libre parezca suficiente. Aquí arriba
+    // el heap está intacto, así que el bloque se consigue entero.
+    //
+    // 512 y no 1024: los payloads de discovery reales, capturados del
+    // topic homeassistant/device_automation/# en placa, rondan los
+    // ~250 bytes, así que 512 va sobrado y pide la mitad de memoria
+    // contigua — importante en un Mega de 8 KB al subir de pulsadores.
+    bool bufOk = mqtt.setBufferSize(512);
+    Serial.print(F("[debug] setBufferSize(512) -> "));
+    Serial.println(bufOk ? F("OK") : F("FALLO (sigue en 256!)"));
 
     // --- config compartida por todos los pulsadores de esta unidad ---
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
@@ -492,6 +518,19 @@ void setup() {
         entidadesCreadas++;
     }
 
+    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO: cuantas entidades MQTT se han
+    // creado de verdad vs. el hueco reservado en el constructor de
+    // HAMqtt. Si "creadas" supera el "maximo", ArduinoHA descarta en
+    // silencio las que no caben y se perderian triggers sin aviso.
+    Serial.print(F("[debug] entidades MQTT creadas: "));
+    Serial.print(entidadesCreadas);
+    Serial.print(F(" / maximo reservado: "));
+    Serial.println(NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
+    Serial.print(F("[debug] NUM_PULSADORES="));
+    Serial.print(NUM_PULSADORES);
+    Serial.print(F(" triggers/pulsador="));
+    Serial.println(NUM_TRIGGERS_POR_PULSADOR);
+
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
     Ethernet.begin(mac, IP_ESTATICA, IP_GATEWAY, IP_GATEWAY, IP_SUBNET);
 
@@ -523,46 +562,6 @@ void setup() {
 
     mqtt.onConnected(onMqttConnected);
     mqtt.onDisconnected(onMqttDisconnected);
-
-    // ⚠️ Bug real confirmado (2026-09-05): los HADeviceTrigger (corta/
-    // doble/larga/largaFin) nunca aparecían en HA como trigger de tipo
-    // "Dispositivo" — solo se veía la entidad del botón virtual. Causa:
-    // el buffer de PubSubClient por defecto (256 bytes) es insuficiente
-    // para el payload de discovery de un device_automation (incluye el
-    // bloque "device" completo repetido en cada trigger, más grande con
-    // enableExtendedUniqueIds() activo) — HABaseDeviceType::publishConfig()
-    // llama a mqtt()->beginPublish(topic, dataLength, true), que
-    // devuelve false EN SILENCIO si dataLength no cabe en el buffer, sin
-    // ningún error visible en Serial. El botón virtual (HAButton) tiene
-    // un payload de discovery más pequeño, por eso ese sí se veía.
-    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO (2026-09-17): quitar cuando se
-    // encuentre por qué los HADeviceTrigger no llegan a HA ni con el
-    // setBufferSize ya aplicado.
-    // setBufferSize() devuelve boolean: si el realloc de 1024 bytes no
-    // encuentra un bloque CONTIGUO libre, devuelve false y PubSubClient
-    // se queda con los 256 bytes de siempre, sin decir nada — mismo
-    // bug que antes, invisible. Y aquí el riesgo es real: esta llamada
-    // ocurre DESPUÉS de los ~100 new del bucle de pulsadores, con el
-    // heap ya fragmentado en asignaciones pequeñas, así que puede haber
-    // 1700 bytes libres en total y ni un hueco contiguo de 1024.
-    bool bufOk = mqtt.setBufferSize(1024);
-    Serial.print(F("[debug] setBufferSize(1024) -> "));
-    Serial.println(bufOk ? F("OK") : F("FALLO (sigue en 256!)"));
-
-    // Cuántas entidades MQTT se han creado de verdad (contadas a mano
-    // en el bucle de arriba) vs. el hueco que se reservó en el
-    // constructor de HAMqtt. Si "creadas" supera el "maximo",
-    // ArduinoHA ha DESCARTADO en silencio las que no cabían — y basta
-    // con que el cálculo del constructor se quede corto para perder
-    // triggers sin ningún aviso.
-    Serial.print(F("[debug] entidades MQTT creadas: "));
-    Serial.print(entidadesCreadas);
-    Serial.print(F(" / maximo reservado: "));
-    Serial.println(NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
-    Serial.print(F("[debug] NUM_PULSADORES="));
-    Serial.print(NUM_PULSADORES);
-    Serial.print(F(" triggers/pulsador="));
-    Serial.println(NUM_TRIGGERS_POR_PULSADOR);
 
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);

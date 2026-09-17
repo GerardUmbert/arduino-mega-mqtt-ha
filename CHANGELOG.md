@@ -23,6 +23,50 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.5] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Fixed
+- **`setBufferSize()` fallaba al subir de pulsadores, dejando el buffer
+  en 256 bytes y rompiendo otra vez el discovery de los
+  `HADeviceTrigger`** — medido en placa real con 24 pulsadores:
+  `setBufferSize(1024) -> FALLO (sigue en 256!)`, y tambien con 512.
+  Causa: `setBufferSize()` hace un `realloc`, que necesita un bloque
+  CONTIGUO libre, y hasta ahora se llamaba DESPUES del bucle que crea
+  los ~120 objetos con `new` — con el heap ya troceado en asignaciones
+  pequenas no queda hueco contiguo, aunque el total libre parezca
+  suficiente (623 bytes libres reportados con 24 pulsadores). Y como
+  `realloc` fallido devuelve `false` en silencio, PubSubClient se
+  quedaba con los 256 de siempre y volvia el bug de la 1.8.0, invisible.
+  Arreglo: mover la llamada al principio de `setup()`, justo tras
+  `setSoftwareVersion()` y antes de crear ninguna entidad, con el heap
+  todavia intacto.
+  Sintoma revelador de este caso: los EVENTOS si funcionaban
+  (`[boton] p22 -> larga (inicio) [publicado]`), porque el payload de
+  un evento son unos pocos bytes y cabe en 256 — solo fallaba el
+  discovery, que ronda los ~250 bytes mas topic y cabeceras.
+
+### Changed
+- **Buffer de 1024 a 512 bytes.** Los payloads de discovery reales,
+  capturados del topic `homeassistant/device_automation/#` en placa,
+  rondan los ~250 bytes (ArduinoHA usa claves abreviadas: `atype`,
+  `stype`, `dev`, `t`), asi que 512 va sobrado y pide la mitad de
+  memoria contigua — margen que importa en un Mega de 8 KB al subir el
+  numero de pulsadores.
+
+### Notes
+- Confirmado en esta sesion que el problema original NO era el retain
+  ni el broker: los 64 configs de discovery se publican correctamente y
+  el broker los conserva (`Retain: true` al resuscribirse). El
+  `Retain: false` que muestra la herramienta "Escuchar un topic" de HA
+  para mensajes recien publicados es el comportamiento normal de MQTT
+  (el flag solo viaja a `true` en los mensajes que el broker reenvia
+  desde su almacen al suscribirse), no un sintoma.
+- Los device triggers NO son entidades y no aparecen en la vista del
+  dispositivo ni en Ajustes -> Entidades. En el editor de
+  automatizaciones hay que usar la pestana **"By type" -> Device**, no
+  "By target" (esa ruta solo ofrece triggers de entidad, de ahi que
+  solo saliera "Button pressed", el `HAButton` virtual).
+
 ## [1.8.4] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Added
