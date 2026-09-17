@@ -102,7 +102,14 @@ funcionalidad:
 
 | | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |
 |---|---|---|
-| Límite práctico medido en placa real (firmware 1.8.0, con botón virtual) | 12 estable, 16 falla | 24 estable, 623 bytes libres; 25 arranca pero MQTT inestable |
+| Límite práctico medido en placa real (firmware 1.8.0, con botón virtual, buffer MQTT 256) | 12 estable, 16 falla | 24 estable, 623 bytes libres; 25 arranca pero MQTT inestable |
+
+> ⚠️ **Desde la versión 1.8.3 esos límites ya no aplican tal cual**: el
+> firmware llama a `mqtt.setBufferSize(512)` (imprescindible, sin él el
+> discovery de los `HADeviceTrigger` no llega a Home Assistant) y esos
+> 512 bytes salen de la misma SRAM. Medido con 1.8.5 el 2026-09-17:
+> 16 pulsadores → 1701 bytes; 24 → 623; 28 sin botones virtuales → 373
+> bytes e inestable. Ver "RAM y rendimiento" en la documentación.
 | Coste real por pulsador (medido) | Mayor — ver [RAM y rendimiento](docs/docs/reference/ram.md) | ~263 bytes/pulsador |
 | Pulsaciones soportadas | Las 7: corta, doble, triple, cuádruple, quíntuple, larga, fin de larga | Solo 4: corta, doble, larga, fin de larga — **sin mecanismo alguno** para triple/cuádruple/quíntuple, no es una opción desactivable |
 | Compatible con `persiana_pulsador_completo.yaml` | Sí (usa los 5 niveles) | **No** — ese blueprint necesita 5 niveles de clic distintos y AceButton solo ofrece 2 (single/double) |
@@ -198,6 +205,12 @@ librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
     "RAM / límite de pulsadores" en `todo.md`). También existe en el
     enum de ArduinoHA (aunque este proyecto no lo usa):
     `ButtonShortReleaseType`.
+  - **`HABILITAR_BOTON_VIRTUAL`** (desde la 1.8.6, solo
+    `mega_pulsadores_low_ram`) y **`HABILITAR_DEBUG`** (desde la 1.8.7):
+    dos flags más, activados por defecto, para recortar RAM cuando hace
+    falta. El primero quita los `HAButton` (~31 bytes/pulsador) sin
+    tocar los pulsadores físicos ni sus triggers; el segundo quita toda
+    la instrumentación por Serial.
   - **`HAButton` virtual** (desde la versión 1.8.0) — a diferencia del
     `HADeviceTrigger`, esta SÍ es una entidad real y pulsable, visible
     en Ajustes → Entidades y en cualquier tarjeta de Lovelace. Al

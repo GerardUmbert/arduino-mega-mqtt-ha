@@ -51,6 +51,57 @@ límite de pines relevante (el Mega tiene 54 pines digitales).
     Con `mega_pulsadores` (OneButton) el límite equivalente está entre
     12 y 16 — `mega_pulsadores_low_ram` aguanta casi el doble.
 
+!!! danger "La tabla de arriba es de la 1.8.0 (buffer MQTT de 256) — desde la 1.8.3 ya NO aplica"
+    Desde la versión 1.8.3, el firmware llama a
+    `mqtt.setBufferSize(512)` (1024 en 1.8.3-1.8.4) porque con los 256
+    bytes por defecto el discovery de los `HADeviceTrigger` no cabía y
+    nunca llegaba a HA. Ese buffer sale de la misma SRAM, así que **el
+    límite de 24 pulsadores de la tabla ya no es válido**: hay que
+    restar el buffer.
+
+!!! success "Confirmado en placa real (2026-09-17) — firmware 1.8.4/1.8.5, buffer de 512"
+    | Pulsadores | Botón virtual | RAM libre | Estado |
+    |---|---|---|---|
+    | 16 | Activo | 1701 bytes | OK |
+    | 24 | Activo | 623 bytes | Límite — `setBufferSize` FALLA si se llama tarde (ver abajo) |
+    | 28 | **Desactivado** | 373 bytes | Arranca, pero MQTT en bucle conectar/desconectar — **inestable** |
+
+    - **Coste de los `HAButton` virtuales: ~750 bytes en total con 24
+      pulsadores (~31 bytes/botón)** — medido comparando 24-con-botones
+      contra 28-sin-botones. Bastante menos de lo que se supuso al
+      introducir `HABILITAR_BOTON_VIRTUAL`: **no** es la palanca de RAM
+      más grande del firmware.
+    - El umbral de inestabilidad se confirma otra vez alrededor de los
+      **~370 bytes** (373 aquí, 361 en la medición de 25 pulsadores del
+      2026-09-05): por debajo de eso MQTT no opera con estabilidad
+      aunque el arranque parezca correcto.
+
+!!! warning "`setBufferSize()` puede fallar en silencio por fragmentación del heap"
+    Bug real, medido en placa el 2026-09-17 con 24 pulsadores:
+    `setBufferSize(1024) -> FALLO (sigue en 256!)`, y también con 512.
+
+    `setBufferSize()` hace un `realloc`, que necesita un bloque
+    **contiguo** libre. Llamándolo **después** de crear los ~120
+    objetos del bucle de pulsadores (`new HADeviceTrigger`,
+    `new HAButton`), el heap queda troceado en asignaciones pequeñas y
+    ya no hay hueco contiguo — **aunque el total libre parezca
+    suficiente**. Con 623 bytes libres reportados, un bloque de 512
+    seguidos no existía.
+
+    Y como `realloc` fallido devuelve `false` **en silencio**,
+    PubSubClient se quedaba con los 256 de siempre y volvía el bug del
+    discovery, invisible.
+
+    Dos cifras que miden cosas distintas y que conviene no confundir:
+    `freeMemory()` mide la distancia entre el final del heap y el stack
+    pointer, así que **no sabe nada de los huecos internos** — puede
+    reportar 623 bytes alegremente mientras `realloc` fracasa.
+
+    **Arreglo (1.8.5)**: llamar a `setBufferSize()` al principio de
+    `setup()`, antes de crear ninguna entidad, con el heap intacto.
+    Verificado: con la llamada movida, `-> OK` incluso con 28
+    pulsadores.
+
 ## Por qué el límite es tan bajo
 
 ```mermaid
@@ -73,9 +124,18 @@ flowchart TD
 - **Coste fijo** (Ethernet + PubSubClient + ArduinoHA): se paga una
   sola vez por unidad, independiente de cuántos pulsadores tengas.
   PubSubClient reserva un buffer MQTT de 256 bytes por defecto
-  (`MQTT_MAX_PACKET_SIZE`), configurable vía `mqtt.setBufferSize(...)`
-  — no se ha tocado todavía porque reducirlo demasiado puede truncar
-  mensajes de discovery en silencio.
+  (`MQTT_MAX_PACKET_SIZE`), configurable vía `mqtt.setBufferSize(...)`.
+  **Desde la 1.8.3 sí se toca**: se sube a 512 bytes porque con 256 el
+  discovery de los `HADeviceTrigger` no cabe y falla en silencio. No
+  bajarlo a 256 de nuevo — el payload real capturado del topic son
+  ~210 bytes de JSON más ~60 de topic más cabeceras (~280 total), por
+  encima de 256. 512 deja margen para nombres de dispositivo más largos.
+  A cambio, esos 512 bytes salen de la SRAM disponible y bajan el límite
+  de pulsadores respecto a las mediciones de la 1.8.0.
+- **Sockets de Ethernet**: la librería reserva `MAX_SOCK_NUM` sockets
+  (4 por defecto), y este firmware solo abre una conexión (la de MQTT).
+  Desde la 1.8.8 se limita a 1 — ver la nota de verificación en
+  [`mega_pulsadores_low_ram`](../firmware/mega-pulsadores-low-ram.md).
 - **Coste por pulsador**: cada `HADeviceTrigger` que creas ocupa
   memoria en el heap (`new HADeviceTrigger(...)`), el objeto
   `OneButton`/`AceButton` en sí tiene un tamaño fijo por instancia, y
@@ -98,7 +158,13 @@ ambas librerías — no incluye `HADeviceTrigger`, `HAButton` ni buffers):
 | Firmware | Límite práctico probado | Coste medido/pulsador |
 |---|---|---|
 | `mega_pulsadores` (OneButton) | 12 estable, 16 falla | Mayor — no desglosado con la misma precisión, ver [Changelog](../reference/changelog.md) |
-| `mega_pulsadores_low_ram` (AceButton) | 24 estable, 25 inestable | ~263 bytes |
+| `mega_pulsadores_low_ram` (AceButton) | 24 estable, 25 inestable (firmware 1.8.0, buffer 256) | ~263 bytes |
+
+!!! warning "Los límites de esta tabla son de la 1.8.0"
+    Desde la 1.8.3 hay que restar el buffer MQTT de 512 bytes, así que
+    el techo real es más bajo. Medido con 1.8.5: 28 pulsadores sin
+    botones virtuales dejan 373 bytes — inestable. Ver la tabla del
+    2026-09-17 más arriba.
 
 Esto es lo que justifica la existencia de
 [`mega_pulsadores_low_ram`](../firmware/mega-pulsadores-low-ram.md)
@@ -156,13 +222,25 @@ El procedimiento completo, paso a paso, está en
 
 ## Qué hacer si necesitas más pulsadores de los que caben
 
-1. **Desactiva triggers que no uses** (`HABILITAR_TRIPLE` etc. en
+1. **Apaga `HABILITAR_DEBUG`** (desde la 1.8.7, solo
+   `mega_pulsadores_low_ram`) — quita `freeMemory()`, el contador de
+   entidades y los prints por pulsación. Además de la RAM, cada
+   `Serial.print` bloquea el loop vaciando el buffer a 9600 baudios, y
+   AceButton necesita `check()` cada <5ms.
+2. **Apaga `HABILITAR_BOTON_VIRTUAL`** (desde la 1.8.6, solo
+   `mega_pulsadores_low_ram`) — libera ~31 bytes por pulsador (~750 con
+   24). Solo se pierden los botones "Press" de la UI de HA, que
+   simulaban una pulsación corta; los pulsadores físicos y sus
+   `HADeviceTrigger` (corta/doble/larga/fin) siguen intactos.
+3. **Desactiva triggers que no uses** (`HABILITAR_TRIPLE` etc. en
    `mega_pulsadores`) — ya están desactivados por defecto salvo
-   corta/doble/larga/fin de larga.
-2. **Cambia a `mega_pulsadores_low_ram`** si ninguno de los pulsadores
+   corta/doble/larga/fin de larga. En `mega_pulsadores_low_ram`,
+   `HABILITAR_LARGA_FIN` es el candidato si no usas el patrón
+   "mantener para mover / soltar para parar".
+4. **Cambia a `mega_pulsadores_low_ram`** si ninguno de los pulsadores
    afectados necesita triple/cuádruple/quíntuple — ver
    [guía de decisión](../firmware/decision.md).
-3. **Añade una tercera unidad física** (`PLACA_C`) si necesitas más
+5. **Añade una tercera unidad física** (`PLACA_C`) si necesitas más
    pulsadores Y alguno sí necesita triple/cuádruple/quíntuple — la
    arquitectura ya lo permite (mismo patrón MAC/config que A/B).
 

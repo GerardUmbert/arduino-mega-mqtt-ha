@@ -35,6 +35,35 @@ librería solo distingue click simple y doble click.
 | Larga (inicio) | `HABILITAR_LARGA` | ✅ | `kEventLongPressed` |
 | Larga (fin, al soltar) | `HABILITAR_LARGA_FIN` | ✅ | `kEventLongReleased` |
 
+## Otros dos flags (RAM)
+
+Además de los 4 eventos, hay dos interruptores más, ambos **activados
+por defecto** — si no los tocas, nada cambia:
+
+| `#define` | Desde | Qué quita al comentarlo |
+|---|---|---|
+| `HABILITAR_BOTON_VIRTUAL` | 1.8.6 | Los `HAButton` ("Press" en Controls de HA) y todo su andamiaje de simulación. **~31 bytes/pulsador** (~750 con 24) |
+| `HABILITAR_DEBUG` | 1.8.7 | `freeMemory()`, el contador de entidades, el retorno de `setBufferSize()` y el `[publicado]/[FALLO MQTT]` de cada pulsación |
+
+!!! tip "Qué NO se pierde al apagar `HABILITAR_BOTON_VIRTUAL`"
+    Los pulsadores **físicos** siguen funcionando exactamente igual:
+    corta, doble, larga y fin de larga se publican como siempre, que es
+    lo que usan los blueprints y las automatizaciones por *device
+    trigger*. Solo desaparecen los botones "Press" de la UI de HA, que
+    servían para **simular** una pulsación corta desde la app.
+
+    Esos botones virtuales nunca pudieron simular pulsación larga (el
+    pulso es corto y fijo, `SIMULACION_PULSO_MS`), así que apagarlos no
+    quita ninguna capacidad de larga.
+
+!!! warning "`HABILITAR_DEBUG` no es solo RAM"
+    Cada `Serial.print` **bloquea el loop** mientras vacía el buffer a
+    9600 baudios, y `AceButton` necesita `check()` cada <5ms para que el
+    debounce y la detección de multiclic funcionen (documentado en
+    `AceButton.h`). Con muchos pulsadores y una línea impresa por
+    pulsación, esa pausa se nota — déjalo activado mientras
+    diagnosticas, apágalo en producción.
+
 ```mermaid
 flowchart LR
     Btn(["`Pulsador físico
@@ -75,10 +104,10 @@ hace con `button->getId()`, en vez del `void* param` que usa
 |---|---|---|
 | RAM por instancia (solo la clase, AVR) | ~90-100 bytes, **fijo** — reserva sitio para las 8 callbacks posibles aunque no las uses | ~18-26 bytes |
 | Motivo de la diferencia | Todas las variables miembro (8 punteros a función + parámetros) son incondicionales en la clase | Clase base más pequeña |
-| **Límite práctico probado en placa** (firmware 1.8.0, con botón virtual) | 12 estable, 16 falla | **24 estable** (623 bytes libres), 25 arranca pero MQTT inestable |
+| **Límite práctico probado en placa** (firmware 1.8.0, con botón virtual, buffer 256) | 12 estable, 16 falla | **24 estable** (623 bytes libres), 25 arranca pero MQTT inestable — ver aviso de la 1.8.3 más abajo |
 | **Coste real medido por pulsador** | No desglosado con la misma precisión todavía | **~263 bytes** |
 
-!!! success "Confirmado en placa real (2026-09-05)"
+!!! success "Confirmado en placa real (2026-09-05) — firmware 1.8.0, buffer MQTT de 256"
     | Pulsadores | RAM libre |
     |---|---|
     | 0 | 7033 bytes |
@@ -86,6 +115,24 @@ hace con `button->getId()`, en vez del `void* param` que usa
     | 16 | 2727 bytes |
     | 24 | 623 bytes (estable) |
     | 25 | 361 bytes (MQTT inestable) |
+
+!!! danger "Desde la 1.8.3 esos límites ya no aplican tal cual"
+    El firmware llama a `mqtt.setBufferSize(512)` (imprescindible: con
+    los 256 por defecto el discovery de los `HADeviceTrigger` no cabe y
+    nunca llega a HA), y esos 512 bytes salen de la misma SRAM.
+
+    Medido el 2026-09-17 con 1.8.5:
+
+    | Pulsadores | Botón virtual | RAM libre | Estado |
+    |---|---|---|---|
+    | 16 | Activo | 1701 bytes | OK |
+    | 24 | Activo | 623 bytes | Límite |
+    | 28 | Desactivado | 373 bytes | **Inestable** (MQTT en bucle) |
+
+    El umbral de inestabilidad ronda los **~370 bytes**. Ver
+    [RAM y rendimiento](../reference/ram.md) para el detalle, incluido
+    el bug de fragmentación del heap que hacía fallar
+    `setBufferSize()` en silencio.
 
 Ver [RAM y rendimiento](../reference/ram.md) para el desglose completo
 y cómo medir tu propia configuración en placa real.

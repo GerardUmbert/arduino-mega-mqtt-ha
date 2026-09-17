@@ -142,6 +142,43 @@
       (solo dejar corta/doble) sube el límite por encima de 24 — cada
       trigger desactivado ahorra un `HADeviceTrigger` menos por
       pulsador. Pendiente si se necesita más margen.
+- [x] **Medido de nuevo el 2026-09-17 con firmware 1.8.4/1.8.5 y buffer
+      MQTT de 512** (la tabla de arriba es de la 1.8.0, con los 256 por
+      defecto — ya no aplica tal cual, hay que restar el buffer):
+
+      | Pulsadores | Botón virtual | RAM libre | Estado |
+      |---|---|---|---|
+      | 16 | Activo | 1701 bytes | OK |
+      | 24 | Activo | 623 bytes | Límite |
+      | 28 | Desactivado | 373 bytes | Arranca, MQTT en bucle conectar/desconectar — **inestable** |
+
+      El umbral de inestabilidad se confirma otra vez en **~370 bytes**
+      (373 aquí, 361 con 25 pulsadores el 2026-09-05).
+- [x] **Coste real de los `HAButton` virtuales: ~750 bytes con 24
+      pulsadores (~31 bytes/botón)**, medido comparando 24-con-botones
+      contra 28-sin-botones. Bastante menos de lo supuesto al
+      introducir `HABILITAR_BOTON_VIRTUAL` en la 1.8.6 — **no** es la
+      palanca de RAM más grande del firmware, al contrario de lo que se
+      dijo entonces.
+- [ ] **Verificar si `MAX_SOCK_NUM 1` / `Ethernet.init(1)` (1.8.8)
+      ahorra RAM de verdad.** La librería Ethernet reserva 4 sockets por
+      defecto y este firmware solo abre uno (MQTT), así que en teoría es
+      la bolsa más grande que queda. Pero **no se ha podido verificar
+      contra la librería** (no está instalada en el equipo donde se
+      edita el repo): el `#define` antes del include solo surte efecto
+      si `Ethernet.h` declara `MAX_SOCK_NUM` con guarda `#ifndef`; si lo
+      define a pelo, manda el valor de la librería y el ahorro es CERO
+      sin que se note. Por eso la 1.8.8 imprime
+      `[debug] sockets Ethernet: N` con el valor real — **si no dice 1,
+      esta vía no ahorra nada** y hay que buscar en otro sitio. No dar
+      por bueno el ahorro sin leer esa línea.
+- [ ] **Caso pendiente: 28 pulsadores cableados que deben funcionar.**
+      Con 28 y sin botones virtuales quedan 373 bytes (inestable).
+      Palancas ya disponibles: apagar `HABILITAR_DEBUG` (1.8.7),
+      desactivar `HABILITAR_LARGA_FIN` si no se usa el patrón
+      "mantener para mover / soltar para parar", y los sockets de
+      Ethernet si se confirma que funciona. Si no alcanza, toca una
+      tercera unidad física (`PLACA_C`).
 
 ## Verificación en Home Assistant
 
