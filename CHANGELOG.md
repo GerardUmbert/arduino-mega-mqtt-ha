@@ -23,6 +23,62 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.9.0] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Changed
+- **Buffer MQTT de 512 a 384 bytes.** Calculado con el paquete real
+  capturado del topic `homeassistant/device_automation/#` (el mas largo
+  de los 4 tipos, `button_long_release`):
+
+  | Parte | Bytes |
+  |---|---|
+  | payload JSON | 180 |
+  | topic | 75 |
+  | cabecera MQTT fija | ~7 |
+  | **total** | **262** |
+
+  Con 384 quedan **122 bytes de margen** y se recuperan 128 respecto a
+  512. De paso explica por que el bug original era tan traicionero: con
+  los 256 por defecto fallaba por solo **6 bytes**.
+  ⚠️ El tamano depende de `NOMBRE_PLACA` (viaja en `dev.name`) y de la
+  longitud del subtype. Con el nombre actual ("Mega Pulsadores A", 17
+  caracteres) hay 122 bytes de holgura. No bajar de 320.
+
+- **`HABILITAR_BOTON_VIRTUAL` desactivado por defecto.** En este
+  firmware, que es el de RAM ajustada y el que se usa cuando hay muchos
+  pulsadores por unidad, los pulsadores fisicos son lo que importa y el
+  boton virtual cuesta ~31 bytes por pulsador. Descomentar si se
+  quieren los botones "Press" en la UI de HA y sobra RAM. En
+  `mega_pulsadores/` sigue activo por defecto.
+
+- **`HABILITAR_DEBUG` desactivado por defecto.** Produccion es el caso
+  normal. Los mensajes `[boot]` y `[mqtt]` **no** dependen de este
+  flag: el arranque y el estado de la conexion se siguen viendo igual.
+  Lo que se va es la instrumentacion `[debug]` y el
+  `[publicado]/[FALLO MQTT]` de cada pulsacion.
+  ⚠️ Activarlo ANTES de dar por bueno cualquier cambio de RAM o de
+  numero de pulsadores: es lo unico que delata un
+  `setBufferSize -> FALLO` (silencioso por naturaleza) y la linea
+  `[debug] RAM libre` con la que se mide el margen real.
+
+### Notes
+- Ahorro conjunto estimado para el caso de 28 pulsadores: 128 bytes del
+  buffer + ~870 de los botones virtuales (~31 x 28) + lo que libere el
+  debug. Partiendo de los 373 bytes medidos con 28 pulsadores y botones
+  ya desactivados, el buffer y el debug deberian subir el margen por
+  encima de los ~500. **Pendiente de medir en placa** — activar
+  `HABILITAR_DEBUG` para leer el valor y volver a apagarlo.
+- Ideas de optimizacion analizadas y NO aplicadas todavia, por orden de
+  rentabilidad: eliminar los 4 arrays de punteros a `HADeviceTrigger`
+  (~224 bytes con 28 pulsadores, requiere verificar si ArduinoHA
+  permite recuperarlos de su registro interno), `PINES_BOTONES` a
+  PROGMEM (~28 bytes, pero se lee en `readButton()`, camino caliente),
+  y quitar `Serial.begin()` cuando no se usa (~150 bytes del buffer de
+  Serial, requiere verificar que ArduinoHA no lo use internamente).
+  Los buffers `idBoton`/`idBotonVirtual` NO se pueden fusionar: tanto
+  `HADeviceTrigger` como `HAButton` se quedan con el puntero al texto,
+  no con una copia.
+
 ## [1.8.9] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Fixed

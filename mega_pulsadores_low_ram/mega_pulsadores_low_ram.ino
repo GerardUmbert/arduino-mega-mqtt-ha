@@ -142,7 +142,15 @@ using namespace ace_button;
 // (la subclase ButtonConfigConSimulacion, el array de temporizadores y
 // su limpieza en loop()), así que los pulsadores pasan a leerse con el
 // ButtonConfig normal de AceButton.
-#define HABILITAR_BOTON_VIRTUAL
+//
+// DESACTIVADO por defecto desde la 1.9.0: en este firmware, que es el
+// de RAM ajustada y el que se usa cuando hay muchos pulsadores por
+// unidad, los pulsadores físicos son lo que importa y el botón virtual
+// es un extra que cuesta ~31 bytes por pulsador. Descoméntalo si
+// quieres los botones "Press" en la UI de HA y te sobra RAM.
+// (En mega_pulsadores/ sigue activo por defecto — ahí el límite de
+// pulsadores es otro.)
+// #define HABILITAR_BOTON_VIRTUAL
 
 // ===========================================================
 // DEBUG POR SERIAL — ON/OFF
@@ -156,8 +164,20 @@ using namespace ace_button;
 // y AceButton necesita check() cada <5ms para que el debounce y la
 // detección de multiclic funcionen bien (documentado en AceButton.h).
 // Con 28 pulsadores y una línea impresa por pulsación, esa pausa se
-// nota. Déjalo activado mientras diagnostiques; apágalo en producción.
-#define HABILITAR_DEBUG
+// nota.
+//
+// DESACTIVADO por defecto desde la 1.9.0: producción es el caso normal
+// de este firmware. Descoméntalo cuando tengas que diagnosticar algo —
+// y hazlo ANTES de dar por bueno cualquier cambio de RAM o de
+// pulsadores, porque es lo único que delata un
+// "setBufferSize -> FALLO" (que si no, es silencioso) y la línea
+// "[debug] RAM libre" con la que se mide el margen real.
+//
+// ⚠️ Los mensajes [boot] y [mqtt] NO dependen de este flag: siguen
+// saliendo siempre, así que el arranque y el estado de la conexión se
+// ven igual. Lo que se va es solo la instrumentación [debug] y el
+// [publicado]/[FALLO MQTT] de cada pulsación.
+// #define HABILITAR_DEBUG
 
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
@@ -303,9 +323,13 @@ HADeviceTrigger* largaFin[NUM_PULSADORES];
 char idBoton[NUM_PULSADORES][4];
 
 // unique_id del HAButton virtual de cada pulsador — "v" + idBoton[i]
-// (ej. "vp14"), igual que en mega_pulsadores/mega_pulsadores.ino.
-// Solo existe si el botón virtual está activo: sin él son 5 bytes por
-// pulsador que no hay por qué reservar.
+// (ej. "vp14").
+//
+// ⚠️ RAM: es un array aparte y NO se puede fusionar con idBoton
+// aunque el contenido sea casi el mismo — HAButton, igual que
+// HADeviceTrigger, se queda con el PUNTERO al texto, no con una copia,
+// así que los dos buffers tienen que sobrevivir todo el programa con
+// su propio contenido. Solo existe si el botón virtual está activo.
 #ifdef HABILITAR_BOTON_VIRTUAL
 char idBotonVirtual[NUM_PULSADORES][5];
 #endif
@@ -451,7 +475,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.9");
+    device.setSoftwareVersion("1.9.0");
 
     // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
     // solo HADeviceTrigger/HAButton — no después del bucle, donde
@@ -471,16 +495,29 @@ void setup() {
     // contiguo, aunque el total libre parezca suficiente. Aquí arriba
     // el heap está intacto, así que el bloque se consigue entero.
     //
-    // 512 y no 1024: los payloads de discovery reales, capturados del
-    // topic homeassistant/device_automation/# en placa, rondan los
-    // ~250 bytes, así que 512 va sobrado y pide la mitad de memoria
-    // contigua — importante en un Mega de 8 KB al subir de pulsadores.
+    // 384 y no 512/1024, medido con el paquete real capturado del topic
+    // homeassistant/device_automation/# (el más largo de los 4 tipos,
+    // button_long_release):
+    //     payload JSON            180 bytes
+    //     topic                    75 bytes
+    //     cabecera MQTT fija      ~7 bytes
+    //     ---------------------------------
+    //     total                   262 bytes
+    // Con 384 quedan 122 bytes de margen. Y de paso explica por qué el
+    // bug original era tan traicionero: con los 256 por defecto fallaba
+    // por solo 6 bytes.
+    //
+    // ⚠️ El tamaño depende del nombre del dispositivo (viaja en
+    // dev.name) y de la longitud del subtype/topic. Si algún día se
+    // alarga NOMBRE_PLACA de forma significativa, hay que recalcular:
+    // 384 - 262 = 122 bytes de holgura sobre el nombre actual
+    // ("Mega Pulsadores A", 17 caracteres). No bajar de 320.
 #ifdef HABILITAR_DEBUG
-    bool bufOk = mqtt.setBufferSize(512);
-    Serial.print(F("[debug] setBufferSize(512) -> "));
+    bool bufOk = mqtt.setBufferSize(384);
+    Serial.print(F("[debug] setBufferSize(384) -> "));
     Serial.println(bufOk ? F("OK") : F("FALLO (sigue en 256!)"));
 #else
-    mqtt.setBufferSize(512);
+    mqtt.setBufferSize(384);
 #endif
 
     // --- config compartida por todos los pulsadores de esta unidad ---
