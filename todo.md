@@ -160,7 +160,16 @@
       introducir `HABILITAR_BOTON_VIRTUAL` en la 1.8.6 — **no** es la
       palanca de RAM más grande del firmware, al contrario de lo que se
       dijo entonces.
-- [ ] **Verificar si `MAX_SOCK_NUM 1` / `Ethernet.init(1)` (1.8.8)
+- [x] **DESCARTADO: limitar los sockets de Ethernet no ahorra RAM.**
+      Probado en placa y revertido en la 1.8.9. `#define MAX_SOCK_NUM 1`
+      antes del include no surte efecto (`Ethernet.h` lo define sin
+      guarda `#ifndef`, manda el valor de la librería — el debug marcó
+      `sockets Ethernet: 8` y la RAM siguió en 373 bytes, ahorro cero),
+      y `Ethernet.init(1)` no limita sockets sino que cambia el pin de
+      chip-select, dejando la placa sin ver el shield (`ERROR: no se
+      detecta el shield Ethernet`, IP 0.0.0.0). Solo sería viable
+      editando la librería, que no se va a hacer.
+- [ ] ~~**Verificar si `MAX_SOCK_NUM 1` / `Ethernet.init(1)` (1.8.8)
       ahorra RAM de verdad.** La librería Ethernet reserva 4 sockets por
       defecto y este firmware solo abre uno (MQTT), así que en teoría es
       la bolsa más grande que queda. Pero **no se ha podido verificar
@@ -171,7 +180,7 @@
       sin que se note. Por eso la 1.8.8 imprime
       `[debug] sockets Ethernet: N` con el valor real — **si no dice 1,
       esta vía no ahorra nada** y hay que buscar en otro sitio. No dar
-      por bueno el ahorro sin leer esa línea.
+      por bueno el ahorro sin leer esa línea.~~ (resuelto arriba)
 - [ ] **Caso pendiente: 28 pulsadores cableados que deben funcionar.**
       Con 28 y sin botones virtuales quedan 373 bytes (inestable).
       Palancas ya disponibles: apagar `HABILITAR_DEBUG` (1.8.7),

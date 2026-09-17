@@ -23,6 +23,39 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.9] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Fixed
+- **Revertido por completo el cambio de sockets de la 1.8.8**, que no
+  ahorraba nada y ademas dejaba la placa sin red. Medido en placa:
+
+  - `#define MAX_SOCK_NUM 1` antes del include **no surte ningun
+    efecto**: `Ethernet.h` lo define sin guarda `#ifndef`, asi que
+    manda el valor de la libreria. El debug lo confirmo:
+    `[debug] sockets Ethernet: 8` (no 1, y son 8 por defecto en este
+    shield, no 4 como se supuso). RAM libre identica, 373 bytes:
+    **ahorro cero**.
+  - `Ethernet.init(1)` **rompia la red**. En la libreria Ethernet ese
+    metodo cambia el **pin de chip-select**, no el numero de sockets —
+    pasarle 1 movia el CS al pin 1 y la placa dejaba de ver el shield:
+    `ERROR: no se detecta el shield Ethernet`, IP 0.0.0.0, TCP FALLO y
+    MQTT sin conectar.
+
+  Leccion: la 1.8.8 se subio con una API no verificada contra la
+  libreria instalada (no esta en el equipo donde se edita el repo). El
+  `[debug] sockets Ethernet` que se anadio para comprobarlo hizo su
+  trabajo y delato las dos cosas — pero el cambio no deberia haberse
+  subido antes de tener esa confirmacion.
+
+### Notes
+- Sigue pendiente encontrar RAM para las 28 entradas cableadas: con 28
+  pulsadores y los botones virtuales ya desactivados quedan 373 bytes y
+  el MQTT no se sostiene. Palancas que quedan: apagar `HABILITAR_DEBUG`
+  (1.8.7), desactivar `HABILITAR_LARGA_FIN` si no se usa el patron
+  "mantener para mover / soltar para parar", o una tercera unidad
+  fisica (`PLACA_C`). La via de los sockets de Ethernet queda
+  descartada salvo que se edite la libreria, que no se va a hacer.
+
 ## [1.8.8] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Changed
