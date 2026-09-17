@@ -23,6 +23,34 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.6] - 2026-09-17 (mega_pulsadores_low_ram)
+
+### Added
+- **`HABILITAR_BOTON_VIRTUAL`**: nuevo flag, al lado de los
+  `HABILITAR_CORTA`/`DOBLE`/`LARGA`/`LARGA_FIN`, para crear o no los
+  `HAButton` virtuales. Activado por defecto, asi que el
+  comportamiento no cambia si no se toca.
+  Es la palanca de RAM mas grande del firmware: cada `HAButton` es una
+  entidad MQTT completa (unique_id, topic de comando, buffer de
+  nombre), asi que desactivarlo libera bastante mas por pulsador que
+  quitar cualquiera de los 4 triggers — la via a mirar primero para
+  pasar del limite de pulsadores.
+  Al desactivarlo desaparece todo el andamiaje de simulacion que solo
+  existia para esos botones: la subclase `ButtonConfigConSimulacion`
+  (se pasa al `ButtonConfig` normal de AceButton), el array
+  `simulacionSoltarEn`, su limpieza en `loop()`, el buffer
+  `idBotonVirtual` y el callback `onBotonVirtual`. El dimensionado de
+  `HAMqtt` tambien se ajusta solo, para no reservar hueco de entidades
+  que no se crean.
+  **Que se pierde**: solo los botones "Press" de Controls en HA, que
+  servian para SIMULAR una pulsacion corta desde la UI. Los pulsadores
+  fisicos y sus `HADeviceTrigger` (corta, doble, larga, fin de larga)
+  siguen funcionando exactamente igual — es lo que usan los blueprints
+  y las automatizaciones por device trigger. Nota: esos botones
+  virtuales nunca pudieron simular pulsacion larga (el pulso es corto y
+  fijo, `SIMULACION_PULSO_MS`), asi que no se pierde ninguna capacidad
+  de larga al desactivarlos.
+
 ## [1.8.5] - 2026-09-17 (mega_pulsadores_low_ram)
 
 ### Fixed

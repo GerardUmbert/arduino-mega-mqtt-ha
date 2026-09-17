@@ -120,6 +120,30 @@ using namespace ace_button;
 #define HABILITAR_LARGA
 #define HABILITAR_LARGA_FIN
 
+// ===========================================================
+// BOTON VIRTUAL POR PULSADOR (HAButton) — ON/OFF
+// Coméntalo para NO crear los HAButton. Es la palanca de RAM más
+// grande que tiene este firmware: cada HAButton es una entidad MQTT
+// completa (con su unique_id, su topic de comando y su buffer de
+// nombre), así que desactivarlo libera bastante más por pulsador que
+// quitar cualquiera de los 4 triggers de arriba — la vía a mirar
+// primero si necesitas pasar del límite de pulsadores (ver "RAM /
+// límite de pulsadores" en todo.md).
+//
+// ⚠️ Qué se pierde EXACTAMENTE al desactivarlo: los botones "Press"
+// que salen en Controls dentro del dispositivo en HA, que sirven para
+// SIMULAR una pulsación corta desde la UI/automatizaciones (pulsas en
+// HA y el firmware inyecta un clic en ese pin). NO afecta para nada a
+// los pulsadores físicos de pared ni a los HADeviceTrigger: corta,
+// doble, larga y fin de larga siguen funcionando igual, que es lo que
+// usan los blueprints y las automatizaciones por device trigger.
+//
+// Al desactivarlo también desaparece todo el andamiaje de simulación
+// (la subclase ButtonConfigConSimulacion, el array de temporizadores y
+// su limpieza en loop()), así que los pulsadores pasan a leerse con el
+// ButtonConfig normal de AceButton.
+#define HABILITAR_BOTON_VIRTUAL
+
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
 
@@ -164,8 +188,14 @@ const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 #endif
 #define NUM_TRIGGERS_POR_PULSADOR _TRIGGERS_ACTIVOS_4
 
-// + 1 por el HAButton virtual de cada pulsador, + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
+// Entidades MQTT por pulsador: sus triggers activos, + 1 por el
+// HAButton virtual si está activado (ver HABILITAR_BOTON_VIRTUAL), + margen.
+#ifdef HABILITAR_BOTON_VIRTUAL
+    #define _ENTIDADES_POR_PULSADOR (NUM_TRIGGERS_POR_PULSADOR + 1)
+#else
+    #define _ENTIDADES_POR_PULSADOR NUM_TRIGGERS_POR_PULSADOR
+#endif
+HAMqtt mqtt(client, device, NUM_PULSADORES * _ENTIDADES_POR_PULSADOR + 2);
 
 // Array estático de AceButton (constructor por defecto + init() para
 // configurar pin/id después, mismo patrón que OneButton en
@@ -190,6 +220,7 @@ AceButton botones[NUM_PULSADORES];
 // (SIMULACION_PULSO_MS), pensado para corta/doble clic. No sirve para
 // simular una pulsación LARGA (necesita mantener el nivel activo un
 // tiempo variable) — eso queda fuera de esta primera versión.
+#ifdef HABILITAR_BOTON_VIRTUAL
 #define SIMULACION_PULSO_MS 90
 
 // Por pulsador: 0 = sin simulación en curso. Si no es 0, es el
@@ -227,6 +258,7 @@ public:
 ButtonConfigConSimulacion configConSimulacion;
 
 HAButton* botonVirtual[NUM_PULSADORES];
+#endif
 
 // Orden deliberado: corta -> doble -> larga/fin de larga aparte al
 // final, como caso especial (mismo criterio que mega_pulsadores/).
@@ -257,7 +289,11 @@ char idBoton[NUM_PULSADORES][4];
 
 // unique_id del HAButton virtual de cada pulsador — "v" + idBoton[i]
 // (ej. "vp14"), igual que en mega_pulsadores/mega_pulsadores.ino.
+// Solo existe si el botón virtual está activo: sin él son 5 bytes por
+// pulsador que no hay por qué reservar.
+#ifdef HABILITAR_BOTON_VIRTUAL
 char idBotonVirtual[NUM_PULSADORES][5];
+#endif
 
 void imprimirMac() {
     for (uint8_t i = 0; i < sizeof(mac); i++) {
@@ -349,6 +385,7 @@ void handleEvent(AceButton* button, uint8_t eventType, uint8_t buttonState) {
     }
 }
 
+#ifdef HABILITAR_BOTON_VIRTUAL
 // Al pulsar el HAButton virtual de un pulsador en HA: marca cuándo
 // debe volver a HIGH (soltado). Mientras esa marca esté activa,
 // ButtonConfigConSimulacion::readButton() devuelve LOW para ese pin en
@@ -365,6 +402,7 @@ void onBotonVirtual(HAButton* sender) {
         }
     }
 }
+#endif
 
 void setup() {
     Serial.begin(9600);
@@ -380,7 +418,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.5");
+    device.setSoftwareVersion("1.8.6");
 
     // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
     // solo HADeviceTrigger/HAButton — no después del bucle, donde
@@ -412,7 +450,13 @@ void setup() {
     // configConSimulacion en vez de getSystemButtonConfig(): añade el
     // punto de inyección para el botón virtual (ver su definición más
     // arriba) sin cambiar nada más del comportamiento normal.
+#ifdef HABILITAR_BOTON_VIRTUAL
     ButtonConfig* cfg = &configConSimulacion;
+#else
+    // Sin botón virtual no hay nada que simular, así que se usa el
+    // ButtonConfig normal de AceButton (una sola instancia compartida).
+    ButtonConfig* cfg = ButtonConfig::getSystemButtonConfig();
+#endif
 #ifdef HABILITAR_CORTA
     cfg->setFeature(ButtonConfig::kFeatureClick);
 #endif
@@ -482,7 +526,9 @@ void setup() {
     // --- creamos cada pulsador (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
+#ifdef HABILITAR_BOTON_VIRTUAL
         snprintf(idBotonVirtual[i], sizeof(idBotonVirtual[i]), "v%s", idBoton[i]);
+#endif
 
         pinMode(PINES_BOTONES[i], INPUT_PULLUP);
         // HIGH = nivel en reposo (no pulsado) con INPUT_PULLUP y botón
@@ -491,7 +537,7 @@ void setup() {
         // ButtonConfig::getSystemButtonConfig() por defecto (una
         // instancia DISTINTA a la nuestra) y el botón virtual no
         // tendría ningún efecto sobre la lectura real de este pulsador.
-        botones[i].init(&configConSimulacion, PINES_BOTONES[i], HIGH, i);
+        botones[i].init(cfg, PINES_BOTONES[i], HIGH, i);
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
@@ -510,12 +556,14 @@ void setup() {
         entidadesCreadas++;
 #endif
 
+#ifdef HABILITAR_BOTON_VIRTUAL
         // Botón virtual: entidad real y pulsable en la UI de HA (a
         // diferencia de los HADeviceTrigger de arriba).
         botonVirtual[i] = new HAButton(idBotonVirtual[i]);
         botonVirtual[i]->setName(idBoton[i]);
         botonVirtual[i]->onCommand(onBotonVirtual);
         entidadesCreadas++;
+#endif
     }
 
     // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO: cuantas entidades MQTT se han
@@ -525,7 +573,7 @@ void setup() {
     Serial.print(F("[debug] entidades MQTT creadas: "));
     Serial.print(entidadesCreadas);
     Serial.print(F(" / maximo reservado: "));
-    Serial.println(NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
+    Serial.println(NUM_PULSADORES * _ENTIDADES_POR_PULSADOR + 2);
     Serial.print(F("[debug] NUM_PULSADORES="));
     Serial.print(NUM_PULSADORES);
     Serial.print(F(" triggers/pulsador="));
@@ -592,6 +640,7 @@ void loop() {
         botones[i].check();
     }
 
+#ifdef HABILITAR_BOTON_VIRTUAL
     // La caducidad de la simulación ya la decide readButton() en cada
     // llamada (ver ButtonConfigConSimulacion más arriba) — esto de aquí
     // es solo limpieza de la bandera una vez que ya no hace falta,
@@ -603,6 +652,7 @@ void loop() {
             simulacionSoltarEn[i] = 0;
         }
     }
+#endif
 
     static unsigned long ultimoAviso = 0;
     if (!mqtt.isConnected() && millis() - ultimoAviso > 5000) {
