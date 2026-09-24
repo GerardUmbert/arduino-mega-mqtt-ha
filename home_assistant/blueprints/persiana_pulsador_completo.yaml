@@ -23,14 +23,13 @@ blueprint:
     | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
     Usa la posición NATIVA que reporta `mega_dispositivos` (firmware
-    1.8.0+, `HACover::PositionFeature` + `onPositionCommand`) vía
-    `cover.set_cover_position` — no depende de ningún helper
-    `input_number` ni de otro blueprint intermedio. Requiere que las
-    persianas afectadas (incluidas las de la misma Area en pulsación
-    doble, o todas las de la casa en quíntuple) soporten de verdad
-    `set_cover_position` — si alguna no la soporta (persiana sin
-    actualizar al firmware 1.8.0+), la llamada a esa persiana en
-    concreto no hace nada, sin error visible.
+    1.6.0+, `HACover::PositionFeature`) vía `cover.set_cover_position` —
+    no depende de ningún helper `input_number` ni de otro blueprint
+    intermedio. Requiere que las persianas afectadas (incluidas las de
+    la misma Area en pulsación doble, o todas las de la casa en
+    quíntuple) soporten de verdad `set_cover_position` — si alguna no la
+    soporta (persiana sin actualizar al firmware con posición), la
+    llamada a esa persiana en concreto no hace nada, sin error visible.
   domain: automation
   input:
     boton_device_id:

@@ -6,7 +6,7 @@ persiana para bloquear el sol directo, a partir de azimut/elevación
 del sol (`sun.sun`) y la orientación de la fachada donde está esa
 persiana.
 
-Con la posición nativa de `mega_dispositivos` (firmware 1.8.0+), llama
+Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+), llama
 directamente a `cover.set_cover_position` sobre la entidad `cover.*` —
 mismo servicio que usan
 [`persiana_pulsador_completo.yaml`](persiana-pulsador-completo.md) y

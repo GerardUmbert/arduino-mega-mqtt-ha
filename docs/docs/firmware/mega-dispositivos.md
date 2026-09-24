@@ -28,16 +28,14 @@ posición):
 | Entidad | Nombre (`unique_id`) | Soporta |
 |---|---|---|
 | `HASwitch` por luz | `luz_22`, `luz_30`... (número de pin) | on/off |
-| `HACover` por persiana | `persiana_38_39`, `persiana_41_42`... (pin subir + pin bajar, en ese orden siempre) | abrir/cerrar/parar + posición nativa (reporte desde 1.6.0, comandable desde 1.8.0) |
+| `HACover` por persiana | `persiana_38_39`, `persiana_41_42`... (pin subir + pin bajar, en ese orden siempre) | abrir/cerrar/parar + posición nativa (firmware 1.6.0+) |
 
 !!! info "Posición nativa de persianas"
     Desde la versión 1.6.0, cada persiana reporta su propia posición
     (0-100%) directamente por MQTT, estimada por tiempo de relé
-    activo. Desde la versión 1.8.0, esa posición también se puede
-    **comandar** (`onPositionCommand`): la tarjeta normal de HA
-    muestra el slider de posición funcional sin necesidad de ningún
-    helper — usa `cover.set_cover_position` directamente sobre
-    `cover.persiana_XX_YY`.
+    activo. La tarjeta normal de HA muestra el slider de posición sin
+    necesidad de ningún helper — usa `cover.set_cover_position`
+    directamente sobre `cover.persiana_XX_YY`.
 
 ## Configuración de pines
 

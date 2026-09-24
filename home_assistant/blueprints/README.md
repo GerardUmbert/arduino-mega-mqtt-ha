@@ -1,28 +1,21 @@
 # Blueprints de Home Assistant
 
-## Posición de persianas: ahora nativa (firmware 1.8.0+)
+## Posición de persianas: ahora nativa (firmware 1.6.0+)
 
 Desde `mega_dispositivos` 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT (`HACover::PositionFeature`),
 estimada en el propio firmware por tiempo de relé activo — ver
-`README.md` del repo raíz, sección "Calibración de persianas". Pero
-hasta la 1.7.2, el discovery solo anunciaba esa posición como
-*lectura*: faltaba `set_position_topic`, así que
-`cover.set_cover_position` no aparecía como acción soportada en HA
-(`supported_features` no incluía el bit `SET_POSITION`) — el slider de
-posición en la tarjeta no hacía nada al soltarlo. **Desde la 1.8.0**,
-el firmware registra `onPositionCommand` y sí mueve la persiana hasta
-la posición pedida, así que la tarjeta normal de HA ya muestra el
-slider funcional sin necesidad de ningún helper ni blueprint
-intermedio: usa `cover.set_cover_position` / `cover.open_cover` /
-`cover.close_cover` / `cover.stop_cover` directamente sobre la entidad
-`cover.persiana_XX_YY`.
+`README.md` del repo raíz, sección "Calibración de persianas". La
+tarjeta normal de HA ya muestra el slider de posición sin necesidad de
+ningún helper ni blueprint intermedio: usa `cover.set_cover_position` /
+`cover.open_cover` / `cover.close_cover` / `cover.stop_cover`
+directamente sobre la entidad `cover.persiana_XX_YY`.
 
 `persiana_posicion.yaml` (el blueprint que simulaba esto por HA con 4
 helpers `input_number` por persiana, para firmwares sin posición real)
 queda en [`legacy/persiana_posicion.yaml`](legacy/persiana_posicion.yaml)
 — solo aplica si tienes una unidad `mega_dispositivos` en una versión
-de firmware anterior a 1.8.0 sin actualizar. Con firmware 1.8.0+, no lo
+de firmware anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
 instancies: usa la posición nativa.
 
 ## `persiana_pulsador.yaml`
@@ -117,12 +110,12 @@ como antes y nunca para. Las pulsaciones 2/3/4/5 no hacen toggle: son
 
 Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
 `set_cover_position` sobre la posición NATIVA que reporta
-`mega_dispositivos` (firmware 1.8.0+) — sin helpers `input_number` ni
+`mega_dispositivos` (firmware 1.6.0+) — sin helpers `input_number` ni
 `input_datetime`, sin depender de `persiana_posicion.yaml`. Requiere que
 toda persiana que pueda verse afectada (incluidas las de la Area en
 doble pulsación, o todas las de la casa en quíntuple) soporte de verdad
 `set_cover_position` — si alguna corre un firmware sin posición (versión
-anterior a 1.8.0 sin actualizar), la llamada a esa persiana en concreto
+anterior a 1.6.0 sin actualizar), la llamada a esa persiana en concreto
 no hace nada, sin error visible.
 
 ### Instanciar el blueprint
@@ -245,7 +238,7 @@ No es un blueprint de este repo, sino una **integración externa de HA**
 (no Arduino/firmware) que calcula la posición óptima de cada persiana
 para bloquear el sol directo, a partir de azimut/elevación del sol
 (`sun.sun`) y la orientación de la fachada donde está esa persiana.
-Con la posición nativa de `mega_dispositivos` (firmware 1.8.0+), llama
+Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+), llama
 directamente a `cover.set_cover_position` sobre la entidad `cover.*` —
 mismo servicio que usan `persiana_pulsador_completo.yaml` (pulsaciones
 1/2/3/4/5) y cualquier slider manual, sin ningún helper intermedio.
