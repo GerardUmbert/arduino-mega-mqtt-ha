@@ -1259,7 +1259,7 @@ posición):</p>
 <tr>
 <td><code>HACover</code> por persiana</td>
 <td><code>persiana_38_39</code>, <code>persiana_41_42</code>... (pin subir + pin bajar, en ese orden siempre)</td>
-<td>abrir/cerrar/parar + posición nativa (reporte desde 1.6.0, comandable desde 1.8.0)</td>
+<td>abrir/cerrar/parar + posición nativa (firmware 1.6.0+)</td>
 </tr>
 </tbody>
 </table>
@@ -1267,11 +1267,9 @@ posición):</p>
 <p class="admonition-title">Posición nativa de persianas</p>
 <p>Desde la versión 1.6.0, cada persiana reporta su propia posición
 (0-100%) directamente por MQTT, estimada por tiempo de relé
-activo. Desde la versión 1.8.0, esa posición también se puede
-<strong>comandar</strong> (<code>onPositionCommand</code>): la tarjeta normal de HA
-muestra el slider de posición funcional sin necesidad de ningún
-helper — usa <code>cover.set_cover_position</code> directamente sobre
-<code>cover.persiana_XX_YY</code>.</p>
+activo. La tarjeta normal de HA muestra el slider de posición sin
+necesidad de ningún helper — usa <code>cover.set_cover_position</code>
+directamente sobre <code>cover.persiana_XX_YY</code>.</p>
 </div>
 <h2 id="configuracion-de-pines">Configuración de pines<a class="headerlink" href="#configuracion-de-pines" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">ParPines</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">subir</span><span class="p">;</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">bajar</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
