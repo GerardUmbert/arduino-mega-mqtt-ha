@@ -1630,9 +1630,68 @@ día — ambos <code>mega_dispositivos</code> y <code>mega_pulsadores_low_ram</c
 <code>1.7.1</code> como punto de partida (no se revierte a su número anterior,
 <code>1.6.3</code>/<code>1.0.0-low-ram</code>, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
+<h2 id="100-2026-09-24-blueprint-persiana_ir_a_posicion-nuevo">[1.0.0] - 2026-09-24 (blueprint persiana_ir_a_posicion, nuevo)<a class="headerlink" href="#100-2026-09-24-blueprint-persiana_ir_a_posicion-nuevo" title="Permanent link">&para;</a></h2>
+<p>Blueprint nuevo — script <code>home_assistant/blueprints/persiana_ir_a_posicion.yaml</code>.</p>
+<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Rodea la limitación descubierta al intentar <code>mega_dispositivos</code>
+  v1.8.0 (ver nota más abajo, entrada revertida): la librería
+  <code>ArduinoHA</code> no acepta comandos de posición en <code>HACover</code>, solo los
+  reporta, así que <code>cover.set_cover_position</code> no hace nada sobre
+  <code>cover.persiana_XX_YY</code> sin dar ningún error. Este script mueve la
+  persiana hacia el objetivo con <code>open_cover</code>/<code>close_cover</code> y vigila
+  <code>current_position</code> (que el firmware sí reporta desde la 1.6.0) para
+  llamar a <code>stop_cover</code> en cuanto lo cruza — sin tocar el firmware.</li>
+<li>Instanciar una sola vez (no por persiana), y llamarlo como
+  <code>service: "script.&lt;object_id&gt;"</code> con <code>data: {cover_entity, posicion}</code>
+  — NO con <code>script.turn_on</code> + <code>data.variables</code> (no rellena los
+  <code>fields</code> del script). Reutilizado por
+  <code>persiana_pulsador_completo.yaml</code> (pulsaciones 3/4) y documentado
+  como la vía recomendada para Adaptive Cover.</li>
+<li>Extremos (0/100) se delegan a <code>open_cover</code>/<code>close_cover</code> sin vigilar
+  posición: el propio firmware ya para solo en el tope calibrado, más
+  preciso que fiarse de cuándo llega el último <code>current_position</code>.</li>
+<li>Tolerancia configurable (input <code>tolerancia</code>, 1 punto por defecto)
+  para no mover nada si el objetivo pedido coincide con la posición
+  actual. La precisión de la parada real en objetivos intermedios
+  depende del intervalo de publicación del firmware
+  (<code>INTERVALO_PUBLICAR_POSICION_MS</code>, 500ms) más la latencia de red —
+  documentado como limitación conocida, no pensado para precisión
+  exacta al 1%.</li>
+</ul>
+<h2 id="300-2026-09-24-blueprint-persiana_pulsador_completo">[3.0.0] - 2026-09-24 (blueprint persiana_pulsador_completo)<a class="headerlink" href="#300-2026-09-24-blueprint-persiana_pulsador_completo" title="Permanent link">&para;</a></h2>
+<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>BREAKING: nuevo input obligatorio <code>script_ir_a_posicion</code>.</strong> Las
+  pulsaciones 3 y 4 (ir a 50%, ajuste ±5%) llamaban a
+  <code>cover.set_cover_position</code>, que no hace nada sobre estas entidades
+  (ver entrada de <code>persiana_ir_a_posicion.yaml</code> arriba) — llevaban
+  fallando en silencio desde la v2.0.0. Ahora llaman al script
+  <code>persiana_ir_a_posicion.yaml</code> en su lugar, indicado en el nuevo
+  input "Script ir a posición". Las automatizaciones ya creadas con
+  <code>v2.x</code> hay que reabrirlas y rellenar ese input nuevo — el resto de
+  inputs no cambia.</li>
+</ul>
+<h2 id="180-2026-09-24-mega_dispositivos-intentado-y-revertido">[1.8.0] - 2026-09-24 (mega_dispositivos) — INTENTADO Y REVERTIDO<a class="headerlink" href="#180-2026-09-24-mega_dispositivos-intentado-y-revertido" title="Permanent link">&para;</a></h2>
+<p>No llegó a publicarse de forma estable: se subió, se tageó
+(<code>mega_dispositivos/v1.8.0</code>) y se revirtió el mismo día al fallar la
+compilación en placa real. Se deja esta nota para que no se repita el
+mismo intento.</p>
+<p>Asumía que la librería <code>ArduinoHA</code> expone un callback
+<code>onPositionCommand</code> en <code>HACover</code> para recibir comandos de posición
+desde Home Assistant. Es incorrecto: la librería solo permite
+<em>reportar</em> posición (<code>PositionFeature</code> + <code>position_topic</code>), nunca
+comandarla — no existe ese método en la clase. Error real al compilar:
+<code>'class HACover' has no member named 'onPositionCommand'</code>.</p>
+<p>Revertido en el commit <code>9ff01e2</code> (mensaje: "Revertir mega_dispositivos
+v1.8.0..."), volviendo <code>mega_dispositivos</code> a la 1.7.2. El tag
+<code>mega_dispositivos/v1.8.0</code> se borró de git y de GitHub por apuntar a
+un commit que no compila. La forma correcta de resolver "ir a X%" es
+desde Home Assistant, no desde el firmware — ver
+<code>persiana_ir_a_posicion.yaml</code> arriba.</p>
 <h2 id="172-2026-09-24-mega_dispositivos">[1.7.2] - 2026-09-24 (mega_dispositivos)<a class="headerlink" href="#172-2026-09-24-mega_dispositivos" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.7.2).</p>
-<h3 id="changed_7">Changed<a class="headerlink" href="#changed_7" title="Permanent link">&para;</a></h3>
+<h3 id="changed_8">Changed<a class="headerlink" href="#changed_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Refactor sin cambio de comportamiento</strong>: todos los <code>digitalWrite</code>
   que controlan relés (luces ON/OFF, persiana subir/bajar/parar) pasan
@@ -1646,7 +1705,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
   <code>pararPersiana</code>, <code>setup()</code>, timeout de seguridad en <code>loop()</code>).</li>
 </ul>
 <h2 id="171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos">[1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)<a class="headerlink" href="#171-2026-09-04-los-3-firmwares-mega_pulsadores-mega_pulsadores_low_ram-mega_dispositivos" title="Permanent link">&para;</a></h2>
-<h3 id="changed_8">Changed<a class="headerlink" href="#changed_8" title="Permanent link">&para;</a></h3>
+<h3 id="changed_9">Changed<a class="headerlink" href="#changed_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Unificado el número de versión de los tres <code>.ino</code> a <code>1.7.1</code> (antes:
   <code>mega_pulsadores</code> 1.7.1, <code>mega_pulsadores_low_ram</code> 1.0.0-low-ram,
@@ -1660,7 +1719,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="100-2026-09-04-mega_pulsadores_low_ram">[1.0.0] - 2026-09-04 (mega_pulsadores_low_ram)<a class="headerlink" href="#100-2026-09-04-mega_pulsadores_low_ram" title="Permanent link">&para;</a></h2>
 <p>Firmware nuevo — primera versión de <code>mega_pulsadores_low_ram</code>.</p>
-<h3 id="added_4">Added<a class="headerlink" href="#added_4" title="Permanent link">&para;</a></h3>
+<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Firmware alternativo a <code>mega_pulsadores</code> para el mismo rol (leer
   pulsadores físicos y enviar device triggers MQTT a HA), usando
@@ -1699,7 +1758,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="171-2026-09-04-mega_pulsadores">[1.7.1] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#171-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.7.1).</p>
-<h3 id="changed_9">Changed<a class="headerlink" href="#changed_9" title="Permanent link">&para;</a></h3>
+<h3 id="changed_10">Changed<a class="headerlink" href="#changed_10" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: el subtype de cada pulsador pasa de
   <code>"boton_NN"</code> a <code>"pNN"</code> (p. ej. <code>boton_14</code> → <code>p14</code>), donde NN es el
@@ -1729,7 +1788,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="170-2026-09-04-mega_pulsadores">[1.7.0] - 2026-09-04 (mega_pulsadores)<a class="headerlink" href="#170-2026-09-04-mega_pulsadores" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_pulsadores</code> (versión de firmware 1.7.0).</p>
-<h3 id="added_5">Added<a class="headerlink" href="#added_5" title="Permanent link">&para;</a></h3>
+<h3 id="added_6">Added<a class="headerlink" href="#added_6" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Cada uno de los 7 triggers de pulsador (corta, doble, triple,
   cuádruple, quíntuple, larga, fin de larga) ahora se puede activar o
@@ -1743,7 +1802,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
   más pulsadores por unidad de los que caben con los 7 triggers
   completos.</li>
 </ul>
-<h3 id="changed_10">Changed<a class="headerlink" href="#changed_10" title="Permanent link">&para;</a></h3>
+<h3 id="changed_11">Changed<a class="headerlink" href="#changed_11" title="Permanent link">&para;</a></h3>
 <ul>
 <li>⚠️ <strong>Cambio de comportamiento</strong>: los triggers de pulsación triple,
   cuádruple y quíntuple ahora están DESACTIVADOS por defecto
@@ -1795,7 +1854,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 </ul>
 <h2 id="162-2026-09-02">[1.6.2] - 2026-09-02<a class="headerlink" href="#162-2026-09-02" title="Permanent link">&para;</a></h2>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.2).</p>
-<h3 id="added_6">Added<a class="headerlink" href="#added_6" title="Permanent link">&para;</a></h3>
+<h3 id="added_7">Added<a class="headerlink" href="#added_7" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Cada luz y persiana ahora tiene un nombre visible propio en HA (<code>Luz
   22</code>, <code>Persiana 38/39</code>) en vez del genérico "MQTT Switch"/"MQTT Cover"
@@ -1825,7 +1884,7 @@ atrás), y a partir de aquí cada uno evoluciona por su cuenta.</p>
 <p>Solo afecta a <code>mega_dispositivos</code> (versión de firmware 1.6.0). <code>mega_pulsadores</code>
 no controla persianas, se queda en 1.5.1 — a partir de aquí ambos <code>.ino</code>
 pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
-<h3 id="added_7">Added<a class="headerlink" href="#added_7" title="Permanent link">&para;</a></h3>
+<h3 id="added_8">Added<a class="headerlink" href="#added_8" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Las persianas ahora reportan posición real (0-100%) a Home Assistant,
   estimada por tiempo de relé activo (sin encoder, no hay otra forma).
@@ -1858,7 +1917,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   real recorrida antes de invertir el sentido.</li>
 </ul>
 <h2 id="151-2026-09-02">[1.5.1] - 2026-09-02<a class="headerlink" href="#151-2026-09-02" title="Permanent link">&para;</a></h2>
-<h3 id="added_8">Added<a class="headerlink" href="#added_8" title="Permanent link">&para;</a></h3>
+<h3 id="added_9">Added<a class="headerlink" href="#added_9" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Más diagnóstico por Serial tras <code>Ethernet.begin()</code> en ambos <code>.ino</code>:
   se imprime también el gateway, la máscara de subred y el DNS
@@ -1887,7 +1946,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   <code>Ethernet.begin(mac, ip, dns, gateway, subnet)</code> pasando el gateway
   real explícitamente.</li>
 </ul>
-<h3 id="added_9">Added<a class="headerlink" href="#added_9" title="Permanent link">&para;</a></h3>
+<h3 id="added_10">Added<a class="headerlink" href="#added_10" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Diagnóstico adicional por Serial tras <code>Ethernet.begin()</code> en ambos
   <code>.ino</code>: distingue entre shield Ethernet no detectado
@@ -1897,7 +1956,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
   físico a la placa.</li>
 </ul>
 <h2 id="140-2026-08-02">[1.4.0] - 2026-08-02<a class="headerlink" href="#140-2026-08-02" title="Permanent link">&para;</a></h2>
-<h3 id="changed_11">Changed<a class="headerlink" href="#changed_11" title="Permanent link">&para;</a></h3>
+<h3 id="changed_12">Changed<a class="headerlink" href="#changed_12" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Ambos <code>.ino</code> ya no piden IP por DHCP (<code>Ethernet.begin(mac)</code>): ahora
   usan IP fija (<code>Ethernet.begin(mac, IP_ESTATICA)</code>), con la IP definida
@@ -1915,7 +1974,7 @@ pueden llevar versiones distintas si un cambio solo afecta a uno de los dos.</p>
 <h2 id="ha-blueprints-2026-07-23">[ha-blueprints] - 2026-07-23<a class="headerlink" href="#ha-blueprints-2026-07-23" title="Permanent link">&para;</a></h2>
 <p>No es una versión de firmware (no toca ningún <code>.ino</code>, por eso no lleva
 número de versión sino el nombre del tag de este commit).</p>
-<h3 id="added_10">Added<a class="headerlink" href="#added_10" title="Permanent link">&para;</a></h3>
+<h3 id="added_11">Added<a class="headerlink" href="#added_11" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>home_assistant/blueprints/persiana_posicion.yaml</code>: blueprint que
   añade una posición estimada (0-100%) a una persiana sin encoder,
@@ -1971,7 +2030,7 @@ número de versión sino el nombre del tag de este commit).</p>
   <code>entity_id</code> de cada <code>cover.*</code>.</li>
 </ul>
 <h2 id="130-2026-07-31">[1.3.0] - 2026-07-31<a class="headerlink" href="#130-2026-07-31" title="Permanent link">&para;</a></h2>
-<h3 id="added_11">Added<a class="headerlink" href="#added_11" title="Permanent link">&para;</a></h3>
+<h3 id="added_12">Added<a class="headerlink" href="#added_12" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Diagnóstico por Serial (9600 baudios) en ambos <code>.ino</code>: al arrancar
   imprime el nombre de la placa y su MAC, el resultado de <code>Ethernet.begin</code>
@@ -1988,7 +2047,7 @@ número de versión sino el nombre del tag de este commit).</p>
   larga) se imprime por Serial con el ID del botón.</li>
 </ul>
 <h2 id="120-2026-07-23">[1.2.0] - 2026-07-23<a class="headerlink" href="#120-2026-07-23" title="Permanent link">&para;</a></h2>
-<h3 id="changed_12">Changed<a class="headerlink" href="#changed_12" title="Permanent link">&para;</a></h3>
+<h3 id="changed_13">Changed<a class="headerlink" href="#changed_13" title="Permanent link">&para;</a></h3>
 <ul>
 <li>El <code>unique_id</code> de cada pulsador/luz/persiana (<code>boton_XX</code>, <code>luz_XX</code>,
   <code>persiana_XX_YY</code>) ahora se genera a partir del número de PIN físico,
@@ -2014,7 +2073,7 @@ número de versión sino el nombre del tag de este commit).</p>
   mismo rol ya no necesitan tener la misma cantidad ni el mismo tipo de
   dispositivos cableados.</li>
 </ul>
-<h3 id="added_12">Added<a class="headerlink" href="#added_12" title="Permanent link">&para;</a></h3>
+<h3 id="added_13">Added<a class="headerlink" href="#added_13" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Nuevo trigger <code>ButtonLongReleaseType</code> por pulsador en
   <code>mega_pulsadores</code> (se dispara al soltar una pulsación larga), pensado
@@ -2025,7 +2084,7 @@ número de versión sino el nombre del tag de este commit).</p>
   <code>mega_dispositivos/pines_a.h</code>, <code>mega_dispositivos/pines_b.h</code>.</li>
 </ul>
 <h2 id="110-2026-07-23">[1.1.0] - 2026-07-23<a class="headerlink" href="#110-2026-07-23" title="Permanent link">&para;</a></h2>
-<h3 id="added_13">Added<a class="headerlink" href="#added_13" title="Permanent link">&para;</a></h3>
+<h3 id="added_14">Added<a class="headerlink" href="#added_14" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>README.md</code> con documentación completa del proyecto (hardware,
   librerías y por qué se eligieron, arquitectura de entidades en HA,
@@ -2044,7 +2103,7 @@ número de versión sino el nombre del tag de este commit).</p>
   genera por posición en el array, no por número de pin — no reordenar
   ni insertar/borrar en medio una vez renombrado en Home Assistant.</li>
 </ul>
-<h3 id="changed_13">Changed<a class="headerlink" href="#changed_13" title="Permanent link">&para;</a></h3>
+<h3 id="changed_14">Changed<a class="headerlink" href="#changed_14" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Cada sketch movido a su propia carpeta (<code>mega_pulsadores/</code>,
   <code>mega_dispositivos/</code>) para que el Arduino IDE pueda abrirlos
@@ -2055,7 +2114,7 @@ número de versión sino el nombre del tag de este commit).</p>
 <li><code>memory.md</code> renombrado a <code>context.md</code>.</li>
 </ul>
 <h2 id="100-2026-07-23">[1.0.0] - 2026-07-23<a class="headerlink" href="#100-2026-07-23" title="Permanent link">&para;</a></h2>
-<h3 id="added_14">Added<a class="headerlink" href="#added_14" title="Permanent link">&para;</a></h3>
+<h3 id="added_15">Added<a class="headerlink" href="#added_15" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Arquitectura general: 2 roles (<code>mega_pulsadores</code>, <code>mega_dispositivos</code>)
   x 2 unidades (A/B) cada uno, comunicados con Home Assistant vía MQTT

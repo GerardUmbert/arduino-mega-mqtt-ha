@@ -1096,9 +1096,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#posicion-de-persianas-nativa-desde-firmware-160" class="md-nav__link">
+  <a href="#posicion-de-persianas-se-reporta-nativa-160-pero-no-se-puede-comandar" class="md-nav__link">
     <span class="md-ellipsis">
-      Posición de persianas: nativa desde firmware 1.6.0+
+      Posición de persianas: se reporta nativa (1.6.0+), pero NO se puede comandar
     </span>
   </a>
   
@@ -1182,21 +1182,30 @@ Blueprints → Importar.</p>
 en <a href="../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>
 y en la <a href="../firmware/decision/">guía de decisión</a>.</p>
 </div>
-<h2 id="posicion-de-persianas-nativa-desde-firmware-160">Posición de persianas: nativa desde firmware 1.6.0+<a class="headerlink" href="#posicion-de-persianas-nativa-desde-firmware-160" title="Permanent link">&para;</a></h2>
+<h2 id="posicion-de-persianas-se-reporta-nativa-160-pero-no-se-puede-comandar">Posición de persianas: se reporta nativa (1.6.0+), pero NO se puede comandar<a class="headerlink" href="#posicion-de-persianas-se-reporta-nativa-160-pero-no-se-puede-comandar" title="Permanent link">&para;</a></h2>
 <p>Desde <code>mega_dispositivos</code> 1.6.0, cada persiana reporta su propia
-posición (0-100%) directamente por MQTT
-(<code>HACover::PositionFeature</code>), estimada en el propio firmware por
-tiempo de relé activo. La tarjeta normal de HA ya muestra el slider de
-posición sin necesidad de ningún helper ni blueprint intermedio: usa
-<code>cover.set_cover_position</code> / <code>cover.open_cover</code> / <code>cover.close_cover</code>
-/ <code>cover.stop_cover</code> directamente sobre <code>cover.persiana_XX_YY</code>.</p>
+posición (0-100%) directamente por MQTT (<code>HACover::PositionFeature</code>),
+estimada en el propio firmware por tiempo de relé activo. El slider de
+posición se ve en la tarjeta, y <code>cover.open_cover</code> / <code>cover.close_cover</code>
+/ <code>cover.stop_cover</code> funcionan directamente sobre <code>cover.persiana_XX_YY</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title"><code>cover.set_cover_position</code> no hace nada sobre estas entidades</p>
+<p>La librería <code>ArduinoHA</code> que usa <code>mega_dispositivos</code> solo permite
+<em>reportar</em> posición, no <em>recibir</em> comandos de posición desde HA —
+no es un problema de configuración ni de versión de firmware, es
+una limitación de la librería (confirmado intentando añadir
+soporte en la v1.8.0, revertido — ver <code>CHANGELOG.md</code> del repo raíz).
+Para "ir a X%" de verdad, usa
+<a href="persiana-pulsador-completo/"><code>persiana_ir_a_posicion.yaml</code></a>, un
+script que vigila la posición ya reportada y para el movimiento al
+cruzarla.</p>
+</div>
 <div class="admonition note">
 <p class="admonition-title"><code>persiana_posicion.yaml</code> (legacy)</p>
-<p>El blueprint que simulaba esto por HA con 4 helpers <code>input_number</code>
-por persiana (para firmwares sin posición real) solo aplica si
-tienes una unidad <code>mega_dispositivos</code> en una versión de firmware
-anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
-instancies.</p>
+<p>El blueprint que simulaba posición por HA con 4 helpers
+<code>input_number</code> por persiana, pensado para firmwares anteriores a
+1.6.0 sin reporte de posición real, ya no hace falta: usa
+<code>persiana_ir_a_posicion.yaml</code> en su lugar.</p>
 </div>
 
 
