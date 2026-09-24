@@ -1286,14 +1286,14 @@ aplican también con la persiana en marcha.</p>
     N -- "fin de larga" --&gt; G["Para"]</code></pre>
 <p>Usa directamente <code>cover.open_cover</code> / <code>close_cover</code> / <code>stop_cover</code> /
 <code>set_cover_position</code> sobre la posición <strong>nativa</strong> que reporta
-<code>mega_dispositivos</code> (firmware 1.6.0+) — sin helpers <code>input_number</code> ni
+<code>mega_dispositivos</code> (firmware 1.8.0+) — sin helpers <code>input_number</code> ni
 <code>input_datetime</code>.</p>
 <div class="admonition warning">
 <p class="admonition-title">Requiere posición nativa en todas las persianas afectadas</p>
 <p>Toda persiana que pueda verse afectada (incluidas las de la Area
 en doble pulsación, o todas las de la casa en quíntuple) debe
 soportar de verdad <code>set_cover_position</code> — si alguna corre un
-firmware sin posición (versión anterior a 1.6.0 sin actualizar),
+firmware sin posición (versión anterior a 1.8.0 sin actualizar),
 la llamada a esa persiana en concreto no hace nada, <strong>sin error
 visible</strong>.</p>
 </div>

@@ -1096,9 +1096,9 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#posicion-de-persianas-nativa-desde-firmware-160" class="md-nav__link">
+  <a href="#posicion-de-persianas-nativa-desde-firmware-180" class="md-nav__link">
     <span class="md-ellipsis">
-      Posición de persianas: nativa desde firmware 1.6.0+
+      Posición de persianas: nativa desde firmware 1.8.0+
     </span>
   </a>
   
@@ -1182,12 +1182,16 @@ Blueprints → Importar.</p>
 en <a href="../firmware/mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a>
 y en la <a href="../firmware/decision/">guía de decisión</a>.</p>
 </div>
-<h2 id="posicion-de-persianas-nativa-desde-firmware-160">Posición de persianas: nativa desde firmware 1.6.0+<a class="headerlink" href="#posicion-de-persianas-nativa-desde-firmware-160" title="Permanent link">&para;</a></h2>
+<h2 id="posicion-de-persianas-nativa-desde-firmware-180">Posición de persianas: nativa desde firmware 1.8.0+<a class="headerlink" href="#posicion-de-persianas-nativa-desde-firmware-180" title="Permanent link">&para;</a></h2>
 <p>Desde <code>mega_dispositivos</code> 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT
 (<code>HACover::PositionFeature</code>), estimada en el propio firmware por
-tiempo de relé activo. La tarjeta normal de HA ya muestra el slider de
-posición sin necesidad de ningún helper ni blueprint intermedio: usa
+tiempo de relé activo. Pero hasta la 1.7.2 esa posición solo se podía
+<em>leer</em>: faltaba <code>onPositionCommand</code> en el firmware, así que
+<code>cover.set_cover_position</code> no aparecía como acción soportada en HA y
+el slider de la tarjeta no hacía nada al soltarlo. <strong>Desde la 1.8.0</strong>,
+la tarjeta normal de HA ya muestra el slider de posición funcional sin
+necesidad de ningún helper ni blueprint intermedio: usa
 <code>cover.set_cover_position</code> / <code>cover.open_cover</code> / <code>cover.close_cover</code>
 / <code>cover.stop_cover</code> directamente sobre <code>cover.persiana_XX_YY</code>.</p>
 <div class="admonition note">
@@ -1195,7 +1199,7 @@ posición sin necesidad de ningún helper ni blueprint intermedio: usa
 <p>El blueprint que simulaba esto por HA con 4 helpers <code>input_number</code>
 por persiana (para firmwares sin posición real) solo aplica si
 tienes una unidad <code>mega_dispositivos</code> en una versión de firmware
-anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
+anterior a 1.8.0 sin actualizar. Con firmware 1.8.0+, no lo
 instancies.</p>
 </div>
 
