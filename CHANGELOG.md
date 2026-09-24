@@ -496,6 +496,70 @@ día — ambos `mega_dispositivos` y `mega_pulsadores_low_ram` retoman
 `1.6.3`/`1.0.0-low-ram`, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.
 
+## [1.0.0] - 2026-09-24 (blueprint persiana_ir_a_posicion, nuevo)
+
+Blueprint nuevo — script `home_assistant/blueprints/persiana_ir_a_posicion.yaml`.
+
+### Added
+- Rodea la limitación descubierta al intentar `mega_dispositivos`
+  v1.8.0 (ver nota más abajo, entrada revertida): la librería
+  `ArduinoHA` no acepta comandos de posición en `HACover`, solo los
+  reporta, así que `cover.set_cover_position` no hace nada sobre
+  `cover.persiana_XX_YY` sin dar ningún error. Este script mueve la
+  persiana hacia el objetivo con `open_cover`/`close_cover` y vigila
+  `current_position` (que el firmware sí reporta desde la 1.6.0) para
+  llamar a `stop_cover` en cuanto lo cruza — sin tocar el firmware.
+- Instanciar una sola vez (no por persiana), y llamarlo como
+  `service: "script.<object_id>"` con `data: {cover_entity, posicion}`
+  — NO con `script.turn_on` + `data.variables` (no rellena los
+  `fields` del script). Reutilizado por
+  `persiana_pulsador_completo.yaml` (pulsaciones 3/4) y documentado
+  como la vía recomendada para Adaptive Cover.
+- Extremos (0/100) se delegan a `open_cover`/`close_cover` sin vigilar
+  posición: el propio firmware ya para solo en el tope calibrado, más
+  preciso que fiarse de cuándo llega el último `current_position`.
+- Tolerancia configurable (input `tolerancia`, 1 punto por defecto)
+  para no mover nada si el objetivo pedido coincide con la posición
+  actual. La precisión de la parada real en objetivos intermedios
+  depende del intervalo de publicación del firmware
+  (`INTERVALO_PUBLICAR_POSICION_MS`, 500ms) más la latencia de red —
+  documentado como limitación conocida, no pensado para precisión
+  exacta al 1%.
+
+## [3.0.0] - 2026-09-24 (blueprint persiana_pulsador_completo)
+
+### Changed
+- **BREAKING: nuevo input obligatorio `script_ir_a_posicion`.** Las
+  pulsaciones 3 y 4 (ir a 50%, ajuste ±5%) llamaban a
+  `cover.set_cover_position`, que no hace nada sobre estas entidades
+  (ver entrada de `persiana_ir_a_posicion.yaml` arriba) — llevaban
+  fallando en silencio desde la v2.0.0. Ahora llaman al script
+  `persiana_ir_a_posicion.yaml` en su lugar, indicado en el nuevo
+  input "Script ir a posición". Las automatizaciones ya creadas con
+  `v2.x` hay que reabrirlas y rellenar ese input nuevo — el resto de
+  inputs no cambia.
+
+## [1.8.0] - 2026-09-24 (mega_dispositivos) — INTENTADO Y REVERTIDO
+
+No llegó a publicarse de forma estable: se subió, se tageó
+(`mega_dispositivos/v1.8.0`) y se revirtió el mismo día al fallar la
+compilación en placa real. Se deja esta nota para que no se repita el
+mismo intento.
+
+Asumía que la librería `ArduinoHA` expone un callback
+`onPositionCommand` en `HACover` para recibir comandos de posición
+desde Home Assistant. Es incorrecto: la librería solo permite
+*reportar* posición (`PositionFeature` + `position_topic`), nunca
+comandarla — no existe ese método en la clase. Error real al compilar:
+`'class HACover' has no member named 'onPositionCommand'`.
+
+Revertido en el commit `9ff01e2` (mensaje: "Revertir mega_dispositivos
+v1.8.0..."), volviendo `mega_dispositivos` a la 1.7.2. El tag
+`mega_dispositivos/v1.8.0` se borró de git y de GitHub por apuntar a
+un commit que no compila. La forma correcta de resolver "ir a X%" es
+desde Home Assistant, no desde el firmware — ver
+`persiana_ir_a_posicion.yaml` arriba.
+
 ## [1.7.2] - 2026-09-24 (mega_dispositivos)
 
 Solo afecta a `mega_dispositivos` (versión de firmware 1.7.2).

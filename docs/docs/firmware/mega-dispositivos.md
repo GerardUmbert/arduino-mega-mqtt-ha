@@ -28,14 +28,20 @@ posición):
 | Entidad | Nombre (`unique_id`) | Soporta |
 |---|---|---|
 | `HASwitch` por luz | `luz_22`, `luz_30`... (número de pin) | on/off |
-| `HACover` por persiana | `persiana_38_39`, `persiana_41_42`... (pin subir + pin bajar, en ese orden siempre) | abrir/cerrar/parar + posición nativa (firmware 1.6.0+) |
+| `HACover` por persiana | `persiana_38_39`, `persiana_41_42`... (pin subir + pin bajar, en ese orden siempre) | abrir/cerrar/parar + posición nativa reportada (firmware 1.6.0+) |
 
-!!! info "Posición nativa de persianas"
+!!! info "Posición nativa de persianas: se reporta, pero no se comanda"
     Desde la versión 1.6.0, cada persiana reporta su propia posición
     (0-100%) directamente por MQTT, estimada por tiempo de relé
-    activo. La tarjeta normal de HA muestra el slider de posición sin
-    necesidad de ningún helper — usa `cover.set_cover_position`
-    directamente sobre `cover.persiana_XX_YY`.
+    activo. La tarjeta normal de HA muestra el slider de posición.
+
+    `cover.set_cover_position` **no hace nada** sobre estas entidades:
+    la librería `ArduinoHA` solo permite reportar posición, no
+    recibir comandos de posición desde HA (confirmado intentando
+    añadir soporte en la v1.8.0, revertido — ver `CHANGELOG.md`). Para
+    "ir a X%" de verdad, usa el blueprint
+    `persiana_ir_a_posicion.yaml`, que vigila la posición reportada y
+    para el movimiento al cruzarla.
 
 ## Configuración de pines
 

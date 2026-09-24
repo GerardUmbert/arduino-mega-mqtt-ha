@@ -70,20 +70,22 @@ flowchart TD
     N -- "fin de larga" --> G["Para"]
 ```
 
-Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
-`set_cover_position` sobre la posición **nativa** que reporta
-`mega_dispositivos` (firmware 1.6.0+) — sin helpers `input_number` ni
-`input_datetime`.
+Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` para
+1, 2 y 5 pulsaciones.
 
-!!! warning "Requiere posición nativa en todas las persianas afectadas"
-    Toda persiana que pueda verse afectada (incluidas las de la Area
-    en doble pulsación, o todas las de la casa en quíntuple) debe
-    soportar de verdad `set_cover_position` — si alguna corre un
-    firmware sin posición (versión anterior a 1.6.0 sin actualizar),
-    la llamada a esa persiana en concreto no hace nada, **sin error
-    visible**.
+!!! warning "3 y 4 pulsaciones dependen del script persiana_ir_a_posicion"
+    `cover.set_cover_position` **no hace nada** sobre estas entidades —
+    `ArduinoHA` no acepta comandos de posición, solo los reporta (ver
+    [índice de blueprints](index.md)). Las pulsaciones 3 y 4 (ir a
+    50%, ±5%) llaman en su lugar al script
+    `persiana_ir_a_posicion.yaml`, que hay que instanciar primero (una
+    sola vez, no por persiana) e indicar en el input "Script ir a
+    posición" al configurar esta automatización.
 
 ## Instanciar el blueprint
+
+0. Primero, si no lo has hecho ya: importa `persiana_ir_a_posicion.yaml`
+   y crea **una única instancia** de ese script para todo el sistema.
 
 Desde `v2.0.0`, **una sola instancia por persiana** — los dos botones de
 la pareja se indican en la misma automatización:
@@ -97,6 +99,7 @@ la pareja se indican en la misma automatización:
 4. **Persiana controlada por esta pareja de botones**: la entidad
    `cover` concreta (para 1/3/4/larga; 2/5 se calculan solas a partir de
    esta).
+5. **Script ir a posición**: la entidad `script.*` creada en el paso 0.
 
 Ya no hay input **Dirección**: se deduce de cuál de los dos botones ha
 disparado, comprobando el sufijo `_sube`/`_baja` del `trigger.id`.

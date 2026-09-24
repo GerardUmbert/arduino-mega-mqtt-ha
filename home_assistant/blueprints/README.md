@@ -1,22 +1,35 @@
 # Blueprints de Home Assistant
 
-## Posición de persianas: ahora nativa (firmware 1.6.0+)
+## Posición de persianas: se reporta nativa (1.6.0+), pero NO se puede comandar
 
 Desde `mega_dispositivos` 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT (`HACover::PositionFeature`),
 estimada en el propio firmware por tiempo de relé activo — ver
-`README.md` del repo raíz, sección "Calibración de persianas". La
-tarjeta normal de HA ya muestra el slider de posición sin necesidad de
-ningún helper ni blueprint intermedio: usa `cover.set_cover_position` /
-`cover.open_cover` / `cover.close_cover` / `cover.stop_cover`
-directamente sobre la entidad `cover.persiana_XX_YY`.
+`README.md` del repo raíz, sección "Calibración de persianas". El
+slider de posición de la tarjeta de HA se ve, y `cover.open_cover` /
+`cover.close_cover` / `cover.stop_cover` funcionan directamente sobre
+`cover.persiana_XX_YY`.
 
-`persiana_posicion.yaml` (el blueprint que simulaba esto por HA con 4
-helpers `input_number` por persiana, para firmwares sin posición real)
-queda en [`legacy/persiana_posicion.yaml`](legacy/persiana_posicion.yaml)
-— solo aplica si tienes una unidad `mega_dispositivos` en una versión
-de firmware anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
-instancies: usa la posición nativa.
+⚠️ **`cover.set_cover_position` no hace nada sobre estas entidades,
+sin error visible.** La librería `ArduinoHA` que usa `mega_dispositivos`
+solo permite *reportar* posición (`PositionFeature`), pero no expone
+ningún callback para *recibir* comandos de posición desde HA — no es
+un problema de configuración ni de versión de firmware, es una
+limitación de la librería (confirmado intentando añadir soporte en la
+v1.8.0, revertido: ver `CHANGELOG.md`).
+
+Para "ir a X%" de verdad, usa
+[`persiana_ir_a_posicion.yaml`](persiana_ir_a_posicion.yaml) — un
+script que rodea la limitación vigilando la posición ya reportada y
+parando el movimiento al cruzarla, sin depender de
+`set_cover_position`.
+
+`persiana_posicion.yaml` (el blueprint que simulaba posición por HA
+con 4 helpers `input_number` por persiana, pensado para firmwares
+anteriores a 1.6.0 sin reporte de posición real) queda en
+[`legacy/persiana_posicion.yaml`](legacy/persiana_posicion.yaml) — hoy
+ya no hace falta: usa `persiana_ir_a_posicion.yaml` en su lugar, que
+aprovecha la posición nativa que sí se reporta desde 1.6.0.
 
 ## `persiana_pulsador.yaml`
 
@@ -108,21 +121,23 @@ la persiana reporte `opening`/`closing` mientras se mueve
 como antes y nunca para. Las pulsaciones 2/3/4/5 no hacen toggle: son
 órdenes de destino concreto, no de movimiento.
 
-Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
-`set_cover_position` sobre la posición NATIVA que reporta
-`mega_dispositivos` (firmware 1.6.0+) — sin helpers `input_number` ni
-`input_datetime`, sin depender de `persiana_posicion.yaml`. Requiere que
-toda persiana que pueda verse afectada (incluidas las de la Area en
-doble pulsación, o todas las de la casa en quíntuple) soporte de verdad
-`set_cover_position` — si alguna corre un firmware sin posición (versión
-anterior a 1.6.0 sin actualizar), la llamada a esa persiana en concreto
-no hace nada, sin error visible.
+Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` para
+1, 2 y 5 pulsaciones. Para 3 y 4 (ir a un % concreto),
+`cover.set_cover_position` **no hace nada** sobre estas entidades
+(`ArduinoHA` no acepta comandos de posición — ver aviso más arriba), así
+que este blueprint llama en su lugar al script
+[`persiana_ir_a_posicion.yaml`](persiana_ir_a_posicion.yaml), indicado
+en el input "Script ir a posición" al instanciarlo. Instáncialo primero
+a él (una sola vez, no por persiana).
 
 ### Instanciar el blueprint
 
 Desde `v2.0.0`, **una sola instancia por persiana** — los dos botones
 de la pareja se indican en la misma automatización:
 
+0. Primero, si no lo has hecho ya: importa `persiana_ir_a_posicion.yaml`
+   y crea **una única instancia** de ese script para todo el sistema
+   (no una por persiana).
 1. Ajustes → Automatizaciones y escenas → Blueprints → importar
    `persiana_pulsador_completo.yaml` → Crear automatización.
 2. **Pulsador (device)**: el device MQTT donde están cableados ambos
@@ -132,6 +147,8 @@ de la pareja se indican en la misma automatización:
 4. **Persiana controlada por esta pareja de botones**: la entidad
    `cover` concreta (para 1/3/4/larga; 2/5 se calculan solas a partir
    de esta).
+5. **Script ir a posición**: la entidad `script.*` creada en el paso 0
+   (la misma para todas las instancias de este blueprint).
 
 Ya no hay input **Dirección**: se deduce de cuál de los dos botones ha
 disparado.
@@ -238,10 +255,14 @@ No es un blueprint de este repo, sino una **integración externa de HA**
 (no Arduino/firmware) que calcula la posición óptima de cada persiana
 para bloquear el sol directo, a partir de azimut/elevación del sol
 (`sun.sun`) y la orientación de la fachada donde está esa persiana.
-Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+), llama
-directamente a `cover.set_cover_position` sobre la entidad `cover.*` —
-mismo servicio que usan `persiana_pulsador_completo.yaml` (pulsaciones
-1/2/3/4/5) y cualquier slider manual, sin ningún helper intermedio.
+Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+) se
+puede leer la posición recomendada de Adaptive Cover, pero para
+*aplicarla* hay que pasar por
+[`persiana_ir_a_posicion.yaml`](persiana_ir_a_posicion.yaml) en vez de
+`cover.set_cover_position` directamente — esa llamada no hace nada
+sobre estas entidades (ver aviso al principio de este README). Mismo
+script que usa `persiana_pulsador_completo.yaml` para sus pulsaciones
+3/4.
 
 - Repo: https://github.com/basbruss/adaptive-cover
 - Se instala vía HACS (Ajustes → HACS → Integraciones → buscar
@@ -265,9 +286,9 @@ mismo servicio que usan `persiana_pulsador_completo.yaml` (pulsaciones
 
 Adaptive Cover puede exponer directamente una entidad `cover` propia
 que mueve la persiana real, o (más simple con tu arquitectura actual)
-puedes leer su sensor de "posición recomendada" y volcarlo tú a
-`cover.set_cover_position` sobre la entidad `cover.*` real, con una
-automatización corta tipo:
+puedes leer su sensor de "posición recomendada" y volcarlo tú al
+script `persiana_ir_a_posicion.yaml` (instanciado una sola vez, ver
+sección de arriba), con una automatización corta tipo:
 
 ```yaml
 automation:
@@ -276,11 +297,10 @@ automation:
       - platform: state
         entity_id: sensor.adaptive_cover_salon  # el sensor que cree la integración para esa ventana
     action:
-      - service: cover.set_cover_position
-        target:
-          entity_id: cover.salon
+      - service: script.persiana_ir_a_posicion  # object_id real de tu instancia
         data:
-          position: "{{ trigger.to_state.state | float(0) }}"
+          cover_entity: cover.salon
+          posicion: "{{ trigger.to_state.state | float(0) }}"
 ```
 
 Así el cálculo de sol lo hace la integración, y quien mueve físicamente
@@ -307,18 +327,17 @@ La solución NO es meter en el puente una comprobación tipo "¿el
 objetivo actual ya se superó?" (frágil: no distingue un override real
 de una coincidencia numérica). Adaptive Cover ya trae detección de
 override manual incorporada — al mover tú la persiana (desde la
-tarjeta, el pulsador físico, o cualquier llamada a `set_cover_position`),
+tarjeta, el pulsador físico, o el script `persiana_ir_a_posicion.yaml`),
 la integración lo detecta y dejaría de forzar su cálculo hasta que se le
 devuelva el control (normalmente vía un `switch`/botón que expone la
 propia integración, del tipo "reanudar control automático" — el nombre
 exacto depende de la versión instalada; revisarlo al dar de alta la
 instancia real).
 
-El puente debe respetar esa señal: antes de llamar a
-`set_cover_position`, comprobar que esa entidad de override NO está
-activa, y si lo está, no tocar nada (el usuario manda hasta que decida
-devolver el control). Ejemplo de cómo quedaría la automatización con esa
-condición añadida:
+El puente debe respetar esa señal: antes de llamar al script, comprobar
+que esa entidad de override NO está activa, y si lo está, no tocar nada
+(el usuario manda hasta que decida devolver el control). Ejemplo de
+cómo quedaría la automatización con esa condición añadida:
 
 ```yaml
 automation:
@@ -331,11 +350,10 @@ automation:
         entity_id: switch.adaptive_cover_salon_override  # nombre real a confirmar al configurar la instancia
         state: "off"
     action:
-      - service: cover.set_cover_position
-        target:
-          entity_id: cover.salon
+      - service: script.persiana_ir_a_posicion  # object_id real de tu instancia
         data:
-          position: "{{ trigger.to_state.state | float(0) }}"
+          cover_entity: cover.salon
+          posicion: "{{ trigger.to_state.state | float(0) }}"
 ```
 
 Pendiente de confirmar el `entity_id` exacto de esa entidad de override
@@ -409,11 +427,10 @@ automation:
         entity_id: sensor.estacion_lluvia_mm_h  # placeholder, nombre real a confirmar
         below: 0.1
     action:
-      - service: cover.set_cover_position
-        target:
-          entity_id: cover.salon
+      - service: script.persiana_ir_a_posicion  # object_id real de tu instancia
         data:
-          position: "{{ trigger.to_state.state | float(0) }}"
+          cover_entity: cover.salon
+          posicion: "{{ trigger.to_state.state | float(0) }}"
 
   - alias: Persianas - cierre de seguridad por viento fuerte
     trigger:

@@ -1,0 +1,139 @@
+blueprint:
+  name: Persiana — ir a posición X% (parada por posición reportada)
+  description: >
+    `mega_dispositivos` reporta la posición (0-100%) de cada persiana por
+    MQTT mientras se mueve, pero **no acepta comandos de posición**: la
+    librería `ArduinoHA` no expone ningún callback para recibirlos en
+    `HACover` (solo `PositionFeature` para reportar, no para comandar) —
+    `cover.set_cover_position` no hace nada sobre estas entidades, sin
+    error visible. Ver `CHANGELOG.md`, entrada de reversión de la 1.8.0.
+
+    Este script rodea esa limitación **desde el lado de Home Assistant**:
+    abre o cierra la persiana hacia el objetivo con `open_cover`/
+    `close_cover`, vigila la posición que el firmware ya reporta
+    (`current_position`), y llama a `stop_cover` en cuanto la cruza. No
+    necesita ningún cambio de firmware ni helpers `input_number`.
+
+    Instanciar una sola vez (no por persiana) y llamarlo con el propio
+    servicio del script — `service: "script.<object_id>"` — pasando
+    `cover_entity` y `posicion` como `data` (NO con `script.turn_on` +
+    `data.variables`, que no rellena los `fields` de un script). Así lo
+    puede reutilizar cualquier automatización que necesite "ir a X%"
+    (`persiana_pulsador_completo.yaml`, el puente de Adaptive Cover, una
+    escena, etc.) en vez de duplicar esta lógica.
+
+    ⚠️ Igual que la estimación de posición del propio firmware, la
+    parada depende del intervalo de publicación MQTT
+    (`INTERVALO_PUBLICAR_POSICION_MS`, 500ms por defecto) más la latencia
+    de red hasta que el relé corta — así que puede pasarse unos puntos
+    porcentuales del objetivo exacto, más en persianas rápidas o con mala
+    calibración de `TIEMPOS_PERSIANAS`. No pensado para objetivos que
+    necesiten precisión exacta al 1%.
+  domain: script
+  input:
+    cover_entity:
+      name: Persiana (valor por defecto)
+      description: >
+        Entidad `cover` a mover si la automatización que llama al script
+        no pasa `cover_entity` en sus variables. Puedes dejar cualquiera
+        aquí — se sobreescribe en cada llamada real.
+      selector:
+        entity:
+          domain: cover
+    tolerancia:
+      name: Tolerancia (puntos porcentuales)
+      description: >
+        Margen alrededor del objetivo que se considera "ya llegamos", para
+        no perder ciclos si el objetivo pedido coincide con la posición
+        actual (o casi). No afecta a cuánto se puede pasar la parada real
+        — eso depende del intervalo de publicación del firmware, ver
+        aviso arriba.
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 1
+          mode: box
+
+mode: restart
+max_exceeded: silent
+
+fields:
+  cover_entity:
+    name: Persiana
+    description: Entidad `cover` a mover (sobreescribe el input por defecto).
+    required: false
+    selector:
+      entity:
+        domain: cover
+  posicion:
+    name: Posición objetivo
+    description: Posición a alcanzar, 0-100%.
+    required: true
+    selector:
+      number:
+        min: 0
+        max: 100
+        step: 1
+        mode: box
+
+variables:
+  cover_entity_default: !input cover_entity
+  tolerancia: !input tolerancia
+
+sequence:
+  - variables:
+      cover_entity: "{{ cover_entity | default(cover_entity_default, true) }}"
+      posicion_actual: "{{ state_attr(cover_entity, 'current_position') | float(0) }}"
+      delta: "{{ posicion | float(0) - posicion_actual }}"
+
+  # Ya estamos donde nos piden (dentro de la tolerancia): no mover nada.
+  - if:
+      - condition: template
+        value_template: "{{ delta | abs <= tolerancia }}"
+    then:
+      - stop: "posición ya alcanzada"
+
+  # Extremos: dejar que el propio firmware pare en el tope calibrado
+  # (más preciso que vigilar current_position, que en 0/100 puede llegar
+  # con el estado ya en open/closed antes de que dispare el trigger).
+  - if:
+      - condition: template
+        value_template: "{{ posicion | float(0) >= 100 }}"
+    then:
+      - service: cover.open_cover
+        target:
+          entity_id: "{{ cover_entity }}"
+      - stop: "objetivo es el extremo abierto, el firmware para solo"
+  - if:
+      - condition: template
+        value_template: "{{ posicion | float(0) <= 0 }}"
+    then:
+      - service: cover.close_cover
+        target:
+          entity_id: "{{ cover_entity }}"
+      - stop: "objetivo es el extremo cerrado, el firmware para solo"
+
+  # Objetivo intermedio: arrancar en la dirección correcta y vigilar
+  # current_position hasta cruzar el objetivo.
+  - service: "cover.{{ 'open_cover' if delta > 0 else 'close_cover' }}"
+    target:
+      entity_id: "{{ cover_entity }}"
+  - wait_for_trigger:
+      - platform: template
+        value_template: >
+          {{ (state_attr(cover_entity, 'current_position') | float(0) >= posicion | float(0))
+             if delta > 0 else
+             (state_attr(cover_entity, 'current_position') | float(0) <= posicion | float(0)) }}
+      - platform: state
+        entity_id: "{{ cover_entity }}"
+        to:
+          - "open"
+          - "closed"
+          - "stopped"
+    timeout:
+      seconds: 30
+  - service: cover.stop_cover
+    target:
+      entity_id: "{{ cover_entity }}"

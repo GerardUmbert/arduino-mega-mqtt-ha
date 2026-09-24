@@ -6,11 +6,14 @@ persiana para bloquear el sol directo, a partir de azimut/elevación
 del sol (`sun.sun`) y la orientación de la fachada donde está esa
 persiana.
 
-Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+), llama
-directamente a `cover.set_cover_position` sobre la entidad `cover.*` —
-mismo servicio que usan
-[`persiana_pulsador_completo.yaml`](persiana-pulsador-completo.md) y
-cualquier slider manual, sin ningún helper intermedio.
+Con la posición nativa de `mega_dispositivos` (firmware 1.6.0+) se
+puede leer la posición recomendada, pero para aplicarla hay que llamar
+al script `persiana_ir_a_posicion.yaml` en vez de
+`cover.set_cover_position` directamente — esa llamada no hace nada
+sobre estas entidades (`ArduinoHA` no acepta comandos de posición, ver
+[índice de blueprints](index.md)). Mismo script que usa
+[`persiana_pulsador_completo.yaml`](persiana-pulsador-completo.md) para
+sus pulsaciones 3/4.
 
 - Repo: [github.com/basbruss/adaptive-cover](https://github.com/basbruss/adaptive-cover)
 - Se instala vía HACS (Ajustes → HACS → Integraciones → buscar
@@ -40,14 +43,15 @@ sequenceDiagram
     AC->>Bridge: publica sensor.adaptive_cover_X
     Bridge->>Bridge: ¿override manual activo?
     alt Sin override
-        Bridge->>Cover: cover.set_cover_position
+        Bridge->>Cover: script.persiana_ir_a_posicion
     else Con override
         Bridge->>Bridge: no hace nada
     end
 ```
 
-Puedes leer el sensor de "posición recomendada" y volcarlo a
-`cover.set_cover_position` con una automatización corta:
+Puedes leer el sensor de "posición recomendada" y volcarlo al script
+`persiana_ir_a_posicion.yaml` (instanciado una sola vez) con una
+automatización corta:
 
 ```yaml
 automation:
@@ -56,11 +60,10 @@ automation:
       - platform: state
         entity_id: sensor.adaptive_cover_salon
     action:
-      - service: cover.set_cover_position
-        target:
-          entity_id: cover.salon
+      - service: script.persiana_ir_a_posicion  # object_id real de tu instancia
         data:
-          position: "{{ trigger.to_state.state | float(0) }}"
+          cover_entity: cover.salon
+          posicion: "{{ trigger.to_state.state | float(0) }}"
 ```
 
 ## ⚠️ Pendiente importante: no pisar un ajuste manual
@@ -71,8 +74,7 @@ sin que lo pidieras.
 
 **La solución no es comprobar si el objetivo ya se superó** (frágil).
 Adaptive Cover trae detección de override manual incorporada — hay
-que comprobar esa entidad de override antes de llamar a
-`set_cover_position`:
+que comprobar esa entidad de override antes de llamar al script:
 
 ```yaml
 automation:
@@ -85,11 +87,10 @@ automation:
         entity_id: switch.adaptive_cover_salon_override  # confirmar nombre real
         state: "off"
     action:
-      - service: cover.set_cover_position
-        target:
-          entity_id: cover.salon
+      - service: script.persiana_ir_a_posicion  # object_id real de tu instancia
         data:
-          position: "{{ trigger.to_state.state | float(0) }}"
+          cover_entity: cover.salon
+          posicion: "{{ trigger.to_state.state | float(0) }}"
 ```
 
 !!! question "Pendiente"
