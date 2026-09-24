@@ -72,14 +72,14 @@ flowchart TD
 
 Usa directamente `cover.open_cover` / `close_cover` / `stop_cover` /
 `set_cover_position` sobre la posición **nativa** que reporta
-`mega_dispositivos` (firmware 1.6.0+) — sin helpers `input_number` ni
+`mega_dispositivos` (firmware 1.8.0+) — sin helpers `input_number` ni
 `input_datetime`.
 
 !!! warning "Requiere posición nativa en todas las persianas afectadas"
     Toda persiana que pueda verse afectada (incluidas las de la Area
     en doble pulsación, o todas las de la casa en quíntuple) debe
     soportar de verdad `set_cover_position` — si alguna corre un
-    firmware sin posición (versión anterior a 1.6.0 sin actualizar),
+    firmware sin posición (versión anterior a 1.8.0 sin actualizar),
     la llamada a esa persiana en concreto no hace nada, **sin error
     visible**.
 

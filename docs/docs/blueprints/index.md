@@ -21,13 +21,17 @@ Blueprints → Importar.
     en [`mega_pulsadores_low_ram`](../firmware/mega-pulsadores-low-ram.md)
     y en la [guía de decisión](../firmware/decision.md).
 
-## Posición de persianas: nativa desde firmware 1.6.0+
+## Posición de persianas: nativa desde firmware 1.8.0+
 
 Desde `mega_dispositivos` 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT
 (`HACover::PositionFeature`), estimada en el propio firmware por
-tiempo de relé activo. La tarjeta normal de HA ya muestra el slider de
-posición sin necesidad de ningún helper ni blueprint intermedio: usa
+tiempo de relé activo. Pero hasta la 1.7.2 esa posición solo se podía
+*leer*: faltaba `onPositionCommand` en el firmware, así que
+`cover.set_cover_position` no aparecía como acción soportada en HA y
+el slider de la tarjeta no hacía nada al soltarlo. **Desde la 1.8.0**,
+la tarjeta normal de HA ya muestra el slider de posición funcional sin
+necesidad de ningún helper ni blueprint intermedio: usa
 `cover.set_cover_position` / `cover.open_cover` / `cover.close_cover`
 / `cover.stop_cover` directamente sobre `cover.persiana_XX_YY`.
 
@@ -35,5 +39,5 @@ posición sin necesidad de ningún helper ni blueprint intermedio: usa
     El blueprint que simulaba esto por HA con 4 helpers `input_number`
     por persiana (para firmwares sin posición real) solo aplica si
     tienes una unidad `mega_dispositivos` en una versión de firmware
-    anterior a 1.6.0 sin actualizar. Con firmware 1.6.0+, no lo
+    anterior a 1.8.0 sin actualizar. Con firmware 1.8.0+, no lo
     instancies.

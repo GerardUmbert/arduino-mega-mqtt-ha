@@ -23,6 +23,33 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.8.0] - 2026-09-24 (mega_dispositivos)
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.8.0).
+
+### Added
+- **Soporte real de "ir a posición X%" para las persianas.** Hasta
+  ahora el discovery MQTT solo anunciaba `position_topic` (para
+  reportar la posición actual) pero nunca `set_position_topic`, así
+  que Home Assistant no ofrecía la acción `cover.set_cover_position`
+  para estas entidades (`supported_features` no incluía el bit
+  `SET_POSITION`, aunque sí `OPEN`/`CLOSE`/`STOP`) — el selector de
+  "Set cover position" aparecía vacío al intentar añadir una persiana
+  como target, pese a que el `%` se veía bien al mover manualmente.
+- Nuevo callback `onCoverPositionCommand`, registrado con
+  `persianas[i]->onPositionCommand(...)`: arranca el motor en la
+  dirección correcta (subir si el objetivo es mayor que la posición
+  actual, bajar si es menor) y dentro de `loop()` compara la posición
+  estimada por tiempo (`posicionEnCurso()`, la misma estimación que ya
+  se usaba para el extremo 0/100) contra el nuevo array
+  `posicionObjetivo[]` para parar el motor justo al alcanzarla. Si el
+  objetivo pedido coincide con la posición actual, para inmediatamente
+  sin mover el motor.
+- Reutiliza el mismo `RETARDO_INVERSION_MS` entre apagar un sentido y
+  encender el otro, y el mismo timeout de seguridad
+  (`TIEMPO_MAX_MOVIMIENTO_MS`) que ya protegían OPEN/CLOSE — ningún
+  cambio en esas protecciones.
+
 ## [2.0.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
 
 ### Changed

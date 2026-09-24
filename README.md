@@ -236,8 +236,12 @@ librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
     on/off.
   - `HACover` por persiana (`persiana_38_39`, `persiana_41_42`... nombre
     = pin de "subir" seguido del pin de "bajar" del par, en ese orden
-    siempre) — soporta abrir/cerrar/parar. Parar = poner los dos relés
-    (subir/bajar) en estado `INACTIVO` simultáneamente.
+    siempre) — soporta abrir/cerrar/parar y, desde la 1.8.0, ir a una
+    posición concreta (0-100%). Parar = poner los dos relés
+    (subir/bajar) en estado `INACTIVO` simultáneamente. Sin encoder, la
+    posición (actual y mientras se mueve hacia un objetivo) es siempre
+    una estimación por tiempo transcurrido, calibrada con
+    `TIEMPOS_PERSIANAS` en `board_config_a.h`/`board_config_b.h`.
 
 ## Configuración antes de subir el firmware
 
@@ -333,7 +337,11 @@ en las 8 persianas — hay que sustituirlos por el tiempo real de cada una:
 
 Sin esta calibración, la posición reportada a HA no coincide con la
 posición real de la persiana, aunque el control abrir/cerrar/parar sigue
-funcionando igual.
+funcionando igual. Desde la 1.8.0, también afecta a la precisión de
+"ir a posición X%" (`cover.set_cover_position`): al no haber encoder,
+el firmware calcula cuándo parar el motor con la misma estimación por
+tiempo, así que una calibración floja hace que la persiana se pare
+antes o después del X% pedido.
 
 Ver [todo.md](todo.md) para la lista completa de tareas pendientes.
 
