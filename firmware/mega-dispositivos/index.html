@@ -1259,22 +1259,25 @@ posición):</p>
 <tr>
 <td><code>HACover</code> por persiana</td>
 <td><code>persiana_38_39</code>, <code>persiana_41_42</code>... (pin subir + pin bajar, en ese orden siempre)</td>
-<td>abrir/cerrar/parar + posición nativa reportada (firmware 1.6.0+)</td>
+<td>abrir/cerrar/parar + posición nativa, comandable desde firmware 1.8.0+</td>
 </tr>
 </tbody>
 </table>
 <div class="admonition info">
-<p class="admonition-title">Posición nativa de persianas: se reporta, pero no se comanda</p>
+<p class="admonition-title">Posición nativa de persianas: se reporta desde 1.6.0, se comanda desde 1.8.0</p>
 <p>Desde la versión 1.6.0, cada persiana reporta su propia posición
 (0-100%) directamente por MQTT, estimada por tiempo de relé
-activo. La tarjeta normal de HA muestra el slider de posición.</p>
-<p><code>cover.set_cover_position</code> <strong>no hace nada</strong> sobre estas entidades:
-la librería <code>ArduinoHA</code> solo permite reportar posición, no
-recibir comandos de posición desde HA (confirmado intentando
-añadir soporte en la v1.8.0, revertido — ver <code>CHANGELOG.md</code>). Para
-"ir a X%" de verdad, usa el blueprint
-<code>persiana_ir_a_posicion.yaml</code>, que vigila la posición reportada y
-para el movimiento al cruzarla.</p>
+activo. Desde la <strong>1.8.0</strong>, esa posición también se puede
+<strong>comandar</strong>: la tarjeta normal de HA muestra el slider de
+posición funcional — usa <code>cover.set_cover_position</code> directamente
+sobre <code>cover.persiana_XX_YY</code>.</p>
+<p>⚠️ Requiere el parche local de <code>ArduinoHA</code> en
+<a href="https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_dispositivos/lib_overrides/README.md"><code>mega_dispositivos/lib_overrides/</code></a>,
+además del firmware 1.8.0+. La librería <code>ArduinoHA</code> de fábrica
+(Library Manager, sin parchear) solo permite reportar posición, no
+recibir comandos de posición desde HA — sin el parche,
+<code>cover.set_cover_position</code> no hace nada sobre estas entidades, sin
+error visible.</p>
 </div>
 <h2 id="configuracion-de-pines">Configuración de pines<a class="headerlink" href="#configuracion-de-pines" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="k">struct</span><span class="w"> </span><span class="nc">ParPines</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">subir</span><span class="p">;</span><span class="w"> </span><span class="kt">uint8_t</span><span class="w"> </span><span class="n">bajar</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>

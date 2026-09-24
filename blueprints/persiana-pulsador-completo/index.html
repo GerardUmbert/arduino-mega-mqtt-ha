@@ -1285,22 +1285,18 @@ aplican también con la persiana en marcha.</p>
     N -- "larga" --&gt; F["Sube mientras se mantiene"]
     N -- "fin de larga" --&gt; G["Para"]</code></pre>
 <p>Usa directamente <code>cover.open_cover</code> / <code>close_cover</code> / <code>stop_cover</code> para
-1, 2 y 5 pulsaciones.</p>
+1, 2 y 5 pulsaciones, y <code>cover.set_cover_position</code> para 3 y 4 (ir a
+50%, ±5%).</p>
 <div class="admonition warning">
-<p class="admonition-title">3 y 4 pulsaciones dependen del script persiana_ir_a_posicion</p>
-<p><code>cover.set_cover_position</code> <strong>no hace nada</strong> sobre estas entidades —
-<code>ArduinoHA</code> no acepta comandos de posición, solo los reporta (ver
-<a href="../">índice de blueprints</a>). Las pulsaciones 3 y 4 (ir a
-50%, ±5%) llaman en su lugar al script
-<code>persiana_ir_a_posicion.yaml</code>, que hay que instanciar primero (una
-sola vez, no por persiana) e indicar en el input "Script ir a
-posición" al configurar esta automatización.</p>
+<p class="admonition-title">Requiere mega_dispositivos 1.8.0+ con el parche de ArduinoHA</p>
+<p><code>cover.set_cover_position</code> solo funciona sobre estas entidades con
+<code>mega_dispositivos</code> 1.8.0+ <strong>y</strong> el parche de
+<code>mega_dispositivos/lib_overrides/</code> instalado (ver
+<a href="../">índice de blueprints</a>) — la librería <code>ArduinoHA</code> de
+fábrica no acepta comandos de posición. Sin eso, las pulsaciones
+3/4 no tendrán efecto, sin error visible.</p>
 </div>
 <h2 id="instanciar-el-blueprint">Instanciar el blueprint<a class="headerlink" href="#instanciar-el-blueprint" title="Permanent link">&para;</a></h2>
-<ol>
-<li>Primero, si no lo has hecho ya: importa <code>persiana_ir_a_posicion.yaml</code>
-   y crea <strong>una única instancia</strong> de ese script para todo el sistema.</li>
-</ol>
 <p>Desde <code>v2.0.0</code>, <strong>una sola instancia por persiana</strong> — los dos botones de
 la pareja se indican en la misma automatización:</p>
 <ol>
@@ -1313,7 +1309,6 @@ la pareja se indican en la misma automatización:</p>
 <li><strong>Persiana controlada por esta pareja de botones</strong>: la entidad
    <code>cover</code> concreta (para 1/3/4/larga; 2/5 se calculan solas a partir de
    esta).</li>
-<li><strong>Script ir a posición</strong>: la entidad <code>script.*</code> creada en el paso 0.</li>
 </ol>
 <p>Ya no hay input <strong>Dirección</strong>: se deduce de cuál de los dos botones ha
 disparado, comprobando el sufijo <code>_sube</code>/<code>_baja</code> del <code>trigger.id</code>.</p>

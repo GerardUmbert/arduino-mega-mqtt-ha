@@ -1265,14 +1265,13 @@ HA</strong> (no Arduino/firmware) que calcula la posición óptima de cada
 persiana para bloquear el sol directo, a partir de azimut/elevación
 del sol (<code>sun.sun</code>) y la orientación de la fachada donde está esa
 persiana.</p>
-<p>Con la posición nativa de <code>mega_dispositivos</code> (firmware 1.6.0+) se
-puede leer la posición recomendada, pero para aplicarla hay que llamar
-al script <code>persiana_ir_a_posicion.yaml</code> en vez de
-<code>cover.set_cover_position</code> directamente — esa llamada no hace nada
-sobre estas entidades (<code>ArduinoHA</code> no acepta comandos de posición, ver
-<a href="../">índice de blueprints</a>). Mismo script que usa
-<a href="../persiana-pulsador-completo/"><code>persiana_pulsador_completo.yaml</code></a> para
-sus pulsaciones 3/4.</p>
+<p>Con la posición nativa de <code>mega_dispositivos</code> (firmware 1.8.0+ con el
+parche de <code>lib_overrides/</code> instalado, ver
+<a href="../">índice de blueprints</a>), llama directamente a
+<code>cover.set_cover_position</code> sobre la entidad <code>cover.*</code> — mismo servicio
+que usan
+<a href="../persiana-pulsador-completo/"><code>persiana_pulsador_completo.yaml</code></a> y
+cualquier slider manual, sin ningún helper intermedio.</p>
 <ul>
 <li>Repo: <a href="https://github.com/basbruss/adaptive-cover">github.com/basbruss/adaptive-cover</a></li>
 <li>Se instala vía HACS (Ajustes → HACS → Integraciones → buscar
@@ -1300,23 +1299,23 @@ sus pulsaciones 3/4.</p>
     AC-&gt;&gt;Bridge: publica sensor.adaptive_cover_X
     Bridge-&gt;&gt;Bridge: ¿override manual activo?
     alt Sin override
-        Bridge-&gt;&gt;Cover: script.persiana_ir_a_posicion
+        Bridge-&gt;&gt;Cover: cover.set_cover_position
     else Con override
         Bridge-&gt;&gt;Bridge: no hace nada
     end</code></pre>
-<p>Puedes leer el sensor de "posición recomendada" y volcarlo al script
-<code>persiana_ir_a_posicion.yaml</code> (instanciado una sola vez) con una
-automatización corta:</p>
+<p>Puedes leer el sensor de "posición recomendada" y volcarlo a
+<code>cover.set_cover_position</code> con una automatización corta:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">automation</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">alias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Persiana Salón - seguir sol (Adaptive Cover)</span>
 <span class="w">    </span><span class="nt">trigger</span><span class="p">:</span>
 <span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">platform</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">state</span>
 <span class="w">        </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sensor.adaptive_cover_salon</span>
 <span class="w">    </span><span class="nt">action</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">script.persiana_ir_a_posicion</span><span class="w">  </span><span class="c1"># object_id real de tu instancia</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.set_cover_position</span>
+<span class="w">        </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.salon</span>
 <span class="w">        </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">cover_entity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.salon</span>
-<span class="w">          </span><span class="nt">posicion</span><span class="p">:</span><span class="w"> </span><span class="s">"{{</span><span class="nv"> </span><span class="s">trigger.to_state.state</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">float(0)</span><span class="nv"> </span><span class="s">}}"</span>
+<span class="w">          </span><span class="nt">position</span><span class="p">:</span><span class="w"> </span><span class="s">"{{</span><span class="nv"> </span><span class="s">trigger.to_state.state</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">float(0)</span><span class="nv"> </span><span class="s">}}"</span>
 </code></pre></div>
 <h2 id="pendiente-importante-no-pisar-un-ajuste-manual">⚠️ Pendiente importante: no pisar un ajuste manual<a class="headerlink" href="#pendiente-importante-no-pisar-un-ajuste-manual" title="Permanent link">&para;</a></h2>
 <p>Si dejas la persiana a mano en, p. ej., 10% (viendo una peli) y luego
@@ -1324,7 +1323,8 @@ Adaptive Cover recalcula y publica 35%, el puente tal cual la subiría
 sin que lo pidieras.</p>
 <p><strong>La solución no es comprobar si el objetivo ya se superó</strong> (frágil).
 Adaptive Cover trae detección de override manual incorporada — hay
-que comprobar esa entidad de override antes de llamar al script:</p>
+que comprobar esa entidad de override antes de llamar a
+<code>set_cover_position</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">automation</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">alias</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Persiana Salón - seguir sol (Adaptive Cover)</span>
 <span class="w">    </span><span class="nt">trigger</span><span class="p">:</span>
@@ -1335,10 +1335,11 @@ que comprobar esa entidad de override antes de llamar al script:</p>
 <span class="w">        </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">switch.adaptive_cover_salon_override</span><span class="w">  </span><span class="c1"># confirmar nombre real</span>
 <span class="w">        </span><span class="nt">state</span><span class="p">:</span><span class="w"> </span><span class="s">"off"</span>
 <span class="w">    </span><span class="nt">action</span><span class="p">:</span>
-<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">script.persiana_ir_a_posicion</span><span class="w">  </span><span class="c1"># object_id real de tu instancia</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.set_cover_position</span>
+<span class="w">        </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">entity_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.salon</span>
 <span class="w">        </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">cover_entity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cover.salon</span>
-<span class="w">          </span><span class="nt">posicion</span><span class="p">:</span><span class="w"> </span><span class="s">"{{</span><span class="nv"> </span><span class="s">trigger.to_state.state</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">float(0)</span><span class="nv"> </span><span class="s">}}"</span>
+<span class="w">          </span><span class="nt">position</span><span class="p">:</span><span class="w"> </span><span class="s">"{{</span><span class="nv"> </span><span class="s">trigger.to_state.state</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">float(0)</span><span class="nv"> </span><span class="s">}}"</span>
 </code></pre></div>
 <div class="admonition question">
 <p class="admonition-title">Pendiente</p>
