@@ -11,6 +11,16 @@
 // Librerías necesarias (Arduino Library Manager):
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
 //   - Ethernet (incluida en el IDE si usas shield W5100/W5500)
+//
+// ⚠️ IMPORTANTE — ArduinoHA PARCHEADA, no la de Library Manager tal cual:
+// la HACover original NO acepta comandos de posición desde HA (solo los
+// reporta), así que cover.set_cover_position no hace nada sobre estas
+// entidades de fábrica. Antes de compilar, copia
+// mega_dispositivos/lib_overrides/ArduinoHA/src/device-types/HACover.h
+// y HACover.cpp sobre los mismos ficheros dentro de tu carpeta de
+// librerías de ArduinoHA instalada (sobrescribiendo los originales) —
+// ver mega_dispositivos/lib_overrides/README.md para el paso a paso y
+// el motivo exacto del parche.
 // ===========================================================
 
 #include <Ethernet.h>
@@ -119,6 +129,12 @@ int16_t posicionActual[NUM_PERSIANAS];
 unsigned long ultimaPublicacionPosicion[NUM_PERSIANAS];
 #define INTERVALO_PUBLICAR_POSICION_MS 500
 
+// Objetivo de un comando "ir a posición X%" (onCoverPositionCommand).
+// -1 = sin objetivo: el movimiento en curso (si lo hay) viene de OPEN/CLOSE
+// y debe llegar hasta el extremo 0/100 como siempre. 0-100 = parar sola en
+// loop() al alcanzar ese valor en vez de seguir hasta el extremo.
+int16_t posicionObjetivo[NUM_PERSIANAS];
+
 // ===========================================================
 // CALLBACK LUCES
 // Busca qué objeto llamó (sender) y actúa sobre el pin de esa
@@ -168,6 +184,7 @@ void pararPersiana(int i, const __FlashStringHelper* motivo) {
     digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
     digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
     inicioMovimiento[i] = 0;
+    posicionObjetivo[i] = -1;
     persianas[i]->setPosition(posicionActual[i]);
     persianas[i]->setState(HACover::StateStopped);
     Serial.print(F("[persiana] "));
@@ -189,6 +206,7 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
                 // primero congela la posición real recorrida hasta ahora
                 // — si no, se pierde ese tramo y la posición se desincroniza.
                 if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
+                posicionObjetivo[i] = -1; // ir al extremo, no a una posición intermedia
                 digitalWrite(pinBajar, INACTIVO);
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinSubir, ACTIVO);
@@ -200,6 +218,7 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
                 Serial.println(F(" -> OPEN"));
             } else if (cmd == HACover::CommandClose) {
                 if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
+                posicionObjetivo[i] = -1;
                 digitalWrite(pinSubir, INACTIVO);
                 delay(RETARDO_INVERSION_MS);
                 digitalWrite(pinBajar, ACTIVO);
@@ -212,6 +231,53 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
             } else if (cmd == HACover::CommandStop) {
                 pararPersiana(i, F("orden HA"));
             }
+            return;
+        }
+    }
+}
+
+// ===========================================================
+// CALLBACK "IR A POSICIÓN X%" (requiere la ArduinoHA parcheada,
+// ver aviso al principio del fichero)
+// Arranca el motor en la dirección que corresponda y deja que loop()
+// la pare sola al llegar al objetivo (misma lógica de fin de recorrido
+// que usan OPEN/CLOSE, con posicionObjetivo en vez del extremo 0/100).
+// ===========================================================
+void onCoverPositionCommand(const int16_t position, HACover* sender) {
+    for (int i = 0; i < NUM_PERSIANAS; i++) {
+        if (persianas[i] == sender) {
+            int16_t objetivo = position;
+            if (objetivo > 100) objetivo = 100;
+            if (objetivo < 0) objetivo = 0;
+
+            if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
+
+            if (objetivo == posicionActual[i]) {
+                pararPersiana(i, F("posicion ya alcanzada"));
+                return;
+            }
+
+            uint8_t pinSubir = PINES_PERSIANAS[i].subir;
+            uint8_t pinBajar = PINES_PERSIANAS[i].bajar;
+            bool haySubir = objetivo > posicionActual[i];
+
+            posicionObjetivo[i] = objetivo;
+            if (haySubir) {
+                digitalWrite(pinBajar, INACTIVO);
+                delay(RETARDO_INVERSION_MS);
+                digitalWrite(pinSubir, ACTIVO);
+            } else {
+                digitalWrite(pinSubir, INACTIVO);
+                delay(RETARDO_INVERSION_MS);
+                digitalWrite(pinBajar, ACTIVO);
+            }
+            subiendo[i] = haySubir;
+            inicioMovimiento[i] = millis();
+            sender->setState(haySubir ? HACover::StateOpening : HACover::StateClosing);
+            Serial.print(F("[persiana] "));
+            Serial.print(idPersiana[i]);
+            Serial.print(F(" -> SET_POSITION "));
+            Serial.println(objetivo);
             return;
         }
     }
@@ -246,7 +312,7 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.7.2");
+    device.setSoftwareVersion("1.8.0");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
@@ -278,6 +344,7 @@ void setup() {
         persianas[i] = new HACover(idPersiana[i], HACover::PositionFeature);
         persianas[i]->setDeviceClass("shutter");
         persianas[i]->onCommand(onCoverCommand);
+        persianas[i]->onPositionCommand(onCoverPositionCommand);
 
         // Nombre visible en HA (unique_id/idPersiana sigue siendo
         // persiana_XX_YY, esto solo cambia lo que se ve).
@@ -288,6 +355,7 @@ void setup() {
         // se asume abierta del todo hasta que el usuario la lleve a un
         // extremo real y se resincronice sola.
         posicionActual[i] = 100;
+        posicionObjetivo[i] = -1;
         persianas[i]->setPosition(posicionActual[i]);
         persianas[i]->setState(HACover::StateOpen);
     }
@@ -350,25 +418,48 @@ void loop() {
 
         int16_t posicion = posicionEnCurso(i);
 
-        // Llegó sola al extremo hacia el que se estaba moviendo (recorrido
-        // completo calibrado): parar y resincronizar a 0/100 exactos, con
-        // el estado final correcto (abierta/cerrada, no "stopped").
-        // OJO: comprobar solo el extremo de la dirección actual — si no,
-        // p. ej. un CLOSE que arranca desde posicionActual=100 lee 100 en
-        // la primera vuelta de loop() (aún no ha avanzado) y se confunde
-        // con "ya llegó a abierta del todo".
-        bool llegoAlExtremo = subiendo[i] ? (posicion >= 100) : (posicion <= 0);
-        if (llegoAlExtremo) {
-            posicionActual[i] = posicion <= 0 ? 0 : 100;
-            digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
-            digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
-            inicioMovimiento[i] = 0;
-            persianas[i]->setPosition(posicionActual[i]);
-            persianas[i]->setState(posicionActual[i] == 0 ? HACover::StateClosed : HACover::StateOpen);
-            Serial.print(F("[persiana] "));
-            Serial.print(idPersiana[i]);
-            Serial.println(posicionActual[i] == 0 ? F(" -> CLOSED (fin recorrido)") : F(" -> OPEN (fin recorrido)"));
-            continue;
+        // Con objetivo (comando "ir a X%"): parar al alcanzarlo, sin llegar
+        // necesariamente a 0/100 ni cambiar a estado Closed/Open (se queda
+        // "stopped" a medio camino, igual que un STOP manual).
+        if (posicionObjetivo[i] >= 0) {
+            bool llegoAlObjetivo = subiendo[i] ? (posicion >= posicionObjetivo[i])
+                                                : (posicion <= posicionObjetivo[i]);
+            if (llegoAlObjetivo) {
+                posicionActual[i] = posicionObjetivo[i];
+                posicionObjetivo[i] = -1;
+                digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
+                digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
+                inicioMovimiento[i] = 0;
+                persianas[i]->setPosition(posicionActual[i]);
+                persianas[i]->setState(HACover::StateStopped);
+                Serial.print(F("[persiana] "));
+                Serial.print(idPersiana[i]);
+                Serial.print(F(" -> STOP (posicion alcanzada) pos="));
+                Serial.println(posicionActual[i]);
+                continue;
+            }
+        } else {
+            // Sin objetivo (OPEN/CLOSE normal): llegó sola al extremo hacia
+            // el que se estaba moviendo (recorrido completo calibrado):
+            // parar y resincronizar a 0/100 exactos, con el estado final
+            // correcto (abierta/cerrada, no "stopped").
+            // OJO: comprobar solo el extremo de la dirección actual — si
+            // no, p. ej. un CLOSE que arranca desde posicionActual=100 lee
+            // 100 en la primera vuelta de loop() (aún no ha avanzado) y se
+            // confunde con "ya llegó a abierta del todo".
+            bool llegoAlExtremo = subiendo[i] ? (posicion >= 100) : (posicion <= 0);
+            if (llegoAlExtremo) {
+                posicionActual[i] = posicion <= 0 ? 0 : 100;
+                digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
+                digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
+                inicioMovimiento[i] = 0;
+                persianas[i]->setPosition(posicionActual[i]);
+                persianas[i]->setState(posicionActual[i] == 0 ? HACover::StateClosed : HACover::StateOpen);
+                Serial.print(F("[persiana] "));
+                Serial.print(idPersiana[i]);
+                Serial.println(posicionActual[i] == 0 ? F(" -> CLOSED (fin recorrido)") : F(" -> OPEN (fin recorrido)"));
+                continue;
+            }
         }
 
         // Mientras se mueve, publica la posición estimada cada cierto

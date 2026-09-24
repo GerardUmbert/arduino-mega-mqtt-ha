@@ -496,6 +496,33 @@ día — ambos `mega_dispositivos` y `mega_pulsadores_low_ram` retoman
 `1.6.3`/`1.0.0-low-ram`, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.
 
+## [1.8.0] - 2026-09-24 (mega_dispositivos) — EN RAMA `feature/hacover-set-position`, SIN VERIFICAR EN PLACA REAL
+
+⚠️ No mezclar con la entrada de más abajo "[1.8.0] ... INTENTADO Y
+REVERTIDO" — son dos intentos distintos del mismo número de versión,
+en ramas distintas. Esta entrada vive en la rama
+`feature/hacover-set-position`, no en `master`, hasta que alguien
+confirme que compila y funciona en hardware real.
+
+### Added
+- Segundo intento de resolver `cover.set_cover_position` desde el
+  firmware (el primero, revertido, asumía que `ArduinoHA` ya tenía
+  `onPositionCommand` — no era cierto). Esta vez se parchea la propia
+  librería: ver `mega_dispositivos/lib_overrides/README.md` para el
+  detalle completo del parche (nuevo `set_position_topic` en el
+  discovery, nueva suscripción, nuevo `onPositionCommand(callback)` en
+  `HACover`).
+- `mega_dispositivos.ino`: nuevo callback `onCoverPositionCommand` +
+  array `posicionObjetivo[]`, misma lógica que el intento anterior
+  (arranca el motor hacia el objetivo, `loop()` para al alcanzarlo
+  usando la estimación por tiempo ya existente) — esa parte no cambió,
+  el único problema real era la librería.
+- **Pendiente antes de fusionar a `master`**: confirmar que compila y
+  funciona en una placa real con el parche de `lib_overrides/`
+  aplicado. El intento anterior falló precisamente por no haberse
+  verificado contra la librería real antes de subir a `master` — no
+  repetir ese error con este.
+
 ## [1.0.0] - 2026-09-24 (blueprint persiana_ir_a_posicion, nuevo)
 
 Blueprint nuevo — script `home_assistant/blueprints/persiana_ir_a_posicion.yaml`.
