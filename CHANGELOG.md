@@ -496,6 +496,22 @@ día — ambos `mega_dispositivos` y `mega_pulsadores_low_ram` retoman
 `1.6.3`/`1.0.0-low-ram`, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.
 
+## [1.7.2] - 2026-09-24 (mega_dispositivos)
+
+Solo afecta a `mega_dispositivos` (versión de firmware 1.7.2).
+
+### Changed
+- **Refactor sin cambio de comportamiento**: todos los `digitalWrite`
+  que controlan relés (luces ON/OFF, persiana subir/bajar/parar) pasan
+  a usar los estados lógicos `ACTIVO`/`INACTIVO` en vez de `HIGH`/`LOW`
+  sueltos. `ACTIVO`/`INACTIVO` se definen en un único punto cerca del
+  principio del fichero (`#define ACTIVO HIGH` / `#define INACTIVO
+  LOW`), manteniendo la polaridad actual (activo en HIGH). Si en algún
+  momento se confirma que el módulo de relés real es activo en LOW
+  (pendiente en `todo.md`), ahora basta con invertir esas dos líneas en
+  vez de tocar cada callback (`onSwitchCommand`, `onCoverCommand`,
+  `pararPersiana`, `setup()`, timeout de seguridad en `loop()`).
+
 ## [1.7.1] - 2026-09-04 (los 3 firmwares — mega_pulsadores, mega_pulsadores_low_ram, mega_dispositivos)
 
 ### Changed

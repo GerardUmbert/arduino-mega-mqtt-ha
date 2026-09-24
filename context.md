@@ -233,5 +233,8 @@ preguntas abiertas en [todo.md](todo.md).
   sentido y encender el otro. Si el módulo de relés ya tiene interlock
   por hardware, este retardo se puede reducir.
 - Comprobar si los módulos de relé son activos en HIGH o en LOW antes de
-  tocar la lógica de `digitalWrite` (los sketches actuales asumen activo
-  en HIGH).
+  dar por buena la polaridad actual. En `mega_dispositivos.ino` (desde la
+  1.7.2), la polaridad vive en un único punto —
+  `#define ACTIVO HIGH` / `#define INACTIVO LOW` — y el resto del código
+  solo usa `ACTIVO`/`INACTIVO`; los sketches actuales asumen activo en
+  HIGH.

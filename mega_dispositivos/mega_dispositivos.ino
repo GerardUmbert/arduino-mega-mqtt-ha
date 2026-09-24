@@ -24,6 +24,15 @@
 // ===========================================================
 #include "config.h"
 
+// ===========================================================
+// LÓGICA DE LOS RELÉS — punto único de configuración
+// Cambia aquí si tu módulo de relés es activo en LOW o en HIGH;
+// el resto del código solo debe usar ACTIVO/INACTIVO, nunca
+// HIGH/LOW sueltos.
+// ===========================================================
+#define ACTIVO   HIGH
+#define INACTIVO LOW
+
 struct ParPines { uint8_t subir; uint8_t bajar; };
 
 // ===========================================================
@@ -118,7 +127,7 @@ unsigned long ultimaPublicacionPosicion[NUM_PERSIANAS];
 void onSwitchCommand(bool state, HASwitch* sender) {
     for (int i = 0; i < NUM_LUCES; i++) {
         if (luces[i] == sender) {
-            digitalWrite(PINES_LUCES[i], state ? HIGH : LOW);
+            digitalWrite(PINES_LUCES[i], state ? ACTIVO : INACTIVO);
             sender->setState(state); // confirma el estado a HA
             Serial.print(F("[luz] "));
             Serial.print(idLuz[i]);
@@ -156,8 +165,8 @@ int16_t posicionEnCurso(int i) {
 
 void pararPersiana(int i, const __FlashStringHelper* motivo) {
     posicionActual[i] = posicionEnCurso(i);
-    digitalWrite(PINES_PERSIANAS[i].subir, LOW);
-    digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
+    digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
+    digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
     inicioMovimiento[i] = 0;
     persianas[i]->setPosition(posicionActual[i]);
     persianas[i]->setState(HACover::StateStopped);
@@ -180,9 +189,9 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
                 // primero congela la posición real recorrida hasta ahora
                 // — si no, se pierde ese tramo y la posición se desincroniza.
                 if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
-                digitalWrite(pinBajar, LOW);
+                digitalWrite(pinBajar, INACTIVO);
                 delay(RETARDO_INVERSION_MS);
-                digitalWrite(pinSubir, HIGH);
+                digitalWrite(pinSubir, ACTIVO);
                 subiendo[i] = true;
                 inicioMovimiento[i] = millis();
                 sender->setState(HACover::StateOpening);
@@ -191,9 +200,9 @@ void onCoverCommand(HACover::CoverCommand cmd, HACover* sender) {
                 Serial.println(F(" -> OPEN"));
             } else if (cmd == HACover::CommandClose) {
                 if (inicioMovimiento[i] != 0) posicionActual[i] = posicionEnCurso(i);
-                digitalWrite(pinSubir, LOW);
+                digitalWrite(pinSubir, INACTIVO);
                 delay(RETARDO_INVERSION_MS);
-                digitalWrite(pinBajar, HIGH);
+                digitalWrite(pinBajar, ACTIVO);
                 subiendo[i] = false;
                 inicioMovimiento[i] = millis();
                 sender->setState(HACover::StateClosing);
@@ -237,12 +246,12 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.7.1");
+    device.setSoftwareVersion("1.7.2");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {
         pinMode(PINES_LUCES[i], OUTPUT);
-        digitalWrite(PINES_LUCES[i], LOW); // arrancan apagadas
+        digitalWrite(PINES_LUCES[i], INACTIVO); // arrancan apagadas
 
         snprintf(idLuz[i], sizeof(idLuz[i]), "luz_%d", PINES_LUCES[i]);
         luces[i] = new HASwitch(idLuz[i]);
@@ -259,8 +268,8 @@ void setup() {
     for (int i = 0; i < NUM_PERSIANAS; i++) {
         pinMode(PINES_PERSIANAS[i].subir, OUTPUT);
         pinMode(PINES_PERSIANAS[i].bajar, OUTPUT);
-        digitalWrite(PINES_PERSIANAS[i].subir, LOW);
-        digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
+        digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
+        digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
 
         // Orden fijo subir_bajar en el ID, no alfabético ni el que sea menor.
         snprintf(idPersiana[i], sizeof(idPersiana[i]), "persiana_%d_%d", PINES_PERSIANAS[i].subir, PINES_PERSIANAS[i].bajar);
@@ -351,8 +360,8 @@ void loop() {
         bool llegoAlExtremo = subiendo[i] ? (posicion >= 100) : (posicion <= 0);
         if (llegoAlExtremo) {
             posicionActual[i] = posicion <= 0 ? 0 : 100;
-            digitalWrite(PINES_PERSIANAS[i].subir, LOW);
-            digitalWrite(PINES_PERSIANAS[i].bajar, LOW);
+            digitalWrite(PINES_PERSIANAS[i].subir, INACTIVO);
+            digitalWrite(PINES_PERSIANAS[i].bajar, INACTIVO);
             inicioMovimiento[i] = 0;
             persianas[i]->setPosition(posicionActual[i]);
             persianas[i]->setState(posicionActual[i] == 0 ? HACover::StateClosed : HACover::StateOpen);

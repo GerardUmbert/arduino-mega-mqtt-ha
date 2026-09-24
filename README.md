@@ -237,7 +237,7 @@ librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
   - `HACover` por persiana (`persiana_38_39`, `persiana_41_42`... nombre
     = pin de "subir" seguido del pin de "bajar" del par, en ese orden
     siempre) — soporta abrir/cerrar/parar. Parar = poner los dos relés
-    (subir/bajar) a LOW simultáneamente.
+    (subir/bajar) en estado `INACTIVO` simultáneamente.
 
 ## Configuración antes de subir el firmware
 
@@ -350,5 +350,9 @@ Ver [todo.md](todo.md) para la lista completa de tareas pendientes.
   llega a enviar la orden de parar (fallo de red, etc.). Ajusta este
   valor si tus persianas tardan más de 20s en un recorrido completo.
 - Comprobar si los módulos de relé son activos en HIGH o en LOW antes de
-  tocar la lógica de `digitalWrite` (los sketches actuales asumen activo en
-  HIGH).
+  dar por buena la polaridad actual. En `mega_dispositivos.ino`, todos los
+  `digitalWrite` que controlan relés usan los estados lógicos
+  `ACTIVO`/`INACTIVO`, definidos en un único punto cerca del principio del
+  fichero (`#define ACTIVO ...` / `#define INACTIVO ...`) — los sketches
+  actuales asumen activo en HIGH; si el módulo real es activo en LOW,
+  basta con invertir esas dos líneas en vez de tocar cada callback.

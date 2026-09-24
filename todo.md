@@ -288,9 +288,10 @@
 
 - [ ] Comprobar si los módulos de relé (luces y persianas) son activos en
       HIGH o en LOW. El código actual asume activo en HIGH
-      (`digitalWrite(..., HIGH)` para encender/activar) — si el módulo real
-      es activo en LOW, hay que invertir la lógica en `onSwitchCommand` y
-      `onCoverCommand` en `mega_dispositivos/mega_dispositivos.ino`.
+      (`#define ACTIVO HIGH` / `#define INACTIVO LOW`, cerca del principio
+      de `mega_dispositivos/mega_dispositivos.ino`, desde la 1.7.2) — si el
+      módulo real es activo en LOW, basta con invertir esas dos líneas, ya
+      no hace falta tocar `onSwitchCommand` ni `onCoverCommand` a mano.
 - [ ] Confirmar si el módulo de relés de persiana tiene interlock por
       hardware (evita subir+bajar a la vez). Si lo tiene, se puede bajar o
       quitar `RETARDO_INVERSION_MS` (200ms) en `mega_dispositivos/mega_dispositivos.ino:88`.
