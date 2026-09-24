@@ -77,12 +77,26 @@ comportamiento existente.
    la carpeta que contenga `HACover.h`/`HACover.cpp`).
 3. Copia los dos ficheros de esta carpeta
    (`mega_dispositivos/lib_overrides/ArduinoHA/src/device-types/`)
-   sobre los que ya existen ahí, **sobrescribiéndolos**.
+   **directamente dentro de** esa carpeta `device-types\` que acabas de
+   localizar, sobrescribiendo los `HACover.h`/`HACover.cpp` que ya hay
+   ahí — mismo nivel, mismo nombre, se reemplazan sin más.
+
+   ⚠️ **NO los metas en una subcarpeta nueva** (ni `old\`, ni
+   `patched\`, ni ninguna otra) dentro de `device-types\`. Los `#include`
+   de dentro de `HACover.h`/`.cpp` (p. ej. `#include
+   "HABaseDeviceType.h"`) son relativos a esa carpeta `device-types\` —
+   si los ficheros quedan un nivel más adentro, esos includes dejan de
+   encontrar nada y falla con `fatal error: HABaseDeviceType.h: No such
+   file or directory`. Si te ha pasado esto, mueve los dos ficheros un
+   nivel hacia arriba (a `device-types\` directamente) y borra la
+   subcarpeta vacía.
 4. Recompila `mega_dispositivos.ino`. Si compilaba antes, debería
    seguir compilando — el parche es aditivo. Si ves el error `'class
    HACover' has no member named 'onPositionCommand'`, significa que la
    copia no sobrescribió los ficheros correctos (revisa que sea
-   exactamente esa carpeta `device-types` la que se está compilando).
+   exactamente esa carpeta `device-types` la que se está compilando, y
+   que los dos ficheros estén ahí mismo, no en una subcarpeta — ver
+   aviso del paso 3).
 
 ## ⚠️ Qué implica mantener esto
 
