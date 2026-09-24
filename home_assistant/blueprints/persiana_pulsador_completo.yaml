@@ -23,14 +23,13 @@ blueprint:
     | larga / fin | subir mientras se mantiene, parar al soltar | bajar mientras se mantiene, parar al soltar |
 
     Usa la posición NATIVA que reporta `mega_dispositivos` (firmware
-    1.6.0+, `HACover::PositionFeature`) para las pulsaciones 1, 2 y 5
-    (abrir/cerrar/parar). Las pulsaciones 3 y 4 (ir a 50%, ±5%) llaman al
-    script `persiana_ir_a_posicion.yaml`, porque `cover.set_cover_position`
-    **no hace nada** sobre estas entidades — `ArduinoHA` no acepta
-    comandos de posición, solo los reporta (ver ese script para el
-    detalle). Instancia primero `persiana_ir_a_posicion.yaml` una sola
-    vez (no por persiana) y elígelo en el input "Script ir a posición" de
-    abajo.
+    1.8.0+) — `cover.open_cover`/`close_cover`/`stop_cover` para 1, 2 y
+    5 pulsaciones, y `cover.set_cover_position` directamente para 3 y 4
+    (ir a 50%, ±5%). Requiere `mega_dispositivos` 1.8.0+ con el parche
+    de `mega_dispositivos/lib_overrides/` instalado — en firmware más
+    antiguo, `set_cover_position` no hace nada sobre estas entidades
+    (`ArduinoHA` de fábrica no acepta comandos de posición) y las
+    pulsaciones 3/4 no tendrán efecto, sin error visible.
   domain: automation
   input:
     boton_device_id:
@@ -57,15 +56,6 @@ blueprint:
       selector:
         entity:
           domain: cover
-    script_ir_a_posicion:
-      name: Script "ir a posición"
-      description: >
-        La entidad `script.*` creada al instanciar
-        `persiana_ir_a_posicion.yaml` (una sola vez para todo el sistema,
-        no por persiana). Usado en las pulsaciones 3 y 4.
-      selector:
-        entity:
-          domain: script
 
 mode: restart
 
@@ -159,7 +149,6 @@ trigger:
 
 variables:
   cover_entity: !input cover_entity
-  script_ir_a_posicion: !input script_ir_a_posicion
   # La dirección ya no es un input: se deduce de CUÁL de los dos
   # botones ha disparado. Cada trigger lleva el sufijo _sube/_baja en
   # su id (ver el bloque trigger de arriba), así una sola instancia del
@@ -246,21 +235,17 @@ action:
                 continue_on_error: true
 
       # --- 3 pulsaciones: esta persiana al 50%.
-      # cover.set_cover_position no hace nada en estas entidades (ver
-      # persiana_ir_a_posicion.yaml) — se llama al script directamente
-      # (no vía script.turn_on) para que "posicion"/"cover_entity" lleguen
-      # como variables de plantilla dentro de su sequence, tal como
-      # define su bloque `fields`.
       - conditions:
           - condition: trigger
             id:
               - p3_sube
               - p3_baja
         sequence:
-          - service: "script.{{ script_ir_a_posicion.split('.')[1] }}"
+          - service: cover.set_cover_position
+            target:
+              entity_id: "{{ cover_entity }}"
             data:
-              cover_entity: "{{ cover_entity }}"
-              posicion: 50
+              position: 50
 
       # --- 4 pulsaciones: ajuste fino ±5% desde la posición actual.
       - conditions:
@@ -269,10 +254,11 @@ action:
               - p4_sube
               - p4_baja
         sequence:
-          - service: "script.{{ script_ir_a_posicion.split('.')[1] }}"
+          - service: cover.set_cover_position
+            target:
+              entity_id: "{{ cover_entity }}"
             data:
-              cover_entity: "{{ cover_entity }}"
-              posicion: "{{ objetivo_relativo }}"
+              position: "{{ objetivo_relativo }}"
 
       # --- 5 pulsaciones: TODAS las persianas de la casa.
       - conditions:

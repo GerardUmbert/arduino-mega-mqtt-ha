@@ -23,6 +23,34 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [4.0.0] - 2026-09-24 (blueprint persiana_pulsador_completo)
+
+### Changed
+- **BREAKING: vuelve a llamar a `cover.set_cover_position` directamente
+  en vez del script `persiana_ir_a_posicion.yaml`** (introducido en la
+  v3.0.0 como workaround). Con `mega_dispositivos` 1.8.0+ y el parche
+  de `lib_overrides/` instalado, `set_cover_position` ya funciona de
+  forma nativa, así que el script intermedio deja de hacer falta.
+- **Desaparece el input `script_ir_a_posicion`**, obligatorio desde la
+  v3.0.0. Las automatizaciones creadas con esa versión hay que
+  reabrirlas — ya no piden ese input, y las pulsaciones 3/4 vuelven a
+  llamar directamente al servicio de HA.
+- Requiere `mega_dispositivos` 1.8.0+ con el parche instalado — en
+  firmware más antiguo o sin el parche, las pulsaciones 3/4 no tendrán
+  efecto (mismo comportamiento degradado que ya tenía antes de la
+  v3.0.0, sin error visible).
+
+## [3.0.0] - 2026-09-24 (blueprint persiana_pulsador_completo) — SUPERSEDIDO por la v4.0.0
+
+Workaround intermedio mientras `cover.set_cover_position` no
+funcionaba sobre estas entidades (ver entrada `[1.0.0] blueprint
+persiana_ir_a_posicion` más abajo, y la de `mega_dispositivos` 1.8.0
+confirmada en placa real). Llamaba al script
+`persiana_ir_a_posicion.yaml` en vez de a `set_cover_position`
+directamente — revertido en la v4.0.0 una vez el firmware lo soporta
+de verdad. Se deja esta entrada por historial; no instanciar esta
+versión en instalaciones nuevas.
+
 ## [2.0.0] - 2026-09-17 (blueprint persiana_pulsador_completo)
 
 ### Changed
@@ -496,13 +524,14 @@ día — ambos `mega_dispositivos` y `mega_pulsadores_low_ram` retoman
 `1.6.3`/`1.0.0-low-ram`, para no generar un salto de versión hacia
 atrás), y a partir de aquí cada uno evoluciona por su cuenta.
 
-## [1.8.0] - 2026-09-24 (mega_dispositivos) — EN RAMA `feature/hacover-set-position`, SIN VERIFICAR EN PLACA REAL
+## [1.8.0] - 2026-09-24 (mega_dispositivos) — confirmado en placa real
 
 ⚠️ No mezclar con la entrada de más abajo "[1.8.0] ... INTENTADO Y
-REVERTIDO" — son dos intentos distintos del mismo número de versión,
-en ramas distintas. Esta entrada vive en la rama
-`feature/hacover-set-position`, no en `master`, hasta que alguien
-confirme que compila y funciona en hardware real.
+REVERTIDO" — son dos intentos distintos del mismo número de versión.
+Aquel se revirtió por no compilar; esta es la versión buena, fusionada
+desde la rama `feature/hacover-set-position` tras confirmar que
+compila y funciona en hardware real (el parche instalado, la persiana
+respondiendo a `cover.set_cover_position` desde HA).
 
 ### Added
 - Segundo intento de resolver `cover.set_cover_position` desde el
@@ -511,17 +540,19 @@ confirme que compila y funciona en hardware real.
   librería: ver `mega_dispositivos/lib_overrides/README.md` para el
   detalle completo del parche (nuevo `set_position_topic` en el
   discovery, nueva suscripción, nuevo `onPositionCommand(callback)` en
-  `HACover`).
+  `HACover`) y los pasos de instalación (sobrescribir dos ficheros en
+  la copia de `ArduinoHA` instalada localmente — no es automático vía
+  Library Manager, hay que aplicarlo a mano en cada máquina que
+  compile este firmware).
 - `mega_dispositivos.ino`: nuevo callback `onCoverPositionCommand` +
-  array `posicionObjetivo[]`, misma lógica que el intento anterior
-  (arranca el motor hacia el objetivo, `loop()` para al alcanzarlo
-  usando la estimación por tiempo ya existente) — esa parte no cambió,
-  el único problema real era la librería.
-- **Pendiente antes de fusionar a `master`**: confirmar que compila y
-  funciona en una placa real con el parche de `lib_overrides/`
-  aplicado. El intento anterior falló precisamente por no haberse
-  verificado contra la librería real antes de subir a `master` — no
-  repetir ese error con este.
+  array `posicionObjetivo[]` — arranca el motor hacia el objetivo y
+  `loop()` para al alcanzarlo, usando la misma estimación de posición
+  por tiempo que ya paraba las persianas en el extremo 0/100.
+- Con esto, `home_assistant/blueprints/persiana_ir_a_posicion.yaml`
+  (el script-workaround 100% en HA, publicado mientras no había forma
+  de arreglarlo en firmware) queda obsoleto — movido a
+  `home_assistant/blueprints/legacy/`. `persiana_pulsador_completo.yaml`
+  vuelve a llamar a `cover.set_cover_position` directamente.
 
 ## [1.0.0] - 2026-09-24 (blueprint persiana_ir_a_posicion, nuevo)
 

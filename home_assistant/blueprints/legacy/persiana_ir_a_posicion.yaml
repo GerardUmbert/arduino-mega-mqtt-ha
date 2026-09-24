@@ -1,14 +1,26 @@
 blueprint:
-  name: Persiana — ir a posición X% (parada por posición reportada)
+  name: "[LEGACY] Persiana — ir a posición X% (parada por posición reportada)"
   description: >
-    `mega_dispositivos` reporta la posición (0-100%) de cada persiana por
-    MQTT mientras se mueve, pero **no acepta comandos de posición**: la
-    librería `ArduinoHA` no expone ningún callback para recibirlos en
-    `HACover` (solo `PositionFeature` para reportar, no para comandar) —
-    `cover.set_cover_position` no hace nada sobre estas entidades, sin
-    error visible. Ver `CHANGELOG.md`, entrada de reversión de la 1.8.0.
+    ⚠️ **En desuso desde `mega_dispositivos` 1.8.0.** Este script era un
+    workaround temporal mientras `cover.set_cover_position` no hacía
+    nada sobre estas entidades — la librería `ArduinoHA` de fábrica no
+    acepta comandos de posición, solo los reporta. Desde la 1.8.0,
+    `mega_dispositivos.ino` usa una copia parcheada de `ArduinoHA` (ver
+    `mega_dispositivos/lib_overrides/README.md`) que sí implementa
+    `onPositionCommand`, así que `cover.set_cover_position` ya funciona
+    de verdad, de forma nativa, sin este script intermedio.
 
-    Este script rodea esa limitación **desde el lado de Home Assistant**:
+    **No instancies este blueprint en instalaciones nuevas.** Si ya
+    tienes una instancia (de cuando se publicó, ver `CHANGELOG.md`),
+    puedes borrarla y usar `cover.set_cover_position` directamente —
+    `persiana_pulsador_completo.yaml` ya no lo necesita desde su
+    `v4.0.0`. Solo relevante si alguna unidad `mega_dispositivos` sigue
+    en firmware anterior a 1.8.0 sin actualizar (o sin el parche de
+    `lib_overrides/` instalado).
+
+    Descripción original — qué hacía y por qué:
+
+    Este script rodeaba esa limitación **desde el lado de Home Assistant**:
     abre o cierra la persiana hacia el objetivo con `open_cover`/
     `close_cover`, vigila la posición que el firmware ya reporta
     (`current_position`), y llama a `stop_cover` en cuanto la cruza. No

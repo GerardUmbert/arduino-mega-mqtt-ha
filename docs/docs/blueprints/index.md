@@ -21,27 +21,29 @@ Blueprints → Importar.
     en [`mega_pulsadores_low_ram`](../firmware/mega-pulsadores-low-ram.md)
     y en la [guía de decisión](../firmware/decision.md).
 
-## Posición de persianas: se reporta nativa (1.6.0+), pero NO se puede comandar
+## Posición de persianas: nativa de verdad desde firmware 1.8.0+
 
 Desde `mega_dispositivos` 1.6.0, cada persiana reporta su propia
 posición (0-100%) directamente por MQTT (`HACover::PositionFeature`),
-estimada en el propio firmware por tiempo de relé activo. El slider de
-posición se ve en la tarjeta, y `cover.open_cover` / `cover.close_cover`
-/ `cover.stop_cover` funcionan directamente sobre `cover.persiana_XX_YY`.
+estimada en el propio firmware por tiempo de relé activo. Desde la
+**1.8.0**, esa posición también se puede **comandar**:
+`cover.set_cover_position` mueve la persiana de verdad, igual que
+`cover.open_cover` / `cover.close_cover` / `cover.stop_cover`,
+directamente sobre `cover.persiana_XX_YY`.
 
-!!! warning "`cover.set_cover_position` no hace nada sobre estas entidades"
-    La librería `ArduinoHA` que usa `mega_dispositivos` solo permite
-    *reportar* posición, no *recibir* comandos de posición desde HA —
-    no es un problema de configuración ni de versión de firmware, es
-    una limitación de la librería (confirmado intentando añadir
-    soporte en la v1.8.0, revertido — ver `CHANGELOG.md` del repo raíz).
-    Para "ir a X%" de verdad, usa
-    [`persiana_ir_a_posicion.yaml`](persiana-pulsador-completo.md), un
-    script que vigila la posición ya reportada y para el movimiento al
-    cruzarla.
+!!! warning "Requiere el parche de ArduinoHA en mega_dispositivos/lib_overrides/"
+    La librería `ArduinoHA` de fábrica (Library Manager, sin parchear)
+    solo permite *reportar* posición, no *recibir* comandos de
+    posición desde HA — sin el parche documentado en
+    `mega_dispositivos/lib_overrides/README.md` (repo raíz),
+    `cover.set_cover_position` no hace nada sobre estas entidades, sin
+    error visible. No es un problema de configuración de HA, es una
+    limitación real de la librería original.
 
-!!! note "`persiana_posicion.yaml` (legacy)"
-    El blueprint que simulaba posición por HA con 4 helpers
-    `input_number` por persiana, pensado para firmwares anteriores a
-    1.6.0 sin reporte de posición real, ya no hace falta: usa
-    `persiana_ir_a_posicion.yaml` en su lugar.
+!!! note "Blueprints en desuso"
+    `persiana_posicion.yaml` (simulaba posición por HA con 4 helpers
+    `input_number`, para firmwares anteriores a 1.6.0 sin reporte de
+    posición real) y `persiana_ir_a_posicion.yaml` (script-workaround
+    usado mientras `set_cover_position` no funcionaba, antes del
+    parche de la 1.8.0) quedan ambos en `legacy/` — hoy ninguno hace
+    falta, usa `cover.set_cover_position` directamente.
