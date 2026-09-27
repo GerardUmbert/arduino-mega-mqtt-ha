@@ -98,6 +98,40 @@
 #define HABILITAR_LARGA
 #define HABILITAR_LARGA_FIN
 
+// ===========================================================
+// BOTON VIRTUAL POR PULSADOR (HAButton) — ON/OFF
+// Coméntalo para NO crear los HAButton. Cada uno es una entidad MQTT
+// completa (unique_id, topic de comando y buffer de nombre propios),
+// así que desactivarlo ahorra más RAM por pulsador que quitar
+// cualquiera de los 7 triggers de arriba — mismo criterio que en
+// mega_pulsadores_low_ram (ver su CHANGELOG, entrada donde se añadió
+// este flag).
+//
+// Qué se pierde al desactivarlo: los botones "Press" en Controls del
+// dispositivo en HA (simulan un clic corto/doble/triple/etc. desde la
+// UI). NO afecta a los pulsadores físicos ni a los HADeviceTrigger.
+//
+// ACTIVADO por defecto (a diferencia de mega_pulsadores_low_ram, donde
+// está desactivado por defecto): aquí el límite de pulsadores por
+// unidad es más bajo (12-16, ver comentario junto a NUM_PULSADORES) y
+// normalmente sobra margen de RAM para tenerlo activo.
+#define HABILITAR_BOTON_VIRTUAL
+
+// ===========================================================
+// DEBUG POR SERIAL — ON/OFF
+// Coméntalo para compilar sin nada de instrumentación. Quita:
+//   - freeMemory() y el "[debug] RAM libre"
+//   - el "[boton] ... -> ..." de cada pulsación
+// Cada Serial.print bloquea el loop mientras vacía el buffer de 9600
+// baudios — con muchos pulsadores y una línea impresa por pulsación,
+// la pausa se nota. Mismo criterio que en mega_pulsadores_low_ram.
+//
+// ACTIVADO por defecto: a diferencia de low_ram, aquí no hay un timing
+// tan ajustado (OneButton se lee con tick() normal, sin el requisito
+// de <5ms entre llamadas que tiene AceButton), así que el coste de
+// mantenerlo activo es menor. Desactívalo si necesitas ese margen.
+#define HABILITAR_DEBUG
+
 EthernetClient client;
 HADevice device(mac, sizeof(mac));
 
@@ -159,8 +193,14 @@ const int NUM_PULSADORES = sizeof(PINES_BOTONES) / sizeof(PINES_BOTONES[0]);
 #endif
 #define NUM_TRIGGERS_POR_PULSADOR _TRIGGERS_ACTIVOS_7
 
-// + 1 por el HAButton virtual de cada pulsador, + margen
-HAMqtt mqtt(client, device, NUM_PULSADORES * (NUM_TRIGGERS_POR_PULSADOR + 1) + 2);
+// Entidades MQTT por pulsador: sus triggers activos, + 1 por el
+// HAButton virtual si está activado (ver HABILITAR_BOTON_VIRTUAL), + margen.
+#ifdef HABILITAR_BOTON_VIRTUAL
+    #define _ENTIDADES_POR_PULSADOR (NUM_TRIGGERS_POR_PULSADOR + 1)
+#else
+    #define _ENTIDADES_POR_PULSADOR NUM_TRIGGERS_POR_PULSADOR
+#endif
+HAMqtt mqtt(client, device, NUM_PULSADORES * _ENTIDADES_POR_PULSADOR + 2);
 
 // Array estático (no punteros a objetos con new): OneButton tiene
 // constructor por defecto + setup() para configurar el pin después,
@@ -192,6 +232,7 @@ OneButton botones[NUM_PULSADORES];
 // quíntuple. No sirve para simular una pulsación LARGA (que necesita
 // mantener el pin activo un tiempo variable) — eso queda fuera de esta
 // primera versión.
+#ifdef HABILITAR_BOTON_VIRTUAL
 #define SIMULACION_PULSO_MS 90
 
 HAButton* botonVirtual[NUM_PULSADORES];
@@ -199,6 +240,7 @@ HAButton* botonVirtual[NUM_PULSADORES];
 // Por pulsador: 0 = sin simulación en curso. Si no es 0, es el
 // millis() en el que hay que soltar el pulso simulado (ver loop()).
 unsigned long simulacionSoltarEn[NUM_PULSADORES];
+#endif
 
 // Orden deliberado: corta -> doble -> triple -> cuádruple -> quíntuple
 // (progresión 1-2-3-4-5 pulsaciones), y larga/fin de larga aparte, al
@@ -243,7 +285,10 @@ char idBoton[NUM_PULSADORES][4];
 // (ej. "vp14"). Un buffer aparte de idBoton porque HADeviceTrigger y
 // HAButton son cosas distintas en ArduinoHA (trigger vs. entidad real)
 // y conviene que sus identificadores no se confundan a simple vista.
+// Solo existe si el botón virtual está activo.
+#ifdef HABILITAR_BOTON_VIRTUAL
 char idBotonVirtual[NUM_PULSADORES][5];
+#endif
 
 void imprimirMac() {
     for (uint8_t i = 0; i < sizeof(mac); i++) {
@@ -271,30 +316,44 @@ void onMqttDisconnected() {
 // de medición — una sola lectura no basta para saber qué se come la
 // RAM (coste fijo de Ethernet/MQTT vs. coste por pulsador vs. coste
 // por tipo de trigger), hacen falta varias lecturas comparadas.
+#ifdef HABILITAR_DEBUG
 extern char* __brkval;
 extern char __bss_end;
 int freeMemory() {
     char top;
     return &top - (__brkval ? __brkval : &__bss_end);
 }
+#endif
 
 #ifdef HABILITAR_CORTA
 void onClick(void* param) {
     int idx = reinterpret_cast<int>(param);
-    corta[idx]->trigger();
+#ifdef HABILITAR_DEBUG
+    bool ok = corta[idx]->trigger();
     Serial.print(F("[boton] "));
     Serial.print(idBoton[idx]);
-    Serial.println(F(" -> corta"));
+    Serial.print(F(" -> corta ["));
+    Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+    Serial.println(']');
+#else
+    corta[idx]->trigger();
+#endif
 }
 #endif
 
 #ifdef HABILITAR_DOBLE
 void onDoubleClick(void* param) {
     int idx = reinterpret_cast<int>(param);
-    doble[idx]->trigger();
+#ifdef HABILITAR_DEBUG
+    bool ok = doble[idx]->trigger();
     Serial.print(F("[boton] "));
     Serial.print(idBoton[idx]);
-    Serial.println(F(" -> doble"));
+    Serial.print(F(" -> doble ["));
+    Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+    Serial.println(']');
+#else
+    doble[idx]->trigger();
+#endif
 }
 #endif
 
@@ -307,6 +366,27 @@ void onDoubleClick(void* param) {
 void onMultiClick(void* param) {
     int idx = reinterpret_cast<int>(param);
     int clics = botones[idx].getNumberClicks();
+#ifdef HABILITAR_DEBUG
+    bool ok = false;
+    switch (clics) {
+#ifdef HABILITAR_TRIPLE
+        case 3: ok = triple[idx]->trigger();    break;
+#endif
+#ifdef HABILITAR_CUADRUPLE
+        case 4: ok = cuadruple[idx]->trigger(); break;
+#endif
+#ifdef HABILITAR_QUINTUPLE
+        case 5: ok = quintuple[idx]->trigger(); break;
+#endif
+    }
+    Serial.print(F("[boton] "));
+    Serial.print(idBoton[idx]);
+    Serial.print(F(" -> multiclick x"));
+    Serial.print(clics);
+    Serial.print(F(" ["));
+    Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+    Serial.println(']');
+#else
     switch (clics) {
 #ifdef HABILITAR_TRIPLE
         case 3: triple[idx]->trigger();    break;
@@ -318,33 +398,43 @@ void onMultiClick(void* param) {
         case 5: quintuple[idx]->trigger(); break;
 #endif
     }
-    Serial.print(F("[boton] "));
-    Serial.print(idBoton[idx]);
-    Serial.print(F(" -> multiclick x"));
-    Serial.println(clics);
+#endif
 }
 #endif
 
 #ifdef HABILITAR_LARGA
 void onLongPressStart(void* param) {
     int idx = reinterpret_cast<int>(param);
-    larga[idx]->trigger();
+#ifdef HABILITAR_DEBUG
+    bool ok = larga[idx]->trigger();
     Serial.print(F("[boton] "));
     Serial.print(idBoton[idx]);
-    Serial.println(F(" -> larga (inicio)"));
+    Serial.print(F(" -> larga (inicio) ["));
+    Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+    Serial.println(']');
+#else
+    larga[idx]->trigger();
+#endif
 }
 #endif
 
 #ifdef HABILITAR_LARGA_FIN
 void onLongPressStop(void* param) {
     int idx = reinterpret_cast<int>(param);
-    largaFin[idx]->trigger();
+#ifdef HABILITAR_DEBUG
+    bool ok = largaFin[idx]->trigger();
     Serial.print(F("[boton] "));
     Serial.print(idBoton[idx]);
-    Serial.println(F(" -> larga (fin)"));
+    Serial.print(F(" -> larga (fin) ["));
+    Serial.print(ok ? F("publicado") : F("FALLO MQTT"));
+    Serial.println(']');
+#else
+    largaFin[idx]->trigger();
+#endif
 }
 #endif
 
+#ifdef HABILITAR_BOTON_VIRTUAL
 // Al pulsar el HAButton virtual de un pulsador en HA: inicia el pulso
 // simulado (press). El release se dispara solo, más tarde, desde
 // loop() (ver simulacionSoltarEn) — aquí solo se marca cuándo debe
@@ -354,13 +444,16 @@ void onBotonVirtual(HAButton* sender) {
         if (botonVirtual[i] == sender) {
             botones[i].tick(false); // false = activo en LOW = "pulsado"
             simulacionSoltarEn[i] = millis() + SIMULACION_PULSO_MS;
+#ifdef HABILITAR_DEBUG
             Serial.print(F("[boton] "));
             Serial.print(idBoton[i]);
             Serial.println(F(" -> pulsación simulada desde HA"));
+#endif
             break;
         }
     }
 }
+#endif
 
 void setup() {
     Serial.begin(9600);
@@ -376,37 +469,91 @@ void setup() {
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.0");
+    device.setSoftwareVersion("1.9.0");
+
+    // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
+    // solo HADeviceTrigger/HAButton — no después del bucle.
+    //
+    // Mismo bug que en mega_pulsadores_low_ram (ver su CHANGELOG,
+    // entradas 1.8.3/1.8.5): el buffer por defecto de PubSubClient (256
+    // bytes) no alcanza para el payload de discovery de un
+    // device_automation, así que HA nunca recibe el registro del
+    // trigger — sin ningún error visible, y el pulsador sigue
+    // detectándose y publicando su evento con normalidad, solo que HA
+    // lo descarta por no tener el trigger registrado. Aquí es aún más
+    // probable que ocurra: hasta 7 triggers por pulsador (frente a 4 en
+    // low_ram), así que el payload puede ser igual de largo o más.
+    //
+    // setBufferSize() hace un realloc, que necesita un bloque CONTIGUO
+    // libre y devuelve false EN SILENCIO si no lo encuentra — por eso
+    // tiene que ir antes de crear los objetos del bucle de pulsadores
+    // (con new), mientras el heap todavía está intacto.
+    //
+    // 384 y no 512/1024, mismo cálculo que en low_ram (payload JSON +
+    // topic + cabecera MQTT ronda los 260-280 bytes para el trigger más
+    // largo). Si NOMBRE_PLACA se alarga mucho, recalcular.
+    mqtt.setBufferSize(384);
+
+    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO: cuenta cada entidad MQTT que se
+    // crea, para comparar al final de setup() con el hueco reservado en
+    // el constructor de HAMqtt.
+#ifdef HABILITAR_DEBUG
+    int entidadesCreadas = 0;
+#endif
 
     // --- creamos cada pulsador y sus triggers activos (ver HABILITAR_* arriba) ---
     for (int i = 0; i < NUM_PULSADORES; i++) {
         snprintf(idBoton[i], sizeof(idBoton[i]), "p%d", PINES_BOTONES[i]);
+#ifdef HABILITAR_BOTON_VIRTUAL
         snprintf(idBotonVirtual[i], sizeof(idBotonVirtual[i]), "v%s", idBoton[i]);
+#endif
 
         botones[i].setup(PINES_BOTONES[i], INPUT_PULLUP, true); // true = activo en LOW
 
 #ifdef HABILITAR_CORTA
         corta[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonShortPressType,     idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_DOBLE
         doble[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonDoublePressType,    idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_TRIPLE
         triple[i]    = new HADeviceTrigger(HADeviceTrigger::ButtonTriplePressType,    idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_CUADRUPLE
         cuadruple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuadruplePressType, idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_QUINTUPLE
         quintuple[i] = new HADeviceTrigger(HADeviceTrigger::ButtonQuintuplePressType, idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_LARGA
         larga[i]     = new HADeviceTrigger(HADeviceTrigger::ButtonLongPressType,      idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 #ifdef HABILITAR_LARGA_FIN
         largaFin[i]  = new HADeviceTrigger(HADeviceTrigger::ButtonLongReleaseType,    idBoton[i]);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
 #endif
 
+#ifdef HABILITAR_BOTON_VIRTUAL
         // Botón virtual: entidad real y pulsable en la UI de HA (a
         // diferencia de los HADeviceTrigger de arriba). unique_id
         // propio (idBotonVirtual[i], ej. "vp14") para no confundirlo
@@ -414,6 +561,10 @@ void setup() {
         botonVirtual[i] = new HAButton(idBotonVirtual[i]);
         botonVirtual[i]->setName(idBoton[i]);
         botonVirtual[i]->onCommand(onBotonVirtual);
+#ifdef HABILITAR_DEBUG
+        entidadesCreadas++;
+#endif
+#endif
 
         // void* que se le pasa de vuelta a cada callback (ver onClick() etc.
         // más arriba) para que sepa de qué pulsador se trata — no podemos
@@ -443,6 +594,21 @@ void setup() {
         // botones[i].setClickMs(400);   // ventana para detectar doble/triple
         // botones[i].setPressMs(1000);  // tiempo para considerar "larga"
     }
+
+#ifdef HABILITAR_DEBUG
+    // ⚠️ TEMPORAL — DEBUG DIAGNOSTICO: cuantas entidades MQTT se han
+    // creado de verdad vs. el hueco reservado en el constructor de
+    // HAMqtt. Si "creadas" supera el "maximo", ArduinoHA descarta en
+    // silencio las que no caben y se perderian triggers sin aviso.
+    Serial.print(F("[debug] entidades MQTT creadas: "));
+    Serial.print(entidadesCreadas);
+    Serial.print(F(" / maximo reservado: "));
+    Serial.println(NUM_PULSADORES * _ENTIDADES_POR_PULSADOR + 2);
+    Serial.print(F("[debug] NUM_PULSADORES="));
+    Serial.print(NUM_PULSADORES);
+    Serial.print(F(" triggers/pulsador="));
+    Serial.println(NUM_TRIGGERS_POR_PULSADOR);
+#endif
 
     Serial.println(F("[boot] iniciando Ethernet (IP fija)..."));
     Ethernet.begin(mac, IP_ESTATICA, IP_GATEWAY, IP_GATEWAY, IP_SUBNET);
@@ -479,6 +645,7 @@ void setup() {
     Serial.println(F("[boot] conectando a MQTT..."));
     mqtt.begin(BROKER_ADDR, MQTT_USER, MQTT_PASS);
 
+#ifdef HABILITAR_DEBUG
     // ⚠️ TEMPORAL — DEBUG DE RAM: quitar junto con freeMemory() de más
     // arriba cuando ya no haga falta medir. Se imprime al final de
     // setup() a propósito: es el punto de mínima RAM libre del
@@ -486,10 +653,12 @@ void setup() {
     Serial.print(F("[debug] RAM libre: "));
     Serial.print(freeMemory());
     Serial.println(F(" bytes"));
+#endif
 }
 
 void loop() {
     mqtt.loop();
+#ifdef HABILITAR_BOTON_VIRTUAL
     unsigned long ahora = millis();
     for (int i = 0; i < NUM_PULSADORES; i++) {
         if (simulacionSoltarEn[i] != 0 && ahora >= simulacionSoltarEn[i]) {
@@ -508,6 +677,13 @@ void loop() {
         // se inyectó una vez en onBotonVirtual() y no hace falta
         // repetirlo.
     }
+#else
+    // Sin botón virtual no hay nada que simular: lectura normal de
+    // todos los pulsadores.
+    for (int i = 0; i < NUM_PULSADORES; i++) {
+        botones[i].tick();
+    }
+#endif
 
     static unsigned long ultimoAviso = 0;
     if (!mqtt.isConnected() && millis() - ultimoAviso > 5000) {

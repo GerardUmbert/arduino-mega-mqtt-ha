@@ -23,6 +23,40 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.9.0] - 2026-09-27 (mega_pulsadores)
+
+Porta a `mega_pulsadores` (OneButton) los tres cambios de RAM/fiabilidad
+que `mega_pulsadores_low_ram` ya tenía desde su propia 1.9.0 (ver esa
+entrada más abajo) y que nunca se habían aplicado aquí.
+
+### Fixed
+- **`setBufferSize(384)` al principio de `setup()`, antes de crear
+  ninguna entidad.** Mismo bug que en `mega_pulsadores_low_ram`
+  (CHANGELOG 1.8.3/1.8.5): el buffer por defecto de PubSubClient (256
+  bytes) no alcanza para el payload de discovery de un
+  `device_automation`, así que HA nunca recibe el registro del trigger
+  — sin ningún error visible, el pulsador se detecta y publica su
+  evento con total normalidad, pero HA lo descarta por no tener el
+  trigger registrado. Aquí el riesgo es igual o mayor que en
+  `low_ram`: hasta 7 triggers por pulsador (frente a 4), así que el
+  payload de discovery más largo puede ser igual o más pesado.
+  `mega_pulsadores` nunca había tenido esta llamada — no era una
+  regresión, simplemente no se había portado.
+
+### Added
+- **`HABILITAR_BOTON_VIRTUAL`** — permite desactivar el `HAButton`
+  virtual de cada pulsador (ahorra más RAM por pulsador que cualquiera
+  de los 7 triggers). **Activado por defecto** (a diferencia de
+  `mega_pulsadores_low_ram`, donde está desactivado por defecto): aquí
+  el límite de pulsadores por unidad ya es más bajo (12-16) y
+  normalmente sobra RAM para tenerlo activo.
+- **`HABILITAR_DEBUG`** — envuelve `freeMemory()`, el contador de
+  entidades creadas y el `[publicado]/[FALLO MQTT]` de cada pulsación
+  en un flag, igual que en `low_ram`. **Activado por defecto**: aquí no
+  hay un requisito de timing tan ajustado como el de AceButton (<5ms
+  entre `check()`), así que el coste de dejarlo activo es menor. Los
+  mensajes `[boot]`/`[mqtt]` no dependen de este flag.
+
 ## [4.0.0] - 2026-09-24 (blueprint persiana_pulsador_completo)
 
 ### Changed
