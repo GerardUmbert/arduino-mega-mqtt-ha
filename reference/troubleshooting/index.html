@@ -1160,6 +1160,48 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#quiero-ver-en-vivo-que-pulsador-estoy-pulsando-y-no-se-que-topic-mirar" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=""Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-vs-evento-son-dos-topics-distintos" class="md-nav__link">
+    <span class="md-ellipsis">
+      Discovery vs. evento: son dos topics distintos
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#el-subtype-del-boton-es-sensible-a-mayusculasminusculas" class="md-nav__link">
+    <span class="md-ellipsis">
+      El "Subtype del botón" es sensible a mayúsculas/minúsculas
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#por-que-developer-tools-events-con-device_automation_trigger-no-sirve-para-esto" class="md-nav__link">
+    <span class="md-ellipsis">
+      Por qué "Developer Tools → Events" con device_automation_trigger no sirve para esto
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#cambie-el-firmware-de-una-unidad-y-las-automatizaciones-ya-existentes-dejaron-de-funcionar" class="md-nav__link">
     <span class="md-ellipsis">
       "Cambié el firmware de una unidad y las automatizaciones ya existentes dejaron de funcionar"
@@ -1326,6 +1368,48 @@
       "Un blueprint dejó de dispararse sin ningún error"
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quiero-ver-en-vivo-que-pulsador-estoy-pulsando-y-no-se-que-topic-mirar" class="md-nav__link">
+    <span class="md-ellipsis">
+      "Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label=""Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-vs-evento-son-dos-topics-distintos" class="md-nav__link">
+    <span class="md-ellipsis">
+      Discovery vs. evento: son dos topics distintos
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#el-subtype-del-boton-es-sensible-a-mayusculasminusculas" class="md-nav__link">
+    <span class="md-ellipsis">
+      El "Subtype del botón" es sensible a mayúsculas/minúsculas
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#por-que-developer-tools-events-con-device_automation_trigger-no-sirve-para-esto" class="md-nav__link">
+    <span class="md-ellipsis">
+      Por qué "Developer Tools → Events" con device_automation_trigger no sirve para esto
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1544,6 +1628,87 @@ específicos son:</p>
 </table>
 <p>Revisa la tabla de compatibilidad completa en la
 <a href="../../firmware/decision/">guía de decisión</a>.</p>
+<h2 id="quiero-ver-en-vivo-que-pulsador-estoy-pulsando-y-no-se-que-topic-mirar">"Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"<a class="headerlink" href="#quiero-ver-en-vivo-que-pulsador-estoy-pulsando-y-no-se-que-topic-mirar" title="Permanent link">&para;</a></h2>
+<p>Caso real, diagnosticado el 2026-09-27. La confusión tiene dos capas
+distintas, y conviene no mezclarlas.</p>
+<h3 id="discovery-vs-evento-son-dos-topics-distintos">Discovery vs. evento: son dos topics distintos<a class="headerlink" href="#discovery-vs-evento-son-dos-topics-distintos" title="Permanent link">&para;</a></h3>
+<p><code>HADeviceTrigger</code>/<code>HAButton</code> (vía ArduinoHA) publican en <strong>dos sitios
+diferentes</strong> que suenan parecido pero no lo son:</p>
+<table>
+<thead>
+<tr>
+<th>Qué es</th>
+<th>Topic</th>
+<th>Cuándo se publica</th>
+<th>Qué contiene</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Discovery</strong> (registro)</td>
+<td><code>homeassistant/device_automation/&lt;device_id&gt;/.../config</code></td>
+<td>Una vez, al arrancar/reconectar, con <code>retain: true</code></td>
+<td>JSON con <code>type</code>, <code>subtype</code>, <code>dev</code> (nombre, ids...) y el campo <code>"t"</code> — que es justo el topic del evento real</td>
+</tr>
+<tr>
+<td><strong>Evento</strong> (la pulsación en sí)</td>
+<td><code>aha/&lt;device_id&gt;/&lt;trigger&gt;/t</code></td>
+<td>Cada vez que ocurre la pulsación</td>
+<td>Payload corto, sin retain</td>
+</tr>
+</tbody>
+</table>
+<p>Escuchar solo <code>homeassistant/device_automation/#</code> (como recomienda la
+sección de arriba) es correcto para comprobar <strong>qué anunció la placa al
+arrancar</strong>, pero si la placa ya lleva un rato conectada, pulsar un botón
+<strong>no genera tráfico nuevo ahí</strong> — el discovery ya se envió hace rato. Es
+fácil interpretar ese silencio como "no está pulsando/publicando nada",
+cuando en realidad solo estás mirando el topic equivocado para ver
+pulsaciones en vivo.</p>
+<div class="admonition tip">
+<p class="admonition-title">Para ver CADA pulsación en tiempo real, en cualquier placa</p>
+<p><strong>Ajustes → Dispositivos y servicios → MQTT → Configurar →
+"Escuchar un topic"</strong>, con:</p>
+<div class="highlight"><pre><span></span><code>#
+</code></pre></div>
+<p>(la almohadilla sola, sin nada más) — captura todo el tráfico del
+broker, incluidos los topics <code>aha/...</code> de cada evento. Pulsa un
+botón físico y aparecerá algo como:</p>
+<div class="highlight"><pre><span></span><code>aha/020000010001/button_short_press_p35/t
+</code></pre></div>
+<p>De ahí sales con el <code>device_id</code> (<code>020000010001</code> → qué unidad, A o
+B) y el pin (<code>p35</code>) de ESE botón físico concreto — la forma más
+directa de averiguar "qué cable va a qué pin" sin adivinar ni
+depender de que el discovery se repita.</p>
+<p>Filtrar con <code>aha/#</code> en vez de <code>#</code> a secas también vale una vez
+sabes que ese es el prefijo — pero para el primer diagnóstico usa
+<code>#</code> a secas, sin asumir el prefijo de antemano.</p>
+</div>
+<h3 id="el-subtype-del-boton-es-sensible-a-mayusculasminusculas">El "Subtype del botón" es sensible a mayúsculas/minúsculas<a class="headerlink" href="#el-subtype-del-boton-es-sensible-a-mayusculasminusculas" title="Permanent link">&para;</a></h3>
+<p>El firmware genera siempre el id en minúscula
+(<code>snprintf(idBoton[i], ..., "p%d", pin)</code> — ver <code>.ino</code> de
+<code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code>). Si al rellenar el campo
+<strong>"Subtype del botón"</strong> de un blueprint escribes <code>P35</code> en vez de <code>p35</code>,
+el trigger <strong>no coincide con nada y la automatización nunca se
+dispara</strong> — sin ningún error visible en ningún sitio, ni en HA ni en
+Serial.</p>
+<p><strong>Señal de que es esto</strong>: confirmaste con <code>#</code> que el mensaje SÍ llega
+(<code>button_short_press_p35</code>), pero la automatización sigue sin
+ejecutarse.</p>
+<p><strong>Solución</strong>: copia el subtype tal cual aparece en el topic/JSON de
+discovery (todo en minúscula, <code>p35</code>), no lo escribas de memoria.</p>
+<h3 id="por-que-developer-tools-events-con-device_automation_trigger-no-sirve-para-esto">Por qué "Developer Tools → Events" con <code>device_automation_trigger</code> no sirve para esto<a class="headerlink" href="#por-que-developer-tools-events-con-device_automation_trigger-no-sirve-para-esto" title="Permanent link">&para;</a></h3>
+<p>Es tentador escuchar el evento interno de HA <code>device_automation_trigger</code>
+en <strong>Ajustes → Herramientas de desarrollo → Eventos</strong>, pensando que ahí
+aparecerá cualquier pulsación de cualquier dispositivo. En la práctica,
+en una automatización disparada por <code>platform: device</code> con
+<code>domain: mqtt</code> (que es como están hechos todos los blueprints de este
+repo), <strong>no se observó ningún evento ahí</strong> al pulsar, ni siquiera con un
+pulsador cuya automatización sí se ejecutaba correctamente. HA parece
+resolver ese trigger internamente sin pasar por ese bus de eventos
+genérico. No uses esa pantalla para depurar pulsadores — usa el listener
+MQTT (<code>#</code>) de la sección de arriba, que sí es fiable porque mira el
+tráfico real del broker en vez de un evento interno de HA.</p>
 <h2 id="cambie-el-firmware-de-una-unidad-y-las-automatizaciones-ya-existentes-dejaron-de-funcionar">"Cambié el firmware de una unidad y las automatizaciones ya existentes dejaron de funcionar"<a class="headerlink" href="#cambie-el-firmware-de-una-unidad-y-las-automatizaciones-ya-existentes-dejaron-de-funcionar" title="Permanent link">&para;</a></h2>
 <p><strong>Causa</strong>: cambiar entre <code>mega_pulsadores</code>/<code>mega_pulsadores_low_ram</code>,
 o cambiar el subtype format (<code>boton_NN</code> → <code>pNN</code>, versión 1.7.1), hace
