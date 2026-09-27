@@ -242,6 +242,44 @@ Una instancia por cada luz Zigbee con relé de respaldo:
    `temp_calida_mireds`/`temp_fria_mireds` si tu bombilla tiene un
    rango distinto al de la IKEA TRÅDFRI WW/CW.
 
+## `pulsador_generico.yaml`
+
+Expone las 7 pulsaciones posibles de un pulsador de `mega_pulsadores`
+(corta, doble, triple, cuádruple, quíntuple, larga, fin de larga) como
+7 acciones **totalmente libres** — sin ninguna lógica prefijada, a
+diferencia de `luz_pulsador.yaml` o `persiana_pulsador_completo.yaml`.
+Tú decides qué hace cada pulsación al instanciarlo, y puedes dejar
+cualquiera vacía si no la necesitas.
+
+Pensado para dos casos:
+
+- **Identificar pulsadores**: instanciarlo con una sola acción rellena
+  (p. ej. "corta" → notificación persistente o `logbook.log` con el
+  pin) para descubrir qué botón de pared corresponde a qué pin, sin
+  tener que escuchar MQTT en crudo — ver
+  [troubleshooting.md](../../docs/docs/reference/troubleshooting.md)
+  para el porqué de esta necesidad y las trampas encontradas.
+- **Casos que no encajan en los blueprints existentes**: cuando quieres
+  un comportamiento propio por pulsación en vez de las lógicas ya
+  hechas de luz/persiana.
+
+⚠️ **Solo tiene sentido completo en `mega_pulsadores` (OneButton).**
+`mega_pulsadores_low_ram` (AceButton) no soporta triple/cuádruple/
+quíntuple — en un pulsador de esa unidad, deja esas 3 acciones vacías y
+usa como mucho corta/doble/larga/larga_fin.
+
+### Instanciar el blueprint
+
+1. Ajustes → Automatizaciones y escenas → Blueprints → importar
+   `pulsador_generico.yaml` → Crear automatización.
+2. **Pulsador (device)** y **Subtype del botón**: igual que en los
+   demás blueprints — elige el device MQTT y copia el subtype (p. ej.
+   `p14`) desde la UI al añadir el disparador.
+3. Rellena solo las acciones que necesites (**Acción — pulsación
+   corta**, **doble**, etc.) — cada una es un editor de acciones normal
+   de HA, admite cualquier secuencia de servicios/condiciones/plantillas.
+   Las que dejes vacías no hacen nada al dispararse esa pulsación.
+
 ## Persianas que se ajustan solas según el sol: Adaptive Cover (HACS)
 
 No es un blueprint de este repo, sino una **integración externa de HA**

@@ -1,0 +1,158 @@
+blueprint:
+  name: Pulsador genérico — las 7 pulsaciones a tu elección
+  description: >
+    Expone las 7 pulsaciones posibles de un pulsador físico de
+    `mega_pulsadores` (corta, doble, triple, cuádruple, quíntuple, larga
+    y fin de larga) como 7 acciones independientes y totalmente libres —
+    tú decides qué hace cada una al instanciar el blueprint, sin ninguna
+    lógica prefijada como en `luz_pulsador.yaml` o
+    `persiana_pulsador_completo.yaml`.
+
+    Pensado para: pulsadores sin un rol fijo todavía (identificar qué
+    pin es qué botón de pared), o casos que no encajan en los otros
+    blueprints y prefieres escribir tú mismo la secuencia de acciones
+    para cada pulsación.
+
+    ⚠️ **Solo funciona con `mega_pulsadores` (OneButton).**
+    `mega_pulsadores_low_ram` (AceButton) NO soporta triple, cuádruple
+    ni quíntuple clic — si el pulsador está en esa unidad, deja esas 3
+    acciones vacías (nunca se dispararán) y usa como mucho
+    corta/doble/larga/larga_fin.
+
+    Cualquier acción que dejes vacía simplemente no hace nada al
+    disparar esa pulsación — no hace falta rellenar las 7.
+  domain: automation
+  input:
+    boton_device_id:
+      name: Pulsador (device)
+      description: >
+        El dispositivo MQTT del pulsador en HA (Ajustes → Dispositivos y
+        servicios → MQTT → "Mega Pulsadores A/B").
+      selector:
+        device:
+          integration: mqtt
+    boton_subtype:
+      name: Subtype del botón
+      description: >
+        Identificador del botón, p. ej. "p14" (número de pin). Más
+        fiable copiarlo desde la UI al añadir el disparador Device en
+        vez de escribirlo a mano — ver troubleshooting.md sobre
+        mayúsculas/minúsculas si la automatización no se dispara.
+      selector:
+        text: {}
+    accion_corta:
+      name: Acción — pulsación corta
+      default: []
+      selector:
+        action: {}
+    accion_doble:
+      name: Acción — pulsación doble
+      default: []
+      selector:
+        action: {}
+    accion_triple:
+      name: Acción — pulsación triple
+      description: No disponible en mega_pulsadores_low_ram (AceButton).
+      default: []
+      selector:
+        action: {}
+    accion_cuadruple:
+      name: Acción — pulsación cuádruple
+      description: No disponible en mega_pulsadores_low_ram (AceButton).
+      default: []
+      selector:
+        action: {}
+    accion_quintuple:
+      name: Acción — pulsación quíntuple
+      description: No disponible en mega_pulsadores_low_ram (AceButton).
+      default: []
+      selector:
+        action: {}
+    accion_larga:
+      name: Acción — larga (al empezar a mantener pulsado)
+      default: []
+      selector:
+        action: {}
+    accion_larga_fin:
+      name: Acción — fin de larga (al soltar tras mantener pulsado)
+      default: []
+      selector:
+        action: {}
+
+mode: parallel
+max: 10
+
+trigger:
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_short_press
+    subtype: !input boton_subtype
+    id: corta
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_double_press
+    subtype: !input boton_subtype
+    id: doble
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_triple_press
+    subtype: !input boton_subtype
+    id: triple
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quadruple_press
+    subtype: !input boton_subtype
+    id: cuadruple
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_quintuple_press
+    subtype: !input boton_subtype
+    id: quintuple
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_press
+    subtype: !input boton_subtype
+    id: larga
+  - platform: device
+    domain: mqtt
+    device_id: !input boton_device_id
+    type: button_long_release
+    subtype: !input boton_subtype
+    id: larga_fin
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: corta
+        sequence: !input accion_corta
+      - conditions:
+          - condition: trigger
+            id: doble
+        sequence: !input accion_doble
+      - conditions:
+          - condition: trigger
+            id: triple
+        sequence: !input accion_triple
+      - conditions:
+          - condition: trigger
+            id: cuadruple
+        sequence: !input accion_cuadruple
+      - conditions:
+          - condition: trigger
+            id: quintuple
+        sequence: !input accion_quintuple
+      - conditions:
+          - condition: trigger
+            id: larga
+        sequence: !input accion_larga
+      - conditions:
+          - condition: trigger
+            id: larga_fin
+        sequence: !input accion_larga_fin

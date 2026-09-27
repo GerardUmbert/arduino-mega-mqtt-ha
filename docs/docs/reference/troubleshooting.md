@@ -207,6 +207,85 @@ específicos son:
 Revisa la tabla de compatibilidad completa en la
 [guía de decisión](../firmware/decision.md).
 
+## "Quiero ver en vivo qué pulsador estoy pulsando, y no sé qué topic mirar"
+
+Caso real, diagnosticado el 2026-09-27. La confusión tiene dos capas
+distintas, y conviene no mezclarlas.
+
+### Discovery vs. evento: son dos topics distintos
+
+`HADeviceTrigger`/`HAButton` (vía ArduinoHA) publican en **dos sitios
+diferentes** que suenan parecido pero no lo son:
+
+| Qué es | Topic | Cuándo se publica | Qué contiene |
+|---|---|---|---|
+| **Discovery** (registro) | `homeassistant/device_automation/<device_id>/.../config` | Una vez, al arrancar/reconectar, con `retain: true` | JSON con `type`, `subtype`, `dev` (nombre, ids...) y el campo `"t"` — que es justo el topic del evento real |
+| **Evento** (la pulsación en sí) | `aha/<device_id>/<trigger>/t` | Cada vez que ocurre la pulsación | Payload corto, sin retain |
+
+Escuchar solo `homeassistant/device_automation/#` (como recomienda la
+sección de arriba) es correcto para comprobar **qué anunció la placa al
+arrancar**, pero si la placa ya lleva un rato conectada, pulsar un botón
+**no genera tráfico nuevo ahí** — el discovery ya se envió hace rato. Es
+fácil interpretar ese silencio como "no está pulsando/publicando nada",
+cuando en realidad solo estás mirando el topic equivocado para ver
+pulsaciones en vivo.
+
+!!! tip "Para ver CADA pulsación en tiempo real, en cualquier placa"
+    **Ajustes → Dispositivos y servicios → MQTT → Configurar →
+    "Escuchar un topic"**, con:
+
+    ```
+    #
+    ```
+
+    (la almohadilla sola, sin nada más) — captura todo el tráfico del
+    broker, incluidos los topics `aha/...` de cada evento. Pulsa un
+    botón físico y aparecerá algo como:
+
+    ```
+    aha/020000010001/button_short_press_p35/t
+    ```
+
+    De ahí sales con el `device_id` (`020000010001` → qué unidad, A o
+    B) y el pin (`p35`) de ESE botón físico concreto — la forma más
+    directa de averiguar "qué cable va a qué pin" sin adivinar ni
+    depender de que el discovery se repita.
+
+    Filtrar con `aha/#` en vez de `#` a secas también vale una vez
+    sabes que ese es el prefijo — pero para el primer diagnóstico usa
+    `#` a secas, sin asumir el prefijo de antemano.
+
+### El "Subtype del botón" es sensible a mayúsculas/minúsculas
+
+El firmware genera siempre el id en minúscula
+(`snprintf(idBoton[i], ..., "p%d", pin)` — ver `.ino` de
+`mega_pulsadores`/`mega_pulsadores_low_ram`). Si al rellenar el campo
+**"Subtype del botón"** de un blueprint escribes `P35` en vez de `p35`,
+el trigger **no coincide con nada y la automatización nunca se
+dispara** — sin ningún error visible en ningún sitio, ni en HA ni en
+Serial.
+
+**Señal de que es esto**: confirmaste con `#` que el mensaje SÍ llega
+(`button_short_press_p35`), pero la automatización sigue sin
+ejecutarse.
+
+**Solución**: copia el subtype tal cual aparece en el topic/JSON de
+discovery (todo en minúscula, `p35`), no lo escribas de memoria.
+
+### Por qué "Developer Tools → Events" con `device_automation_trigger` no sirve para esto
+
+Es tentador escuchar el evento interno de HA `device_automation_trigger`
+en **Ajustes → Herramientas de desarrollo → Eventos**, pensando que ahí
+aparecerá cualquier pulsación de cualquier dispositivo. En la práctica,
+en una automatización disparada por `platform: device` con
+`domain: mqtt` (que es como están hechos todos los blueprints de este
+repo), **no se observó ningún evento ahí** al pulsar, ni siquiera con un
+pulsador cuya automatización sí se ejecutaba correctamente. HA parece
+resolver ese trigger internamente sin pasar por ese bus de eventos
+genérico. No uses esa pantalla para depurar pulsadores — usa el listener
+MQTT (`#`) de la sección de arriba, que sí es fiable porque mira el
+tráfico real del broker en vez de un evento interno de HA.
+
 ## "Cambié el firmware de una unidad y las automatizaciones ya existentes dejaron de funcionar"
 
 **Causa**: cambiar entre `mega_pulsadores`/`mega_pulsadores_low_ram`,
