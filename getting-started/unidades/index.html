@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#identificacion-de-unidades-ab" class="md-skip">
+        <a href="#identificacion-de-unidades-abc" class="md-skip">
           Saltar a contenido
         </a>
       
@@ -1169,16 +1169,17 @@
   
 
 
-<h1 id="identificacion-de-unidades-ab">Identificación de unidades A/B<a class="headerlink" href="#identificacion-de-unidades-ab" title="Permanent link">&para;</a></h1>
+<h1 id="identificacion-de-unidades-abc">Identificación de unidades A/B/C<a class="headerlink" href="#identificacion-de-unidades-abc" title="Permanent link">&para;</a></h1>
 <p>Cada rol usa un único fichero <code>.ino</code> (o, para pulsadores, uno de los
-dos firmwares posibles), pero la identidad de cada unidad física (A o
-B) se decide en <strong>tiempo de compilación</strong>, no con un jumper físico.</p>
-<p>Al principio del <code>.ino</code> hay un bloque <code>PLACA_A</code>/<code>PLACA_B</code>:</p>
+dos firmwares posibles), pero la identidad de cada unidad física (A, B
+o C) se decide en <strong>tiempo de compilación</strong>, no con un jumper físico.</p>
+<p>Al principio del <code>.ino</code> hay un bloque <code>PLACA_A</code>/<code>PLACA_B</code>/<code>PLACA_C</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="cp">#define PLACA_A</span>
 <span class="c1">// #define PLACA_B</span>
+<span class="c1">// #define PLACA_C</span>
 </code></pre></div>
-<p>Se deja descomentada <strong>SOLO una</strong> de las dos líneas según a qué unidad
-física vayas a subir ese firmware, se compila y se sube. Para la otra
+<p>Se deja descomentada <strong>SOLO una</strong> de las tres líneas según a qué unidad
+física vayas a subir ese firmware, se compila y se sube. Para otra
 unidad, se cambia la línea descomentada y se vuelve a subir.</p>
 <pre class="mermaid"><code>flowchart LR
     D["#define PLACA_A"] --&gt; A1["board_config_a.h"]
@@ -1189,34 +1190,38 @@ unidad, se cambia la línea descomentada y se vuelve a subir.</p>
     E["#define PLACA_B"] --&gt; B1["board_config_b.h"]
     E --&gt; B2["MAC …0x01"]
     E --&gt; B3["IP_ESTATICA de B"]
-    E --&gt; B4["Nombre: 'Mega Pulsadores B'"]</code></pre>
+    E --&gt; B4["Nombre: 'Mega Pulsadores B'"]
+
+    F["#define PLACA_C"] --&gt; C1["board_config_c.h"]
+    F --&gt; C2["MAC …0x02"]
+    F --&gt; C3["IP_ESTATICA de C"]
+    F --&gt; C4["Nombre: 'Mega Pulsadores C'"]</code></pre>
 <p>Ese único <code>#define</code> selecciona a la vez <strong>cuatro cosas</strong>:</p>
 <ul>
-<li>Qué fichero de configuración se incluye (<code>board_config_a.h</code> o
-  <code>board_config_b.h</code>), con los pines realmente cableados en esa
-  unidad.</li>
-<li>El último byte de la MAC (distinto en A y B, para no colisionar en
-  la red).</li>
-<li>La IP fija de esa unidad (<code>IP_ESTATICA</code>, distinta en A y B).</li>
-<li>El nombre del dispositivo en HA (<code>Mega Pulsadores A/B</code>, <code>Mega
-  Dispositivos A/B</code>).</li>
+<li>Qué fichero de configuración se incluye (<code>board_config_a.h</code>,
+  <code>board_config_b.h</code> o <code>board_config_c.h</code>), con los pines realmente
+  cableados en esa unidad.</li>
+<li>El último byte de la MAC (distinto en cada unidad, para no colisionar
+  en la red).</li>
+<li>La IP fija de esa unidad (<code>IP_ESTATICA</code>, distinta en cada unidad).</li>
+<li>El nombre del dispositivo en HA (<code>Mega Pulsadores A/B/C</code>, <code>Mega
+  Dispositivos A/B/C</code>).</li>
 </ul>
 <div class="admonition success">
 <p class="admonition-title">Protección contra errores</p>
-<p>Si por error se compila sin descomentar ninguna línea, o con las
-dos a la vez, el propio <code>.ino</code> falla la compilación con un
-<code>#error</code> explícito en vez de subir un firmware con identidad
-ambigua.</p>
+<p>Si por error se compila sin descomentar ninguna línea, o con varias
+a la vez, el propio <code>.ino</code> falla la compilación con un <code>#error</code>
+explícito en vez de subir un firmware con identidad ambigua.</p>
 </div>
 <h2 id="direcciones-mac">Direcciones MAC<a class="headerlink" href="#direcciones-mac" title="Permanent link">&para;</a></h2>
 <p>Las MACs se inventan localmente porque el Mega + shield Ethernet no
 trae MAC de fábrica (primer byte <code>0x02</code> = "administrada localmente").
 El byte <code>[3]</code> distingue familia (<code>0x01</code> = mega_pulsadores, <code>0x02</code> =
 mega_dispositivos) para que nunca choquen en la red, y el último byte
-distingue unidad A (<code>0x00</code>) de B (<code>0x01</code>).</p>
+distingue unidad A (<code>0x00</code>) de B (<code>0x01</code>) de C (<code>0x02</code>).</p>
 <p>Se usa además <code>device.enableExtendedUniqueIds()</code> para que HA no
-confunda entidades con el mismo ID (p. ej. <code>p14</code>) entre la unidad A y
-la B del mismo rol.</p>
+confunda entidades con el mismo ID (p. ej. <code>p14</code>) entre unidades del
+mismo rol.</p>
 
 
 
