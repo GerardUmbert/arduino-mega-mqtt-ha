@@ -42,16 +42,29 @@
 - [ ] Como las 2 unidades de cada rol comparten broker, normalmente basta un
       único `config.h` por rol (mismo contenido en unidad A y B).
 
-## Identidad A/B al compilar (PLACA_A / PLACA_B)
+## Identidad A/B/C al compilar (PLACA_A / PLACA_B / PLACA_C)
 
-- [ ] Decidir físicamente qué unidad de cada rol es A y cuál es B.
+- [ ] Decidir físicamente qué unidad de cada rol es A, cuál es B y cuál
+      es C.
 - [ ] Antes de subir firmware a cada unidad: en el `.ino` correspondiente,
-      dejar descomentada SOLO `#define PLACA_A` o SOLO `#define PLACA_B`
-      según la unidad física a la que se va a flashear en ese momento, y
-      compilar/subir. Repetir cambiando la línea para la otra unidad.
-- [ ] Etiquetar físicamente cada placa (A/B + rol) para no confundirlas al
-      reprogramar o hacer mantenimiento — ya no hay jumper que lo delate en
-      runtime si te equivocas de unidad al flashear.
+      dejar descomentada SOLO `#define PLACA_A`, SOLO `#define PLACA_B` o
+      SOLO `#define PLACA_C` según la unidad física a la que se va a
+      flashear en ese momento, y compilar/subir. Repetir cambiando la
+      línea para cada unidad.
+- [ ] Etiquetar físicamente cada placa (A/B/C + rol) para no confundirlas
+      al reprogramar o hacer mantenimiento — ya no hay jumper que lo
+      delate en runtime si te equivocas de unidad al flashear.
+- [x] `mega_dispositivos` y `mega_pulsadores_low_ram`: añadida la tercera
+      unidad `PLACA_C` / `board_config_c.h` (2026-09-28) — mismo patrón
+      que A/B, MAC con último byte `0x02`, IP `.64` (dispositivos) /
+      `.65` (pulsadores). **Pines aún en placeholder**, pendiente de
+      cablear la unidad física y rellenar `PINES_LUCES`/
+      `PINES_PERSIANAS`/`TIEMPOS_PERSIANAS` (mega_dispositivos) o
+      `PINES_BOTONES` (mega_pulsadores_low_ram) con el cableado real
+      antes de flashear.
+- [ ] `mega_pulsadores` (no low_ram): sigue solo con A/B — si también se
+      quiere una unidad C ahí, replicar el mismo patrón (ver más abajo,
+      "RAM / límite de pulsadores por unidad").
 
 ## Pines reales cableados e IP fija
 
@@ -59,17 +72,24 @@
       (`PINES_BOTONES`): ajustar la lista de pines a los pulsadores
       realmente cableados en CADA unidad (A y B tendrán listas distintas
       si no cablean lo mismo).
-- [ ] `mega_dispositivos/board_config_a.h` y `board_config_b.h`
-      (`PINES_LUCES` y `PINES_PERSIANAS`): idem para luces y pares
-      subir/bajar de persianas — cada unidad puede tener una mezcla
-      distinta (p. ej. una unidad solo con luces, la otra con luces y
-      persianas).
+- [ ] `mega_pulsadores_low_ram/board_config_a.h`, `board_config_b.h` y
+      `board_config_c.h` (`PINES_BOTONES`): idem — la C está creada pero
+      con el array vacío (placeholder), rellenar con el cableado real.
+- [ ] `mega_dispositivos/board_config_a.h`, `board_config_b.h` y
+      `board_config_c.h` (`PINES_LUCES` y `PINES_PERSIANAS`): idem para
+      luces y pares subir/bajar de persianas — cada unidad puede tener
+      una mezcla distinta (p. ej. una unidad solo con luces, otra con
+      luces y persianas). La C está creada pero con los arrays vacíos
+      (placeholder).
 - [ ] Revisar que ningún pin usado choque con los reservados por el shield
       Ethernet (SPI: 50/51/52/53, CS: normalmente 10).
-- [ ] `IP_ESTATICA` en los 4 `board_config_*.h`: ahora mismo son
-      placeholders (`192.168.1.60`-`.63`) — confirmar que están fuera del
-      rango DHCP de tu router (o reservadas para la MAC de cada unidad) y
-      ajustar si hace falta.
+- [ ] `IP_ESTATICA` en todos los `board_config_*.h`: `mega_dispositivos`
+      usa `.60`/`.61`/`.64` (A/B/C), `mega_pulsadores` y
+      `mega_pulsadores_low_ram` usan `.62`/`.63`/`.65` (A/B/C, mismo
+      rango entre las dos variantes de pulsadores ya que no se flashean
+      a la vez en la misma unidad física) — confirmar que están fuera
+      del rango DHCP de tu router (o reservadas para la MAC de cada
+      unidad) y ajustar si hace falta.
 
 ## RAM / límite de pulsadores por unidad
 

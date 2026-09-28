@@ -23,6 +23,25 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
 
+## [1.9.1] - 2026-09-28 (mega_dispositivos)
+
+### Added
+- **Tercera unidad física `PLACA_C` / `board_config_c.h`**, mismo patrón
+  que A/B: MAC con último byte `0x02`, `IP_ESTATICA` `192.168.1.64`,
+  nombre HA `"Mega Dispositivos C"`. El bloque `#if`/`#error` de
+  exclusividad mutua se extiende a las tres placas. Pines
+  (`PINES_LUCES`/`PINES_PERSIANAS`/`TIEMPOS_PERSIANAS`) quedan en
+  placeholder, pendientes del cableado real de la unidad.
+
+## [1.9.1] - 2026-09-28 (mega_pulsadores_low_ram)
+
+### Added
+- **Tercera unidad física `PLACA_C` / `board_config_c.h`**, mismo patrón
+  que A/B: MAC con último byte `0x02`, `IP_ESTATICA` `192.168.1.65`,
+  nombre HA `"Mega Pulsadores C"`. El bloque `#if`/`#error` de
+  exclusividad mutua se extiende a las tres placas. `PINES_BOTONES`
+  queda en placeholder, pendiente del cableado real de la unidad.
+
 ## [1.9.0] - 2026-09-27 (mega_pulsadores)
 
 Porta a `mega_pulsadores` (OneButton) los tres cambios de RAM/fiabilidad

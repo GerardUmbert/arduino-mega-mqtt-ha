@@ -4,9 +4,9 @@
 // de luces y persianas correspondientes.
 // No lee ningún pulsador. Solo RECIBE órdenes y las ejecuta.
 //
-// Mismo firmware para las 2 unidades físicas (A y B): la identidad
-// (pines, MAC, IP, nombre) se decide en TIEMPO DE COMPILACIÓN con
-// PLACA_A/PLACA_B (ver más abajo) — no hay jumper físico.
+// Mismo firmware para las distintas unidades físicas (A, B, C...): la
+// identidad (pines, MAC, IP, nombre) se decide en TIEMPO DE COMPILACIÓN
+// con PLACA_A/PLACA_B/PLACA_C (ver más abajo) — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
@@ -47,25 +47,28 @@ struct ParPines { uint8_t subir; uint8_t bajar; };
 
 // ===========================================================
 // IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
-// Deja SOLO una de las dos líneas descomentada según a qué unidad
+// Deja SOLO una de las tres líneas descomentada según a qué unidad
 // física vayas a subir este firmware. Selecciona a la vez: los pines
-// cableados, la MAC, la IP fija y el nombre en Home Assistant
-// (todo en board_config_a.h / board_config_b.h). Vuelve a compilar
-// y subir tras cambiarla.
+// cableados, la MAC, la IP fija y el nombre en Home Assistant (todo
+// en board_config_a.h / board_config_b.h / board_config_c.h). Vuelve
+// a compilar y subir tras cambiarla.
 // ===========================================================
 #define PLACA_A
 // #define PLACA_B
+// #define PLACA_C
 
-#if defined(PLACA_A) && defined(PLACA_B)
-    #error "Deja solo una de PLACA_A o PLACA_B descomentada, no las dos."
-#elif !defined(PLACA_A) && !defined(PLACA_B)
-    #error "Descomenta PLACA_A o PLACA_B para indicar qué unidad es esta."
+#if (defined(PLACA_A) + defined(PLACA_B) + defined(PLACA_C)) > 1
+    #error "Deja solo una de PLACA_A, PLACA_B o PLACA_C descomentada, no varias."
+#elif !defined(PLACA_A) && !defined(PLACA_B) && !defined(PLACA_C)
+    #error "Descomenta PLACA_A, PLACA_B o PLACA_C para indicar qué unidad es esta."
 #endif
 
 #if defined(PLACA_A)
     #include "board_config_a.h"
 #elif defined(PLACA_B)
     #include "board_config_b.h"
+#elif defined(PLACA_C)
+    #include "board_config_c.h"
 #endif
 
 EthernetClient client;
@@ -308,11 +311,11 @@ void setup() {
     imprimirMac();
     Serial.println();
 
-    // Evita que HA confunda entidades con el mismo ID entre unidad A y B
+    // Evita que HA confunda entidades con el mismo ID entre unidades
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.8.0");
+    device.setSoftwareVersion("1.9.1");
 
     // --- luces: se crean y configuran en bucle ---
     for (int i = 0; i < NUM_LUCES; i++) {

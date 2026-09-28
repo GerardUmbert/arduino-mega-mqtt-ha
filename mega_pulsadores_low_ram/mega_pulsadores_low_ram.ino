@@ -27,12 +27,12 @@
 // Si tienes dudas, usa mega_pulsadores/ (con OneButton) por defecto —
 // esta carpeta es la opción de RAM ajustada, no el firmware normal.
 //
-// ⚠️ CARPETA DUPLICADA: board_config_a.h, board_config_b.h y
-// config.h.example de aquí son COPIAS independientes de las de
-// mega_pulsadores/, no las mismas (Arduino IDE exige que los .h vivan
-// en la misma carpeta que el .ino). Si cambias pines, MAC, IP o nombre
-// en una carpeta, coméntalo y valora si el mismo cambio aplica también
-// en la otra — no se sincronizan solas.
+// ⚠️ CARPETA DUPLICADA: board_config_a.h, board_config_b.h,
+// board_config_c.h y config.h.example de aquí son COPIAS independientes
+// de las de mega_pulsadores/, no las mismas (Arduino IDE exige que los
+// .h vivan en la misma carpeta que el .ino). Si cambias pines, MAC, IP
+// o nombre en una carpeta, coméntalo y valora si el mismo cambio aplica
+// también en la otra — no se sincronizan solas.
 //
 // No controla ningún relé. Solo ENVÍA información.
 //
@@ -44,8 +44,8 @@
 // pulsación larga.
 //
 // Mismo patrón que mega_pulsadores/: identidad de la placa (pines,
-// MAC, IP, nombre) en TIEMPO DE COMPILACIÓN con PLACA_A/PLACA_B — no
-// hay jumper físico.
+// MAC, IP, nombre) en TIEMPO DE COMPILACIÓN con
+// PLACA_A/PLACA_B/PLACA_C — no hay jumper físico.
 //
 // Librerías necesarias (Arduino Library Manager):
 //   - ArduinoHA        https://github.com/dawidchyrzynski/arduino-home-assistant
@@ -71,25 +71,28 @@ using namespace ace_button;
 
 // ===========================================================
 // IDENTIFICACIÓN DE LA PLACA — ⚠️ CAMBIAR ANTES DE CADA FLASH ⚠️
-// Deja SOLO una de las dos líneas descomentada según a qué unidad
+// Deja SOLO una de las tres líneas descomentada según a qué unidad
 // física vayas a subir este firmware. Selecciona a la vez: los pines
-// cableados, la MAC, la IP fija y el nombre en Home Assistant
-// (todo en board_config_a.h / board_config_b.h). Vuelve a compilar
-// y subir tras cambiarla.
+// cableados, la MAC, la IP fija y el nombre en Home Assistant (todo
+// en board_config_a.h / board_config_b.h / board_config_c.h). Vuelve
+// a compilar y subir tras cambiarla.
 // ===========================================================
 #define PLACA_A
 // #define PLACA_B
+// #define PLACA_C
 
-#if defined(PLACA_A) && defined(PLACA_B)
-    #error "Deja solo una de PLACA_A o PLACA_B descomentada, no las dos."
-#elif !defined(PLACA_A) && !defined(PLACA_B)
-    #error "Descomenta PLACA_A o PLACA_B para indicar qué unidad es esta."
+#if (defined(PLACA_A) + defined(PLACA_B) + defined(PLACA_C)) > 1
+    #error "Deja solo una de PLACA_A, PLACA_B o PLACA_C descomentada, no varias."
+#elif !defined(PLACA_A) && !defined(PLACA_B) && !defined(PLACA_C)
+    #error "Descomenta PLACA_A, PLACA_B o PLACA_C para indicar qué unidad es esta."
 #endif
 
 #if defined(PLACA_A)
     #include "board_config_a.h"
 #elif defined(PLACA_B)
     #include "board_config_b.h"
+#elif defined(PLACA_C)
+    #include "board_config_c.h"
 #endif
 
 // ===========================================================
@@ -471,11 +474,11 @@ void setup() {
     Serial.println();
 
     // Evita que HA confunda entidades/triggers con el mismo ID
-    // entre la unidad A y la B (les añade un prefijo único por placa).
+    // entre unidades (les añade un prefijo único por placa).
     device.enableExtendedUniqueIds();
 
     device.setName(NOMBRE_PLACA);
-    device.setSoftwareVersion("1.9.0");
+    device.setSoftwareVersion("1.9.1");
 
     // ⚠️ ORDEN CRITICO: setBufferSize() va AQUI, antes de crear ni un
     // solo HADeviceTrigger/HAButton — no después del bucle, donde
