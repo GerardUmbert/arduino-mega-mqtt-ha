@@ -321,3 +321,32 @@
       falta (líneas comentadas en `mega_pulsadores/mega_pulsadores.ino:140-142`). Con 5
       niveles de multi-click puede convenir ampliar `setClickMs` para dar
       más margen a pulsar 4 o 5 veces seguidas sin que se corte antes.
+
+## Prototipo UDP: control directo sin Home Assistant (`*_udp`)
+
+- [ ] **Compilar** `mega_pulsadores_low_ram_udp/` y
+      `mega_dispositivos_udp/` — nunca se han compilado (se escribieron sin
+      acceso a arduino-cli). Confirmar sobre todo que existe
+      `EthernetClient::setConnectionTimeout()` en la librería Ethernet
+      instalada (hace falta ≥ 2.0.1).
+- [ ] Crear `config.h` en cada carpeta `_udp` desde `config.h.example` y
+      aplicar **antes de rellenar nada**
+      `git update-index --skip-worktree <carpeta>/config.h` (ninguna de las
+      dos está protegida de fábrica, ver `README.md`).
+- [ ] Rellenar `mega_dispositivos_udp/udp_reglas.h` con el cableado real
+      de cada unidad (ahora las tablas están vacías, con ejemplos
+      comentados de pines inventados).
+- [ ] Medir RAM real de `mega_pulsadores_low_ram_udp` con
+      `HABILITAR_DEBUG` y compararla con `mega_pulsadores_low_ram` en la
+      misma unidad (estimado: unas decenas de bytes, sin verificar).
+- [ ] Probar en placa con el broker apagado: ¿se pierden pulsaciones por
+      el bloqueo de los reintentos MQTT? (`UDP_TIMEOUT_CONEXION_MQTT_MS`).
+- [ ] Verificar que el broadcast `255.255.255.255` llega a las placas de
+      dispositivos con el shield real (W5100 vs W5500).
+- [ ] Decidir `UDP_MODO` según dónde corre el broker: si es otra máquina
+      distinta de HA, el modo por defecto no cubre «solo cae HA».
+- [ ] Decidir si el prototipo merece versión propia (hoy `0.1.0-udp`),
+      tag de git y, si se adopta, si se porta también a `mega_pulsadores`
+      (OneButton). No se ha creado ningún tag.
+- [ ] Valorar un mínimo de autenticación (hoy `0xA5` solo filtra tráfico
+      ajeno): cualquier equipo de la LAN puede mover luces y persianas.

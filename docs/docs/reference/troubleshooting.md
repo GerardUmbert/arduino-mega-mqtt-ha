@@ -296,3 +296,42 @@ coincida con lo que el firmware envía ahora.
 **Solución**: vuelve a abrir cada automatización afectada y
 re-selecciona el trigger desde la UI (Añadir disparador → Device →
 elegir el evento) para que capture el subtype/formato actual.
+
+## Prototipo UDP (`*_udp`)
+
+Todo lo siguiente aplica a `mega_pulsadores_low_ram_udp` y
+`mega_dispositivos_udp`, que son prototipo y no se han probado en placa.
+
+**Con el broker apagado, los pulsadores no responden o fallan
+pulsaciones.** Cada reintento de conexión MQTT bloquea `loop()` hasta
+agotar el timeout de conexión, y AceButton necesita `check()` cada pocos
+ms. El firmware lo baja a 150 ms (`UDP_TIMEOUT_CONEXION_MQTT_MS`) con
+`client.setConnectionTimeout()`. Si ese método no compila, tu librería
+Ethernet es anterior a la 2.0.1. Si compila pero sigue fallando, baja
+más ese valor.
+
+**HA cae, pero los pulsadores siguen sin mover nada por UDP.** Con el
+modo por defecto (`UDP_MODO_SOLO_SIN_MQTT`) solo se envía UDP si MQTT
+está caído. Si el broker corre en otra máquina y solo cae HA, MQTT sigue
+conectado: usa `UDP_MODO_SIEMPRE` (y no tengas blueprints sobre esos
+pulsadores, o actuarán los dos).
+
+**Una luz se enciende y se apaga sola (o no hace nada) con HA vivo.**
+Doble acción: con `UDP_MODO_SIEMPRE` el blueprint y la placa de
+dispositivos actúan los dos sobre la misma pulsación. Vuelve al modo por
+defecto o quita el blueprint de ese pulsador.
+
+**`ERROR: sin socket UDP libre` al arrancar.** El chip Ethernet tiene 4
+sockets (W5100) u 8 (W5500) y los demás los están usando. Comprueba que
+no hay nada más abriendo conexiones en esa placa.
+
+**La pulsación llega (`[udp] ...` en el monitor serie de dispositivos)
+pero no pasa nada.** No hay fila en `udp_reglas.h` para esa combinación de
+placa de pulsadores + pin + evento, o el `destino` no es un pin de esa
+unidad (se ignora sin error). Revisa que la letra de placa sea la de
+**pulsadores**, no la de dispositivos.
+
+**No llega nada a dispositivos.** Comprueba que el puerto (`47800`) y la
+marca (`0xA5`) coinciden en ambos `.ino`, que las dos placas están en la
+misma subred (el broadcast no cruza routers) y que el switch no filtra
+broadcast.

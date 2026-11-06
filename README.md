@@ -5,7 +5,9 @@ repartidos en 2 roles (pulsadores y dispositivos), que se comunican con
 Home Assistant vía MQTT usando la librería ArduinoHA. Home Assistant
 actúa como "cerebro": recibe eventos de los pulsadores y, mediante
 automatizaciones, envía comandos a los relés que controlan luces y
-persianas. Los Arduinos nunca se comunican directamente entre sí.
+persianas. Con los firmwares estables, los Arduinos nunca se comunican
+directamente entre sí (la única excepción es el prototipo UDP, ver
+"Variante experimental: control directo sin Home Assistant" más abajo).
 
 Cada rol admite varias unidades físicas en paralelo (A, B, C...) — hoy
 hay 3 unidades por rol dadas de alta en el firmware (A, B, C).
@@ -47,6 +49,12 @@ hay 3 unidades por rol dadas de alta en el firmware (A, B, C).
 - `mega_dispositivos/board_config_a.h`, `mega_dispositivos/board_config_b.h`,
   `mega_dispositivos/board_config_c.h` — pines, MAC, IP fija y nombre HA de
   cada una de las unidades físicas.
+- `mega_pulsadores_low_ram_udp/` y `mega_dispositivos_udp/` —
+  **prototipo experimental, sin compilar ni probar en placa** (versión
+  `0.1.0-udp`): copias de `mega_pulsadores_low_ram` y `mega_dispositivos`
+  (partidas de su 1.9.1) con un camino directo por UDP entre las placas.
+  Ver "Variante experimental" más abajo. Sus `board_config_*.h` también
+  son copias independientes.
 - `todo.md` — lista de tareas pendientes antes de dar el proyecto por
   terminado (IPs, credenciales, pines reales, automatizaciones...).
 - `CHANGELOG.md` — historial de cambios del proyecto. Cada `.ino`
@@ -145,6 +153,42 @@ funcionalidad:
 El análisis completo (comparativa evento por evento con otras
 librerías, por qué se descartaron Bounce2/ezButton/Button2) está en
 `mega_pulsadores/to_review.md`.
+
+## Variante experimental: control directo sin Home Assistant
+
+> ⚠️ **Prototipo, versión `0.1.0-udp`: no compilado ni probado en placa,
+> RAM sin medir.** Los firmwares estables siguen siendo los de arriba.
+
+Con los firmwares normales, si Home Assistant o el broker MQTT caen,
+los pulsadores dejan de mover luces y persianas: la lógica vive en los
+blueprints. Las carpetas `mega_pulsadores_low_ram_udp/` y
+`mega_dispositivos_udp/` añaden un camino directo:
+
+```
+[pulsadores_low_ram_udp] --MQTT--> [Home Assistant] --MQTT--> [dispositivos_udp]
+          |                                                         ^
+          +------------------ UDP broadcast (5 bytes) --------------+
+```
+
+- El pulsador envía cada evento (corta, doble, larga, fin de larga) por
+  UDP broadcast al puerto `47800`, **además** de publicarlo por MQTT. Por
+  defecto solo lo hace mientras MQTT está caído (`UDP_MODO`).
+- El receptor decide qué hacer con una tabla de reglas
+  (`mega_dispositivos_udp/udp_reglas.h`): luz toggle/on/off, persiana
+  abrir/cerrar/parar/toggle/alternar. Es la tabla la que define qué es
+  una pulsación corta, doble o larga para cada pulsador.
+- La integración con HA se mantiene: triggers y estados siguen
+  publicándose, y al reconectar MQTT se republica el estado real.
+- Solo existe sobre `mega_pulsadores_low_ram` (AceButton: 4 eventos).
+  Sin triple/cuádruple/quíntuple.
+- ⚠️ Cualquier equipo de la LAN puede enviar esos paquetes y mover luces
+  y persianas. `0xA5` no es autenticación.
+- ⚠️ Si el broker corre en otra máquina y solo cae HA, el modo por
+  defecto no se activa; hay que usar `UDP_MODO_SIEMPRE` (y no tener
+  blueprints sobre esos pulsadores, o actuarían ambos).
+
+Detalle completo en la documentación (`docs/docs/firmware/`):
+`mega-pulsadores-low-ram-udp.md` y `mega-dispositivos-udp.md`.
 
 ## Librerías usadas y por qué
 
@@ -292,6 +336,12 @@ antes de rellenar credenciales reales:
 Si rellenas credenciales reales ANTES del paso 2, revisa `git status`
 — si `mega_pulsadores_low_ram/config.h` aparece como modificado/nuevo,
 NO hagas commit todavía: aplica el `skip-worktree` del paso 2 primero.
+
+⚠️ **`mega_pulsadores_low_ram_udp/` y `mega_dispositivos_udp/` están en
+la misma situación que `mega_pulsadores_low_ram/`**: solo traen
+`config.h.example`, sin `config.h` trackeado. Mismos tres pasos, en el
+mismo orden, para cada carpeta que uses (por ejemplo
+`git update-index --skip-worktree mega_dispositivos_udp/config.h`).
 
 ### Pines, IP fija y demás identidad por unidad (`board_config_a.h` / `board_config_b.h` / `board_config_c.h`)
 

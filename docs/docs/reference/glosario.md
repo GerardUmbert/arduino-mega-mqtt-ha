@@ -86,3 +86,24 @@
     partir del número de **pin**, nunca de la posición en el array de
     configuración — así se pueden reordenar pines sin romper
     automatizaciones ya creadas.
+
+`UDP directo` (prototipo)
+:   Camino alternativo entre las placas, sin broker ni Home Assistant,
+    que usan `mega_pulsadores_low_ram_udp` y `mega_dispositivos_udp`.
+    El pulsador envía un paquete UDP broadcast de 5 bytes por cada
+    evento y el receptor lo traduce a una acción con una tabla de
+    reglas. Convive con MQTT/HA, que sigue publicando triggers y
+    estados. Ver [`mega_pulsadores_low_ram_udp`](../firmware/mega-pulsadores-low-ram-udp.md).
+
+`regla UDP`
+:   Una fila de `udp_reglas.h` en `mega_dispositivos_udp`:
+    `{placa, pin_pulsador, evento, acción, destino}`. Define qué hace
+    una pulsación corta, doble, larga o de fin de larga sobre una luz o
+    una persiana concreta. Varias filas pueden compartir pulsador y
+    evento. Ver [`mega_dispositivos_udp`](../firmware/mega-dispositivos-udp.md#tabla-de-reglas).
+
+`UDP_MODO`
+:   Ajuste de `mega_pulsadores_low_ram_udp`. `UDP_MODO_SOLO_SIN_MQTT`
+    (por defecto) envía UDP solo mientras MQTT está caído;
+    `UDP_MODO_SIEMPRE` lo envía siempre, con el riesgo de doble acción
+    si además hay blueprints de HA sobre ese pulsador.

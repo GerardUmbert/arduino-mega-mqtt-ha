@@ -61,6 +61,7 @@ aunque más tarde hagas `git add -A` o similar sin fijarte.
 | `mega_pulsadores/` | ✅ Sí, con placeholders vacíos | ✅ Sí, de fábrica |
 | `mega_dispositivos/` | ✅ Sí, con placeholders vacíos | ✅ Sí, de fábrica |
 | `mega_pulsadores_low_ram/` | ❌ No — solo `config.h.example` | ⚠️ No puede estarlo hasta que exista (ver más abajo) |
+| `mega_pulsadores_low_ram_udp/` y `mega_dispositivos_udp/` | ❌ No — solo `config.h.example` | ⚠️ Igual que low_ram (ver [Carpetas UDP](#carpetas-udp-mismo-paso-extra-que-low_ram)) |
 
 ### `mega_pulsadores/` y `mega_dispositivos/`
 
@@ -110,3 +111,26 @@ flowchart TD
     Ejecuta `git status` — si `mega_pulsadores_low_ram/config.h`
     aparece como modificado/nuevo, **no hagas commit todavía**. Aplica
     el `skip-worktree` del paso 2 primero.
+
+### Carpetas UDP: mismo paso extra que low_ram
+
+Las carpetas experimentales
+[`mega_pulsadores_low_ram_udp/`](../firmware/mega-pulsadores-low-ram-udp.md)
+y [`mega_dispositivos_udp/`](../firmware/mega-dispositivos-udp.md)
+**tampoco traen `config.h`**, solo `config.h.example`, así que tienen
+exactamente el mismo problema que `mega_pulsadores_low_ram/`: hasta que
+el fichero exista no se le puede aplicar `skip-worktree`. Mismo orden,
+para cada una de las dos carpetas que vayas a usar:
+
+1. Copia `config.h.example` como `config.h` en esa carpeta.
+2. **Antes de rellenar nada real**:
+   ```
+   git update-index --skip-worktree mega_pulsadores_low_ram_udp/config.h
+   git update-index --skip-worktree mega_dispositivos_udp/config.h
+   ```
+   (cada comando solo si ya has creado ese `config.h`).
+3. Ahora sí, rellena `BROKER_ADDR`/`MQTT_USER`/`MQTT_PASS`.
+
+!!! danger "Estas dos carpetas NO están protegidas de fábrica"
+    Mientras no ejecutes el paso 2, un `git add -A` puede subir tus
+    credenciales reales. Revisa `git status` antes de cada commit.

@@ -65,6 +65,22 @@ flowchart TD
   permite: añadir `PLACA_C`, `board_config_c.h` y un tercer byte de
   MAC, mismo patrón que A/B.
 
+## ¿Y si necesito que funcione sin Home Assistant?
+
+Es una decisión **aparte** de la de arriba: ninguno de los firmwares
+estables funciona con HA o el broker caídos. Para eso existe la variante
+experimental [`mega_pulsadores_low_ram_udp`](mega-pulsadores-low-ram-udp.md)
++ [`mega_dispositivos_udp`](mega-dispositivos-udp.md), que añade un
+camino directo por UDP. Antes de decidirte, ten en cuenta:
+
+- Solo existe sobre la base de `mega_pulsadores_low_ram` (AceButton): los
+  4 eventos corta/doble/larga/fin de larga, nada de triple+.
+- Es un **prototipo sin probar** y su coste de RAM no está medido.
+- Hay que flashear los dos roles, y rellenar la tabla de reglas de cada
+  unidad de dispositivos a mano.
+- Si tu broker corre en otra máquina y solo cae HA, el modo por defecto
+  no se activa — ver el aviso en su página.
+
 ## Tabla de compatibilidad por blueprint
 
 | Blueprint | `mega_pulsadores` (OneButton) | `mega_pulsadores_low_ram` (AceButton) |

@@ -238,3 +238,34 @@ preguntas abiertas en [todo.md](todo.md).
   `#define ACTIVO HIGH` / `#define INACTIVO LOW` — y el resto del código
   solo usa `ACTIVO`/`INACTIVO`; los sketches actuales asumen activo en
   HIGH.
+
+## Prototipo UDP: control directo sin Home Assistant (2026-11-06)
+
+> Excepción a la regla de arriba "los Arduinos nunca se comunican
+> directamente entre sí": solo en las carpetas `*_udp`, que son un
+> **prototipo sin compilar ni probar en placa** (versión `0.1.0-udp`).
+
+- **Por qué:** con los firmwares estables, si HA o el broker caen, los
+  pulsadores no mueven nada (la lógica vive en los blueprints). Se pidió
+  que, con `mega_pulsadores_low_ram`, las placas pudieran hablar entre sí
+  sin HA.
+- **Qué se hizo:** `mega_pulsadores_low_ram_udp/` y
+  `mega_dispositivos_udp/` son copias de `mega_pulsadores_low_ram` y
+  `mega_dispositivos` (partidas de su 1.9.1). El pulsador envía cada
+  evento por UDP broadcast (5 bytes, puerto 47800) además de publicarlo
+  por MQTT; el receptor lo traduce con una tabla de reglas en
+  `udp_reglas.h` (PROGMEM).
+- **Decisiones de diseño:** broadcast (el pulsador no necesita conocer la
+  IP de cada receptor); la tabla vive en el receptor, que es quien sabe
+  qué relé es cuál; por defecto solo envía UDP con MQTT caído, para que no
+  actúen a la vez la placa y los blueprints; el paquete se manda 2 veces
+  con nº de secuencia (UDP no confirma); el estado real de las luces se
+  lee del pin (con MQTT caído `setState()` no actualiza el estado interno
+  de HASwitch) y se republica a la fuerza al reconectar.
+- **Riesgos abiertos:** reintentos MQTT con el broker caído bloquean
+  `loop()` (se baja el timeout a 150 ms, requiere Ethernet ≥ 2.0.1,
+  sin verificar); coste de RAM sin medir en una placa que trabaja cerca
+  de su umbral; si solo cae HA y no el broker, el modo por defecto no se
+  activa; cualquier equipo de la LAN puede enviar los paquetes.
+- **Pendiente:** compilar, flashear, medir RAM, rellenar `udp_reglas.h`
+  con el cableado real y probar con el broker apagado. Ver `todo.md`.

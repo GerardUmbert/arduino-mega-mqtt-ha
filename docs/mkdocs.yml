@@ -77,6 +77,8 @@ nav:
       - mega_pulsadores (OneButton): firmware/mega-pulsadores.md
       - mega_pulsadores_low_ram (AceButton): firmware/mega-pulsadores-low-ram.md
       - mega_dispositivos (relés): firmware/mega-dispositivos.md
+      - mega_pulsadores_low_ram_udp (prototipo): firmware/mega-pulsadores-low-ram-udp.md
+      - mega_dispositivos_udp (prototipo): firmware/mega-dispositivos-udp.md
   - Blueprints de Home Assistant:
       - blueprints/index.md
       - persiana_pulsador: blueprints/persiana-pulsador.md

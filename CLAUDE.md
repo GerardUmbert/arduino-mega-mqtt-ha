@@ -46,3 +46,11 @@
   MQTT"). Hasta que eso pase, trátalo con la misma cautela que
   cualquier fichero no protegido: revisa `git status` antes de
   cualquier `git add`/commit que pueda tocar esa carpeta.
+- `mega_pulsadores_low_ram_udp/` y `mega_dispositivos_udp/` (prototipo
+  UDP, ver README) están en la misma situación que
+  `mega_pulsadores_low_ram/`: solo tienen `config.h.example`, **no hay
+  `config.h` trackeado** y por tanto no tienen `skip-worktree`. Antes de
+  que el usuario rellene credenciales reales en uno de ellos, hay que
+  aplicar `git update-index --skip-worktree <carpeta>/config.h`. Hasta
+  entonces, revisa `git status` antes de cualquier `git add`/commit que
+  pueda tocar esas carpetas. Nunca crees ni rellenes ese `config.h` tú.

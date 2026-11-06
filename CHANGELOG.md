@@ -3,7 +3,8 @@
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/).
 La versión de cada entrada debe coincidir con
 `device.setSoftwareVersion(...)` en el `.ino` correspondiente
-(`mega_pulsadores`, `mega_pulsadores_low_ram` o `mega_dispositivos`) —
+(`mega_pulsadores`, `mega_pulsadores_low_ram`, `mega_dispositivos`,
+`mega_pulsadores_low_ram_udp` o `mega_dispositivos_udp`) —
 es lo que Home Assistant muestra como versión de firmware de cada
 dispositivo.
 
@@ -22,6 +23,44 @@ blueprint, se marca con un tag de git — formato `<carpeta>/vX.Y.Z`:
   de versión dentro del propio fichero): `blueprints/<nombre>/vX.Y.Z`
   (p. ej. `blueprints/luz_pulsador/v1.1.0`) — empieza en `v1.0.0` la
   primera vez que se tageé cada blueprint.
+
+## [0.1.0-udp] - 2026-11-06 (mega_pulsadores_low_ram_udp)
+
+Carpeta nueva, copia de `mega_pulsadores_low_ram` 1.9.1. **Prototipo:
+no compilado ni probado en placa, RAM sin medir.**
+
+### Added
+- **Envío directo por UDP broadcast** (`HABILITAR_UDP`): cada evento
+  (corta, doble, larga, fin de larga) se envía, además de publicarse por
+  MQTT, como un paquete de 5 bytes al puerto `47800`, para que
+  `mega_dispositivos_udp` actúe sin Home Assistant ni broker. Se manda
+  `UDP_REPETICIONES` veces (2) con nº de secuencia, para que el receptor
+  descarte la copia.
+- `UDP_MODO`: `UDP_MODO_SOLO_SIN_MQTT` (por defecto, solo envía mientras
+  MQTT está caído) o `UDP_MODO_SIEMPRE`.
+- `client.setConnectionTimeout(150)` (`UDP_TIMEOUT_CONEXION_MQTT_MS`)
+  para que los reintentos MQTT con el broker caído no bloqueen
+  `check()` de AceButton durante 1 s. Requiere Ethernet ≥ 2.0.1.
+
+## [0.1.0-udp] - 2026-11-06 (mega_dispositivos_udp)
+
+Carpeta nueva, copia de `mega_dispositivos` 1.9.1. **Prototipo: no
+compilado ni probado en placa.**
+
+### Added
+- **Recepción UDP** en el puerto `47800` y tabla de reglas
+  `udp_reglas.h` (en `PROGMEM`): `{placa, pin pulsador, evento, acción,
+  destino}`, con acciones de luz (toggle/on/off) y persiana
+  (abrir/cerrar/parar/toggle/alternar). Varias filas por pulsador+evento.
+- Descarte de duplicados por nº de secuencia (500 ms) y límite de 4
+  paquetes por vuelta de `loop()`.
+- `sincronizarConHA()`: al reconectar MQTT se republica a la fuerza el
+  estado real de luces y persianas.
+
+### Changed
+- La lógica de mover luces y persianas se extrajo a `aplicarLuz()`,
+  `abrirPersiana()` y `cerrarPersiana()`, compartidas entre HA y UDP, sin
+  cambiar su comportamiento.
 
 ## [1.9.1] - 2026-09-28 (mega_dispositivos)
 

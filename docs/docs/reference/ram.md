@@ -259,3 +259,16 @@ El procedimiento completo, paso a paso, está en
 
 Detalle completo del research en
 [`mega_pulsadores/to_review.md`](https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/to_review.md).
+
+## Coste de RAM del camino UDP (`*_udp`) — sin medir
+
+`mega_pulsadores_low_ram_udp` y `mega_dispositivos_udp` son un prototipo
+**sin compilar ni medir en placa**: no hay cifras reales todavía.
+Estimación, solo para orientarse: los buffers UDP del paquete viven en
+el chip Ethernet (no en la SRAM del Mega) y el paquete en pila son 5
+bytes, así que el coste esperado son unas decenas de bytes más código en
+flash, y la tabla de reglas va en `PROGMEM`. Como `mega_pulsadores_low_ram`
+trabaja cerca del umbral de inestabilidad (~370 bytes libres), hay que
+medirlo igual que cualquier otro cambio: `HABILITAR_DEBUG` activo,
+"RAM libre" tras `setup()`, y comparar con la versión sin UDP en la misma
+unidad. El UDP además ocupa 1 socket del chip (4 en W5100, 8 en W5500).
