@@ -577,6 +577,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#carpetas-udp-mismo-paso-extra-que-low_ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Carpetas UDP: mismo paso extra que low_ram
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -630,6 +639,10 @@
       
         
           
+        
+      
+        
+      
         
       
         
@@ -758,6 +771,48 @@
   
   <span class="md-ellipsis">
     mega_dispositivos (relés)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-pulsadores-low-ram-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_pulsadores_low_ram_udp (prototipo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-dispositivos-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_dispositivos_udp (prototipo)
   </span>
   
 
@@ -1207,6 +1262,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#carpetas-udp-mismo-paso-extra-que-low_ram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Carpetas UDP: mismo paso extra que low_ram
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1311,6 +1375,11 @@ aunque más tarde hagas <code>git add -A</code> o similar sin fijarte.</p>
 <td>❌ No — solo <code>config.h.example</code></td>
 <td>⚠️ No puede estarlo hasta que exista (ver más abajo)</td>
 </tr>
+<tr>
+<td><code>mega_pulsadores_low_ram_udp/</code> y <code>mega_dispositivos_udp/</code></td>
+<td>❌ No — solo <code>config.h.example</code></td>
+<td>⚠️ Igual que low_ram (ver <a href="#carpetas-udp-mismo-paso-extra-que-low_ram">Carpetas UDP</a>)</td>
+</tr>
 </tbody>
 </table>
 <h3 id="mega_pulsadores-y-mega_dispositivos"><code>mega_pulsadores/</code> y <code>mega_dispositivos/</code><a class="headerlink" href="#mega_pulsadores-y-mega_dispositivos" title="Permanent link">&para;</a></h3>
@@ -1354,6 +1423,28 @@ existen. Tienes que crearlo y protegerlo tú mismo, <strong>en este orden</stron
 <p>Ejecuta <code>git status</code> — si <code>mega_pulsadores_low_ram/config.h</code>
 aparece como modificado/nuevo, <strong>no hagas commit todavía</strong>. Aplica
 el <code>skip-worktree</code> del paso 2 primero.</p>
+</div>
+<h3 id="carpetas-udp-mismo-paso-extra-que-low_ram">Carpetas UDP: mismo paso extra que low_ram<a class="headerlink" href="#carpetas-udp-mismo-paso-extra-que-low_ram" title="Permanent link">&para;</a></h3>
+<p>Las carpetas experimentales
+<a href="../../firmware/mega-pulsadores-low-ram-udp/"><code>mega_pulsadores_low_ram_udp/</code></a>
+y <a href="../../firmware/mega-dispositivos-udp/"><code>mega_dispositivos_udp/</code></a>
+<strong>tampoco traen <code>config.h</code></strong>, solo <code>config.h.example</code>, así que tienen
+exactamente el mismo problema que <code>mega_pulsadores_low_ram/</code>: hasta que
+el fichero exista no se le puede aplicar <code>skip-worktree</code>. Mismo orden,
+para cada una de las dos carpetas que vayas a usar:</p>
+<ol>
+<li>Copia <code>config.h.example</code> como <code>config.h</code> en esa carpeta.</li>
+<li><strong>Antes de rellenar nada real</strong>:
+   <div class="highlight"><pre><span></span><code>git update-index --skip-worktree mega_pulsadores_low_ram_udp/config.h
+git update-index --skip-worktree mega_dispositivos_udp/config.h
+</code></pre></div>
+   (cada comando solo si ya has creado ese <code>config.h</code>).</li>
+<li>Ahora sí, rellena <code>BROKER_ADDR</code>/<code>MQTT_USER</code>/<code>MQTT_PASS</code>.</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Estas dos carpetas NO están protegidas de fábrica</p>
+<p>Mientras no ejecutes el paso 2, un <code>git add -A</code> puede subir tus
+credenciales reales. Revisa <code>git status</code> antes de cada commit.</p>
 </div>
 
 

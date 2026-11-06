@@ -549,6 +549,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -667,6 +671,48 @@
   
   <span class="md-ellipsis">
     mega_dispositivos (relés)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-pulsadores-low-ram-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_pulsadores_low_ram_udp (prototipo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-dispositivos-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_dispositivos_udp (prototipo)
   </span>
   
 
@@ -1187,6 +1233,24 @@ ver [Solución de problemas](troubleshooting.md).
     partir del número de <strong>pin</strong>, nunca de la posición en el array de
     configuración — así se pueden reordenar pines sin romper
     automatizaciones ya creadas.</p>
+<p><code>UDP directo</code> (prototipo)
+:   Camino alternativo entre las placas, sin broker ni Home Assistant,
+    que usan <code>mega_pulsadores_low_ram_udp</code> y <code>mega_dispositivos_udp</code>.
+    El pulsador envía un paquete UDP broadcast de 5 bytes por cada
+    evento y el receptor lo traduce a una acción con una tabla de
+    reglas. Convive con MQTT/HA, que sigue publicando triggers y
+    estados. Ver <a href="../../firmware/mega-pulsadores-low-ram-udp/"><code>mega_pulsadores_low_ram_udp</code></a>.</p>
+<p><code>regla UDP</code>
+:   Una fila de <code>udp_reglas.h</code> en <code>mega_dispositivos_udp</code>:
+    <code>{placa, pin_pulsador, evento, acción, destino}</code>. Define qué hace
+    una pulsación corta, doble, larga o de fin de larga sobre una luz o
+    una persiana concreta. Varias filas pueden compartir pulsador y
+    evento. Ver <a href="../../firmware/mega-dispositivos-udp/#tabla-de-reglas"><code>mega_dispositivos_udp</code></a>.</p>
+<p><code>UDP_MODO</code>
+:   Ajuste de <code>mega_pulsadores_low_ram_udp</code>. <code>UDP_MODO_SOLO_SIN_MQTT</code>
+    (por defecto) envía UDP solo mientras MQTT está caído;
+    <code>UDP_MODO_SIEMPRE</code> lo envía siempre, con el riesgo de doble acción
+    si además hay blueprints de HA sobre ese pulsador.</p>
 
 
 

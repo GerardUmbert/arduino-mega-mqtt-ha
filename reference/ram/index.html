@@ -551,6 +551,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -669,6 +673,48 @@
   
   <span class="md-ellipsis">
     mega_dispositivos (relés)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-pulsadores-low-ram-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_pulsadores_low_ram_udp (prototipo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../firmware/mega-dispositivos-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_dispositivos_udp (prototipo)
   </span>
   
 
@@ -1041,6 +1087,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#coste-de-ram-del-camino-udp-_udp-sin-medir" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coste de RAM del camino UDP (*_udp) — sin medir
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1273,6 +1328,15 @@
   <a href="#otras-librerias-consideradas-y-descartadas" class="md-nav__link">
     <span class="md-ellipsis">
       Otras librerías consideradas (y descartadas)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#coste-de-ram-del-camino-udp-_udp-sin-medir" class="md-nav__link">
+    <span class="md-ellipsis">
+      Coste de RAM del camino UDP (*_udp) — sin medir
     </span>
   </a>
   
@@ -1651,6 +1715,17 @@ entidad extra y probablemente ya no sea exacto.</p>
 </table>
 <p>Detalle completo del research en
 <a href="https://github.com/GerardUmbert/arduino-mega-mqtt-ha/blob/master/mega_pulsadores/to_review.md"><code>mega_pulsadores/to_review.md</code></a>.</p>
+<h2 id="coste-de-ram-del-camino-udp-_udp-sin-medir">Coste de RAM del camino UDP (<code>*_udp</code>) — sin medir<a class="headerlink" href="#coste-de-ram-del-camino-udp-_udp-sin-medir" title="Permanent link">&para;</a></h2>
+<p><code>mega_pulsadores_low_ram_udp</code> y <code>mega_dispositivos_udp</code> son un prototipo
+<strong>sin compilar ni medir en placa</strong>: no hay cifras reales todavía.
+Estimación, solo para orientarse: los buffers UDP del paquete viven en
+el chip Ethernet (no en la SRAM del Mega) y el paquete en pila son 5
+bytes, así que el coste esperado son unas decenas de bytes más código en
+flash, y la tabla de reglas va en <code>PROGMEM</code>. Como <code>mega_pulsadores_low_ram</code>
+trabaja cerca del umbral de inestabilidad (~370 bytes libres), hay que
+medirlo igual que cualquier otro cambio: <code>HABILITAR_DEBUG</code> activo,
+"RAM libre" tras <code>setup()</code>, y comparar con la versión sin UDP en la misma
+unidad. El UDP además ocupa 1 socket del chip (4 en W5100, 8 en W5500).</p>
 
 
 

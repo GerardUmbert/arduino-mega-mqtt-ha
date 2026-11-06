@@ -553,6 +553,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -674,6 +678,48 @@
   
   <span class="md-ellipsis">
     mega_dispositivos (relés)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="mega-pulsadores-low-ram-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_pulsadores_low_ram_udp (prototipo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="mega-dispositivos-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_dispositivos_udp (prototipo)
   </span>
   
 
@@ -1080,6 +1126,23 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      En esta página
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#variante-experimental-control-directo-sin-home-assistant" class="md-nav__link">
+    <span class="md-ellipsis">
+      Variante experimental: control directo sin Home Assistant
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1134,8 +1197,43 @@ internamente:</p>
 </table>
 <p><strong>No sabes cuál usar?</strong> → <a href="decision/">Guía de decisión</a> · Detalle
 completo de RAM en <a href="../reference/ram/">RAM y rendimiento</a>.</p>
-<p>Y para el rol "controlar relés" solo hay un firmware:
+<p>Y para el rol "controlar relés" el firmware estable es
 <a href="mega-dispositivos/"><code>mega_dispositivos</code></a>.</p>
+<h2 id="variante-experimental-control-directo-sin-home-assistant">Variante experimental: control directo sin Home Assistant<a class="headerlink" href="#variante-experimental-control-directo-sin-home-assistant" title="Permanent link">&para;</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Prototipo — sin compilar ni probar en placa</p>
+<p>Versión <code>0.1.0-udp</code>. Úsalo solo si quieres probarlo; el resto de
+firmwares son los estables.</p>
+</div>
+<p>Con los firmwares normales, <strong>si Home Assistant (o el broker MQTT) cae,
+los pulsadores dejan de mover luces y persianas</strong>: toda la lógica vive
+en los blueprints de HA. Hay una variante de cada firmware que añade un
+camino directo por UDP entre las placas:</p>
+<table>
+<thead>
+<tr>
+<th>Rol</th>
+<th>Estable</th>
+<th>Variante con UDP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pulsadores (AceButton)</td>
+<td><a href="mega-pulsadores-low-ram/"><code>mega_pulsadores_low_ram</code></a></td>
+<td><a href="mega-pulsadores-low-ram-udp/"><code>mega_pulsadores_low_ram_udp</code></a></td>
+</tr>
+<tr>
+<td>Relés</td>
+<td><a href="mega-dispositivos/"><code>mega_dispositivos</code></a></td>
+<td><a href="mega-dispositivos-udp/"><code>mega_dispositivos_udp</code></a></td>
+</tr>
+</tbody>
+</table>
+<p>Hay que flashear <strong>las dos</strong> (pulsadores y relés) para que funcione. La
+integración con HA se mantiene intacta: siguen publicándose los
+triggers y los estados por MQTT. No existe variante UDP de
+<code>mega_pulsadores</code> (OneButton).</p>
 
 
 

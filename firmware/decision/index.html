@@ -553,6 +553,10 @@
       
         
       
+        
+      
+        
+      
     
     
       
@@ -672,6 +676,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#y-si-necesito-que-funcione-sin-home-assistant" class="md-nav__link">
+    <span class="md-ellipsis">
+      ¿Y si necesito que funcione sin Home Assistant?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tabla-de-compatibilidad-por-blueprint" class="md-nav__link">
     <span class="md-ellipsis">
       Tabla de compatibilidad por blueprint
@@ -743,6 +756,48 @@
   
   <span class="md-ellipsis">
     mega_dispositivos (relés)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mega-pulsadores-low-ram-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_pulsadores_low_ram_udp (prototipo)
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../mega-dispositivos-udp/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    mega_dispositivos_udp (prototipo)
   </span>
   
 
@@ -1174,6 +1229,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#y-si-necesito-que-funcione-sin-home-assistant" class="md-nav__link">
+    <span class="md-ellipsis">
+      ¿Y si necesito que funcione sin Home Assistant?
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tabla-de-compatibilidad-por-blueprint" class="md-nav__link">
     <span class="md-ellipsis">
       Tabla de compatibilidad por blueprint
@@ -1266,6 +1330,21 @@
   pulsadores entre más unidades físicas. La arquitectura ya lo
   permite: añadir <code>PLACA_C</code>, <code>board_config_c.h</code> y un tercer byte de
   MAC, mismo patrón que A/B.</li>
+</ul>
+<h2 id="y-si-necesito-que-funcione-sin-home-assistant">¿Y si necesito que funcione sin Home Assistant?<a class="headerlink" href="#y-si-necesito-que-funcione-sin-home-assistant" title="Permanent link">&para;</a></h2>
+<p>Es una decisión <strong>aparte</strong> de la de arriba: ninguno de los firmwares
+estables funciona con HA o el broker caídos. Para eso existe la variante
+experimental <a href="../mega-pulsadores-low-ram-udp/"><code>mega_pulsadores_low_ram_udp</code></a>
++ <a href="../mega-dispositivos-udp/"><code>mega_dispositivos_udp</code></a>, que añade un
+camino directo por UDP. Antes de decidirte, ten en cuenta:</p>
+<ul>
+<li>Solo existe sobre la base de <code>mega_pulsadores_low_ram</code> (AceButton): los
+  4 eventos corta/doble/larga/fin de larga, nada de triple+.</li>
+<li>Es un <strong>prototipo sin probar</strong> y su coste de RAM no está medido.</li>
+<li>Hay que flashear los dos roles, y rellenar la tabla de reglas de cada
+  unidad de dispositivos a mano.</li>
+<li>Si tu broker corre en otra máquina y solo cae HA, el modo por defecto
+  no se activa — ver el aviso en su página.</li>
 </ul>
 <h2 id="tabla-de-compatibilidad-por-blueprint">Tabla de compatibilidad por blueprint<a class="headerlink" href="#tabla-de-compatibilidad-por-blueprint" title="Permanent link">&para;</a></h2>
 <table>
